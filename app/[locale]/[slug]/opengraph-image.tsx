@@ -1,6 +1,7 @@
 import { ImageResponse } from 'next/og';
-import { LOCALES, RUTA_CALCULADORA, esLocale } from '@/i18n/config';
+import { LOCALES, RUTAS, esLocale, paginaDe } from '@/i18n/config';
 import { TEXTOS } from '@/i18n/textos';
+import { TEXTOS_REGISTRO } from '@/i18n/textos-registro';
 
 /**
  * Imagen de vista previa al compartir.
@@ -17,13 +18,20 @@ export const contentType = 'image/png';
 export const alt = 'Klosa · Calculadora de CLV';
 
 export function generateStaticParams() {
-  return LOCALES.map((locale) => ({ locale, slug: RUTA_CALCULADORA[locale] }));
+  return LOCALES.flatMap((locale) =>
+    (['calculadora', 'registro'] as const).map((p) => ({ locale, slug: RUTAS[p][locale] })),
+  );
 }
 
-export default async function Imagen({ params }: { params: Promise<{ locale: string }> }) {
-  const { locale } = await params;
+export default async function Imagen({
+  params,
+}: {
+  params: Promise<{ locale: string; slug: string }>;
+}) {
+  const { locale, slug } = await params;
   const idioma = esLocale(locale) ? locale : 'pt';
-  const t = TEXTOS[idioma];
+  const pagina = paginaDe(idioma, slug) ?? 'calculadora';
+  const t = pagina === 'registro' ? TEXTOS_REGISTRO[idioma] : TEXTOS[idioma];
   // Primera frase de la descripción: la completa es demasiado larga para 630 px.
   const claim = `${t.meta.descripcion.split('. ')[0] ?? ''}.`;
 
