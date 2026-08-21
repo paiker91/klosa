@@ -14,8 +14,19 @@ import { dirname, join } from 'node:path';
 import type { Cierre, Pick } from './dominio';
 import { auditar, type Auditoria } from './dominio';
 
-export const RUTA_PICKS = join('picks', 'picks.jsonl');
-export const RUTA_CIERRES = join('picks', 'cierres.jsonl');
+/**
+ * Dónde vive el registro.
+ *
+ * Por defecto `picks/` dentro del proyecto, pero se puede apuntar a otro sitio
+ * con `KLOSA_PICKS_DIR`. Existe para que el registro pueda estar en su propio
+ * repositorio: así cada commit de ese repositorio es un pronóstico y nada más,
+ * y auditarlo es leer la lista de commits. Mezclado con los commits de código,
+ * habría que filtrar para comprobar lo mismo.
+ */
+const DIRECTORIO = process.env.KLOSA_PICKS_DIR ?? 'picks';
+
+export const RUTA_PICKS = join(DIRECTORIO, 'picks.jsonl');
+export const RUTA_CIERRES = join(DIRECTORIO, 'cierres.jsonl');
 
 function leerLineas<T>(ruta: string): T[] {
   if (!existsSync(ruta)) return [];
