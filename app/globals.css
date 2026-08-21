@@ -1,0 +1,40 @@
+@import 'tailwindcss';
+
+/*
+ * Sobrio y legible en móvil: el tráfico esperado viene de Telegram y Reddit,
+ * y es móvil. Sin animaciones, sin fuentes remotas, carga inmediata.
+ */
+@theme {
+  --color-fondo: #0f1115;
+  --color-superficie: #171a20;
+  --color-borde: #262b34;
+  --color-tinta: #e9eaec;
+  --color-tenue: #9aa1ad;
+  --color-positivo: #4ba36b;
+  --color-negativo: #c25b4e;
+  --color-acento: #5b8def;
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--color-fondo);
+  color: var(--color-tinta);
+}
+
+/* El foco tiene que verse siempre: se navega mucho con teclado en escritorio. */
+:focus-visible {
+  outline: 2px solid var(--color-acento);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

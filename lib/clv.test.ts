@@ -1,0 +1,237 @@
+import { describe, it, expect } from 'vitest';
+import {
+  americanaADecimal,
+  parsearCuota,
+  validarCuota,
+  overroundDe,
+  resolverK,
+  devig,
+  cuotaJusta,
+  clvBruto,
+  ventajaSobreCierre,
+  analizarApuesta,
+  agregar,
+  desviacionMuestral,
+  estadisticoT,
+  ErrorCuota,
+  type AnalisisApuesta,
+} from './clv';
+
+describe('overround y margen', () => {
+  it('calcula el overround de un mercado conocido', () => {
+    const o = overroundDe(1.9, 1.9);
+    expect(o).toBeCloseTo(1.0526, 4);
+    expect(o - 1).toBeCloseTo(0.0526, 4);
+  });
+
+  it('un mercado sin margen suma exactamente 1', () => {
+    expect(overroundDe(2, 2)).toBe(1);
+  });
+});
+
+describe('de-vig multiplicativo', () => {
+  it('reparte proporcionalmente en un mercado simétrico', () => {
+    const r = devig(1.9, 1.9, 'multiplicativo');
+    expect(r.pA).toBeCloseTo(0.5, 10);
+    expect(r.pB).toBeCloseTo(0.5, 10);
+    expect(cuotaJusta(r.pA)).toBeCloseTo(2.0, 10);
+  });
+
+  it('las probabilidades justas suman 1', () => {
+    const r = devig(1.55, 2.65, 'multiplicativo');
+    expect(r.pA + r.pB).toBeCloseTo(1, 12);
+  });
+
+  it('es el método por defecto', () => {
+    expect(devig(1.9, 1.9).metodo).toBe('multiplicativo');
+  });
+});
+
+describe('de-vig power', () => {
+  it('converge y las probabilidades suman 1', () => {
+    const r = devig(1.9, 1.9, 'power');
+    expect(r.pA + r.pB).toBeCloseTo(1, 9);
+    expect(r.k).toBeGreaterThan(1);
+  });
+
+  /*
+   * La spec proponía buscar k por bisección en [0.5, 1.5]. Este mercado tiene
+   * un margen del 33 % y su k ≈ 1.71, así que con aquel techo la bisección no
+   * habría encontrado la raíz. El test existe para que no se reintroduzca.
+   */
+  it('encuentra k por encima de 1.5 en mercados de margen alto', () => {
+    const k = resolverK(1.5, 1.5);
+    expect(k).toBeGreaterThan(1.5);
+    expect(k).toBeCloseTo(1.7095, 3);
+
+    const r = devig(1.5, 1.5, 'power');
+    expect(r.pA + r.pB).toBeCloseTo(1, 9);
+  });
+
+  it('difiere del multiplicativo en mercados asimétricos', () => {
+    const mult = devig(1.2, 5.5, 'multiplicativo');
+    const pow = devig(1.2, 5.5, 'power');
+    expect(pow.pA).not.toBeCloseTo(mult.pA, 4);
+    expect(pow.pA + pow.pB).toBeCloseTo(1, 9);
+  });
+});
+
+describe('de-vig aditivo', () => {
+  it('resta la mitad del margen a cada lado', () => {
+    const r = devig(1.9, 1.9, 'aditivo');
+    expect(r.pA).toBeCloseTo(0.5, 10);
+    expect(r.aviso).toBeUndefined();
+  });
+
+  it('no produce probabilidades negativas en cuotas extremas', () => {
+    const r = devig(1.05, 15.0, 'aditivo');
+    expect(r.pA).toBeGreaterThan(0);
+    expect(r.pB).toBeGreaterThan(0);
+    expect(r.aviso).toBeUndefined();
+  });
+
+  /*
+   * Propiedad, no ejemplo: en un mercado de dos vías con ambas cuotas > 1 el
+   * método aditivo NUNCA puede dar una probabilidad negativa, porque exigiría
+   * 1/oA - 1 > 1/oB y el lado izquierdo siempre es negativo. Se comprueba sobre
+   * un barrido en vez de con un caso suelto.
+   */
+  it('nunca da probabilidades negativas en ningún mercado de dos vías válido', () => {
+    for (let a = 1.05; a <= 4; a += 0.05) {
+      for (let b = 1.05; b <= 20; b += 0.25) {
+        if (overroundDe(a, b) < 1) continue; // arbitraje: se rechaza aparte
+        const r = devig(a, b, 'aditivo');
+        expect(r.pA).toBeGreaterThan(0);
+        expect(r.pB).toBeGreaterThan(0);
+      }
+    }
+  });
+});
+
+describe('entrada de cuotas', () => {
+  it('convierte cuota americana positiva', () => {
+    expect(americanaADecimal(150)).toBeCloseTo(2.5, 10);
+    expect(parsearCuota('+150')).toBeCloseTo(2.5, 10);
+  });
+
+  it('convierte cuota americana negativa', () => {
+    expect(americanaADecimal(-200)).toBeCloseTo(1.5, 10);
+    expect(parsearCuota('-200')).toBeCloseTo(1.5, 10);
+  });
+
+  it('rechaza cuotas americanas imposibles', () => {
+    expect(() => americanaADecimal(50)).toThrow(ErrorCuota);
+    expect(() => americanaADecimal(-99)).toThrow(ErrorCuota);
+  });
+
+  it('acepta coma decimal', () => {
+    expect(parsearCuota('1,90')).toBeCloseTo(1.9, 10);
+    expect(parsearCuota('1.90')).toBeCloseTo(1.9, 10);
+    expect(parsearCuota(' 2,05 ')).toBeCloseTo(2.05, 10);
+  });
+
+  it('rechaza cuotas fuera de rango', () => {
+    expect(() => validarCuota(1.0)).toThrow(ErrorCuota);
+    expect(() => validarCuota(1001)).toThrow(ErrorCuota);
+    expect(() => parsearCuota('')).toThrow(ErrorCuota);
+    expect(() => parsearCuota('hola')).toThrow(ErrorCuota);
+  });
+});
+
+describe('rechazo de overround imposible', () => {
+  it('rechaza un mercado que suma menos del 100 %', () => {
+    expect(() => devig(2.1, 2.1)).toThrow(ErrorCuota);
+  });
+
+  it('el mensaje explica qué hacer, no solo que falla', () => {
+    expect(() => devig(2.1, 2.1)).toThrow(/arbitraje|error al copiarlas/i);
+  });
+});
+
+describe('las dos métricas', () => {
+  it('el CLV bruto compara contra la cuota de cierre sin tocar', () => {
+    expect(clvBruto(2.0, 1.9)).toBeCloseTo(0.0526, 4);
+  });
+
+  it('la ventaja vale exactamente 0 cuando se toma la cuota justa de cierre', () => {
+    const r = analizarApuesta(2.0, 1.9, 1.9);
+    expect(r.cuotaJustaCierre).toBeCloseTo(2.0, 10);
+    expect(r.ventaja).toBeCloseTo(0, 12);
+    expect(r.cogioValor).toBe(false);
+  });
+
+  it('el CLV bruto exagera respecto a la ventaja real', () => {
+    const r = analizarApuesta(2.0, 1.9, 1.9);
+    expect(r.clvBruto).toBeGreaterThan(r.ventaja);
+  });
+
+  it('detecta que se cogió valor por encima de la línea justa', () => {
+    const r = analizarApuesta(2.1, 1.9, 1.9);
+    expect(r.ventaja).toBeCloseTo(0.05, 10);
+    expect(r.cogioValor).toBe(true);
+  });
+
+  it('ventajaSobreCierre es el valor esperado', () => {
+    expect(ventajaSobreCierre(2.2, 0.5)).toBeCloseTo(0.1, 12);
+  });
+});
+
+describe('estadística agregada', () => {
+  it('calcula la desviación muestral con denominador n-1', () => {
+    expect(desviacionMuestral([1, 2, 3, 4, 5])).toBeCloseTo(Math.sqrt(2.5), 12);
+  });
+
+  it('calcula el estadístico t sobre un conjunto sintético conocido', () => {
+    // media 3, desviación muestral sqrt(2.5), n 5 → t = 3 / (sqrt(2.5)/sqrt(5)) = sqrt(18)
+    expect(estadisticoT([1, 2, 3, 4, 5])).toBeCloseTo(Math.sqrt(18), 10);
+  });
+
+  it('no calcula t con menos de dos observaciones', () => {
+    expect(estadisticoT([0.05])).toBeNull();
+  });
+
+  const apuestasSinteticas = (n: number, ventaja: number): AnalisisApuesta[] =>
+    Array.from({ length: n }, (_, i) => ({
+      cuotaTomada: 2,
+      cuotaCierreTomada: 1.9,
+      cuotaCierreContraria: 1.9,
+      justas: { pA: 0.5, pB: 0.5, overround: 1.0526, margen: 0.0526, metodo: 'multiplicativo' },
+      cuotaJustaCierre: 2,
+      clvBruto: 0.05,
+      // Alternar el signo del ruido mantiene la media exacta y la desviación estable.
+      ventaja: ventaja + (i % 2 === 0 ? 0.01 : -0.01),
+    })) as AnalisisApuesta[];
+
+  it('no concluye nada por debajo de 100 apuestas, aunque el resultado sea enorme', () => {
+    const r = agregar(apuestasSinteticas(58, 0.187));
+    expect(r.n).toBe(58);
+    expect(r.ventajaMedia).toBeCloseTo(0.187, 10);
+    expect(r.veredicto).toBe('muestra_insuficiente');
+    
+  });
+
+  it('detecta señal significativa con muestra suficiente', () => {
+    const r = agregar(apuestasSinteticas(200, 0.03));
+    expect(r.veredicto).toBe('significativo');
+    expect(r.t).not.toBeNull();
+    expect(Math.abs(r.t as number)).toBeGreaterThan(1.96);
+  });
+
+  it('avisa cuando la señal es significativa pero negativa', () => {
+    const r = agregar(apuestasSinteticas(200, -0.03));
+    expect(r.veredicto).toBe('significativo');
+    expect(r.signo).toBe('contra');
+  });
+
+  it('calcula la tasa de apuestas que baten el cierre', () => {
+    const mitad = [...apuestasSinteticas(100, 0.05), ...apuestasSinteticas(100, -0.05)];
+    expect(agregar(mitad).tasaDeAcierto).toBeCloseTo(0.5, 10);
+  });
+
+  it('no revienta con la lista vacía', () => {
+    const r = agregar([]);
+    expect(r.n).toBe(0);
+    expect(r.t).toBeNull();
+    expect(r.veredicto).toBe('muestra_insuficiente');
+  });
+});

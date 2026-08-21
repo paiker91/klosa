@@ -1,0 +1,33 @@
+[
+ {
+  "id": "26b036ff107f3c658258eaf4a6f26228",
+  "sport_key": "basketball_nba",
+  "sport_title": "NBA",
+  "commence_time": "2026-10-20T19:00:00Z",
+  "home_team": "Detroit Pistons",
+  "away_team": "Boston Celtics",
+  "bookmakers": [
+   {
+    "key": "fanduel",
+    "title": "FanDuel",
+    "last_update": "2026-08-21T17:46:26Z",
+    "markets": [
+     {
+      "key": "h2h",
+      "last_update": "2026-08-21T17:46:26Z",
+      "outcomes": [
+       {
+        "name": "Boston Celtics",
+        "price": 2.02
+       },
+       {
+        "name": "Detroit Pistons",
+        "price": 1.83
+       }
+      ]
+     }
+    ]
+   }
+  ]
+ }
+]

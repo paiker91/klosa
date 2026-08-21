@@ -1,0 +1,36 @@
+{
+ "timestamp": "2026-04-09T23:55:38Z",
+ "data": [
+  {
+   "id": "0852cffec341701f6a0dde8619ae9f56",
+   "sport_key": "basketball_nba",
+   "sport_title": "NBA",
+   "commence_time": "2026-04-09T23:12:28Z",
+   "home_team": "Washington Wizards",
+   "away_team": "Chicago Bulls",
+   "bookmakers": [
+    {
+     "key": "draftkings",
+     "title": "DraftKings",
+     "last_update": "2026-04-09T23:55:04Z",
+     "markets": [
+      {
+       "key": "h2h",
+       "last_update": "2026-04-09T23:55:04Z",
+       "outcomes": [
+        {
+         "name": "Chicago Bulls",
+         "price": 1.24
+        },
+        {
+         "name": "Washington Wizards",
+         "price": 4
+        }
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,7 @@
+# Sin repositorio git, Vercel sube el directorio: esto es lo que NO debe viajar.
+.env
+.env.local
+.env.*.local
+node_modules
+.next
+.previsualizacion

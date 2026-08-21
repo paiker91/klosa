@@ -1,0 +1,11 @@
+# Finales de línea normalizados a LF en el repositorio.
+#
+# En un proyecto cuyo valor es que los diffs sean limpios y auditables, dejar
+# que Windows convierta a CRLF produciría cambios masivos de líneas que no
+# cambian nada — y enturbiaría justo la prueba que el registro de picks
+# pretende ofrecer.
+* text=auto eol=lf
+
+# Los ficheros del registro son de solo-añadir: cualquier diff distinto de
+# "líneas nuevas al final" merece una mirada.
+picks/*.jsonl text eol=lf

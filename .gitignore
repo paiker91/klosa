@@ -1,0 +1,16 @@
+node_modules/
+.next/
+out/
+.previsualizacion/
+next-env.d.ts
+*.tsbuildinfo
+.env*.local
+.DS_Store
+
+.vercel
+.env*
+
+# Documentos de estrategia: se quedan fuera del repositorio público.
+# Solo existen en esta carpeta — conviene tener copia en otro sitio.
+CLAUDE.md
+SPEC-01-calculadora-clv.md

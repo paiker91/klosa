@@ -1,0 +1,35 @@
+[
+ {
+  "id": "c7e232240c764a7cc09ae780b3289626",
+  "sport_key": "baseball_mlb",
+  "sport_title": "MLB",
+  "commence_time": "2026-08-21T20:11:00Z",
+  "home_team": "Milwaukee Brewers",
+  "away_team": "Atlanta Braves",
+  "bookmakers": [
+   {
+    "key": "fanduel",
+    "title": "FanDuel",
+    "last_update": "2026-08-21T17:46:39Z",
+    "markets": [
+     {
+      "key": "totals",
+      "last_update": "2026-08-21T17:46:39Z",
+      "outcomes": [
+       {
+        "name": "Over",
+        "price": 1.81,
+        "point": 5.5
+       },
+       {
+        "name": "Under",
+        "price": 2.02,
+        "point": 5.5
+       }
+      ]
+     }
+    ]
+   }
+  ]
+ }
+]
