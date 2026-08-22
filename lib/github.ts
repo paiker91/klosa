@@ -52,6 +52,30 @@ async function pedir<T>(
   });
 
   if (res.status === 404 || res.status === 409) return { datos: null, estado: res.status };
+
+  /*
+   * Los fallos de token se traducen a instrucciones. El texto crudo de GitHub
+   * ("Resource not accessible by personal access token") describe el síntoma
+   * pero no dice qué arreglar, y a quien le sale está mirando un formulario de
+   * treinta permisos sin saber cuál falta.
+   */
+  if (res.status === 403) {
+    throw new ErrorGitHub(
+      'El token de GitHub no tiene permiso para escribir en el repositorio. ' +
+        'En github.com/settings/tokens?type=beta, abra el token y compruebe dos cosas: ' +
+        'que Repository access incluye el repositorio del registro, y que en Permissions ' +
+        'figura Contents con Read and write. Se puede corregir sin crear un token nuevo.',
+      403,
+    );
+  }
+  if (res.status === 401) {
+    throw new ErrorGitHub(
+      'GitHub ha rechazado el token: puede haber caducado o haberse revocado. ' +
+        'Genere uno nuevo y actualice GITHUB_TOKEN en Vercel.',
+      401,
+    );
+  }
+
   if (!res.ok) {
     const cuerpo = await res.text();
     throw new ErrorGitHub(`GitHub respondió ${res.status}: ${cuerpo.slice(0, 200)}`, res.status);
