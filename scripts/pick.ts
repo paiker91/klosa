@@ -113,6 +113,7 @@ const pick = crearPick({
   mercado,
   lado,
   cuotaTomada,
+  stake: null,
   casa: opcion('casa') ?? null,
   nota: opcion('nota') ?? null,
 });

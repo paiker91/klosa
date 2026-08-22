@@ -15,6 +15,7 @@ const base = (extra: Partial<Omit<Pick, 'id'>> = {}) => ({
   mercado: 'moneyline' as const,
   lado: 'Boston Celtics',
   cuotaTomada: 2.1,
+  stake: null,
   casa: null,
   nota: null,
   ...extra,
@@ -202,5 +203,26 @@ describe('estado del registro', () => {
     const e = estadoDelRegistro(new Date('2026-10-20T22:00:00Z'), rutaPicks, rutaCierres);
     expect(e.resumen.conCierre).toBe(1);
     expect(e.resumen.pendientes).toBe(0);
+  });
+});
+
+/*
+ * El stake entra en el sello: cambiarlo a posteriori falsearía el registro
+ * igual que cambiar una cuota. Se añadió el 2026-08-22, con el registro
+ * vacío — tocar la lista de campos sellados invalida todos los sellos
+ * anteriores, así que a partir del primer pick real ya no se puede.
+ */
+describe('el stake forma parte del sello', () => {
+  it('cambiarlo rompe el sello', () => {
+    const pick = crearPick(base({ stake: 1 }));
+    expect(auditar({ ...pick, stake: 10 }).motivos).toContain('sello_roto');
+  });
+
+  it('distingue sin stake de stake cero declarado', () => {
+    expect(sellar(base({ stake: null }))).not.toBe(sellar(base({ stake: 1 })));
+  });
+
+  it('un pick con stake pasa la auditoría', () => {
+    expect(auditar(crearPick(base({ stake: 2.5 }))).valido).toBe(true);
   });
 });

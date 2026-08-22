@@ -25,6 +25,7 @@ const pick = (deporte: Deporte, cuotaTomada: number): Pick => {
     mercado: 'moneyline',
     lado: 'Visitante',
     cuotaTomada,
+    stake: null,
     casa: null,
     nota: null,
   });

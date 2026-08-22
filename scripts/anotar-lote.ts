@@ -123,6 +123,7 @@ for (const e of eventos) {
     mercado: 'moneyline',
     lado,
     cuotaTomada: cuota,
+    stake: null,
     casa: null,
     nota: `cuota mediana de ${casas} casas · estrategia: no favorito`,
   });

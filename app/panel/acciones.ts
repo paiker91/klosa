@@ -14,6 +14,15 @@ export interface Resultado {
   mensaje: string;
 }
 
+/** Unidades arriesgadas. Acepta coma decimal; vacío significa "sin declarar". */
+function parsearStake(valor: string): number | null {
+  const limpio = valor.trim().replace(',', '.');
+  if (limpio === '') return null;
+  const n = Number(limpio);
+  if (!Number.isFinite(n) || n <= 0) throw new Error(`Stake no válido: "${valor}".`);
+  return n;
+}
+
 export async function entrar(_previo: Resultado | null, datos: FormData): Promise<Resultado> {
   const { config } = configuracionPanel();
   if (!config) return { ok: false, mensaje: 'El panel no está configurado.' };
@@ -93,7 +102,12 @@ export async function anotarPick(_previo: Resultado | null, datos: FormData): Pr
       mercado: 'moneyline',
       lado: seleccion.lado,
       cuotaTomada: parsearCuota(String(datos.get('cuota') ?? '')),
-      casa: String(datos.get('casa') ?? '').trim() || null,
+      stake: parsearStake(String(datos.get('stake') ?? '')),
+      /*
+       * Con precio de mercado no hay una casa concreta: la cuota es la mediana
+       * de treinta. Inventarse una sería falsear la procedencia.
+       */
+      casa: null,
       nota: [referencia, String(datos.get('nota') ?? '').trim()].filter(Boolean).join(' · ') || null,
     });
 

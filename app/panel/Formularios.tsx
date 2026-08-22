@@ -120,18 +120,20 @@ export function FormularioPick({
       </div>
 
       <div>
-        <label htmlFor="casa" className="mb-1.5 block text-sm font-medium">
-          Casa de apuestas
+        <label htmlFor="stake" className="mb-1.5 block text-sm font-medium">
+          Stake <span className="font-normal text-tenue">(unidades, opcional)</span>
         </label>
         <input
-          id="casa"
-          name="casa"
-          placeholder="Bet365"
+          id="stake"
+          name="stake"
+          inputMode="decimal"
+          placeholder="1"
           autoComplete="off"
-          className="w-full rounded border border-borde bg-superficie px-3 py-3"
+          className="w-full rounded border border-borde bg-superficie px-3 py-3 font-mono text-lg tabular-nums"
         />
         <p className="mt-1 text-xs text-tenue">
-          Sin esto, quien audite el registro no sabe de dónde sale el precio.
+          Queda registrado y sellado, pero el CLV no se pondera por stake: mide
+          la ventaja por apuesta, no por unidad arriesgada.
         </p>
       </div>
 

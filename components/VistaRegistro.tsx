@@ -195,7 +195,7 @@ export function VistaRegistro({
                       */}
                       {(pick.casa || pick.nota) && (
                         <span className="block text-xs text-tenue">
-                          {[pick.casa, pick.nota].filter(Boolean).join(' · ')}
+                          {[pick.casa, pick.stake ? `stake ${pick.stake}` : null, pick.nota].filter(Boolean).join(' · ')}
                         </span>
                       )}
                     </td>
