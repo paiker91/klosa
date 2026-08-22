@@ -11,6 +11,7 @@
  */
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { EMPATE } from '../cuotas/dominio';
 import type { Cierre, Pick, ResultadoPick } from './dominio';
 import { auditar, type Auditoria } from './dominio';
 
@@ -83,21 +84,40 @@ export function anadirResultado(resultado: ResultadoPick, ruta = RUTA_RESULTADOS
 /**
  * Resuelve una apuesta de moneyline a partir del marcador.
  *
- * Solo se pronuncia si hay exactamente dos equipos con puntos distintos: un
- * marcador incompleto o empatado se deja sin resolver en vez de adivinar, que
- * es lo que haría falso el registro.
+ * `empatePosible` distingue los dos casos y no es un detalle. En baloncesto y
+ * béisbol no hay empate, así que un marcador igualado significa que el partido
+ * no ha terminado y hay que esperar. En fútbol el empate es un resultado más y
+ * además es apostable: tratarlo como "sin terminar" dejaría sin resolver una
+ * de cada cuatro apuestas, y tratar un partido a medias como empate resolvería
+ * apuestas con datos falsos. Por eso lo decide quien llama, que sabe el deporte.
+ *
+ * Un marcador incompleto o un lado que no está en el partido se dejan sin
+ * resolver en vez de adivinar, que es lo que haría falso el registro.
  */
 export function resolverMoneyline(
   lado: string,
   marcador: { equipo: string; puntos: number }[],
+  empatePosible = false,
 ): 'ganada' | 'perdida' | null {
   if (marcador.length !== 2) return null;
-  const [a, b] = marcador as [{ equipo: string; puntos: number }, { equipo: string; puntos: number }];
-  if (a.puntos === b.puntos) return null;
-  const ganador = a.puntos > b.puntos ? a.equipo : b.equipo;
+  const [a, b] = marcador as [
+    { equipo: string; puntos: number },
+    { equipo: string; puntos: number },
+  ];
   const normal = (s: string) => s.trim().toLowerCase();
-  if (![a.equipo, b.equipo].some((e) => normal(e) === normal(lado))) return null;
-  return normal(ganador) === normal(lado) ? 'ganada' : 'perdida';
+  const apostado = normal(lado);
+
+  if (a.puntos === b.puntos) {
+    if (!empatePosible) return null;
+    return apostado === normal(EMPATE) ? 'ganada' : 'perdida';
+  }
+
+  // El empate se apostó y no se dio: perdida, sin mirar los equipos.
+  if (empatePosible && apostado === normal(EMPATE)) return 'perdida';
+
+  if (![a.equipo, b.equipo].some((e) => normal(e) === apostado)) return null;
+  const ganador = a.puntos > b.puntos ? a.equipo : b.equipo;
+  return normal(ganador) === apostado ? 'ganada' : 'perdida';
 }
 
 export interface EstadoRegistro {

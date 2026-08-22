@@ -195,8 +195,10 @@ describe('estadística agregada', () => {
     Array.from({ length: n }, (_, i) => ({
       cuotaTomada: 2,
       cuotaCierreTomada: 1.9,
-      cuotaCierreContraria: 1.9,
-      justas: { pA: 0.5, pB: 0.5, overround: 1.0526, margen: 0.0526, metodo: 'multiplicativo' },
+      cierres: [1.9, 1.9],
+      indiceTomado: 0,
+      justas: { p: [0.5, 0.5], overround: 1.0526, margen: 0.0526, metodo: 'multiplicativo' },
+      cogioValor: ventaja > 0,
       cuotaJustaCierre: 2,
       clvBruto: 0.05,
       // Alternar el signo del ruido mantiene la media exacta y la desviación estable.
@@ -247,8 +249,10 @@ describe('desglose por grupo', () => {
     Array.from({ length: n }, (_, i) => ({
       cuotaTomada: 2,
       cuotaCierreTomada: 1.9,
-      cuotaCierreContraria: 1.9,
-      justas: { pA: 0.5, pB: 0.5, overround: 1.0526, margen: 0.0526, metodo: 'multiplicativo' },
+      cierres: [1.9, 1.9],
+      indiceTomado: 0,
+      justas: { p: [0.5, 0.5], overround: 1.0526, margen: 0.0526, metodo: 'multiplicativo' },
+      cogioValor: ventaja > 0,
       cuotaJustaCierre: 2,
       clvBruto: 0.05,
       ventaja: ventaja + (i % 2 === 0 ? 0.01 : -0.01),

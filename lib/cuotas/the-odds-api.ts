@@ -27,6 +27,10 @@ import {
   type ProveedorDeCuotas,
   type ReferenciaEvento,
   type ResultadoEvento,
+  DEPORTES,
+  EMPATE,
+  VIAS,
+  esFutbol,
   ErrorProveedor,
   ErrorCuotaAgotada,
   validarCuotasDeCierre,
@@ -43,6 +47,22 @@ const NOMBRE = 'the-odds-api';
  * en agosto" con "no soportado".
  */
 const DEPORTE_API: Record<Deporte, string> = {
+  /*
+   * Claves verificadas contra `/v4/sports?all=true` el 2026-08-22. Las cinco
+   * de fútbol sudamericano estaban activas; las copas europeas figuran
+   * inactivas fuera de temporada, igual que la Euroliga, y eso no significa
+   * que no estén cubiertas.
+   */
+  Brasileirao: 'soccer_brazil_campeonato',
+  BrasileiraoB: 'soccer_brazil_serie_b',
+  Libertadores: 'soccer_conmebol_copa_libertadores',
+  Sudamericana: 'soccer_conmebol_copa_sudamericana',
+  PremierLeague: 'soccer_epl',
+  LaLiga: 'soccer_spain_la_liga',
+  SerieA: 'soccer_italy_serie_a',
+  Bundesliga: 'soccer_germany_bundesliga',
+  Ligue1: 'soccer_france_ligue_one',
+  Champions: 'soccer_uefa_champs_league',
   NBA: 'basketball_nba',
   Euroliga: 'basketball_euroleague',
   MLB: 'baseball_mlb',
@@ -122,7 +142,7 @@ export class TheOddsApi implements ProveedorDeCuotas {
 
   capacidades(): Capacidades {
     return {
-      deportes: ['NBA', 'Euroliga', 'MLB'],
+      deportes: DEPORTES,
       mercados: ['moneyline', 'handicap', 'totales'],
       historico: true,
     };
@@ -180,7 +200,10 @@ export class TheOddsApi implements ProveedorDeCuotas {
      * mediana no cuesta ninguna petición extra. Antes se descartaban.
      */
     const mercado: PrecioDeMercado[] = [];
-    for (const lado of [bruto.away_team, bruto.home_team]) {
+    const lados = esFutbol(deporte)
+      ? [bruto.away_team, EMPATE, bruto.home_team]
+      : [bruto.away_team, bruto.home_team];
+    for (const lado of lados) {
       const precios = (bruto.bookmakers ?? []).flatMap(
         (c) =>
           c.markets
@@ -256,17 +279,17 @@ export class TheOddsApi implements ProveedorDeCuotas {
   }
 
   /**
-   * Extrae las dos cuotas de un mercado de una casa concreta.
+   * Extrae las cuotas de un mercado de una casa concreta.
    *
-   * Se exigen exactamente dos resultados. Un mercado de tres vías o uno a
-   * medio poblar se descarta aquí y no más abajo: el de-vig de `lib/clv.ts`
-   * asume dos salidas y darle tres produciría un número sin significado.
+   * Se exige exactamente el número de salidas del deporte: dos en baloncesto
+   * y béisbol, tres en fútbol. Un mercado a medio poblar se descarta aquí y no
+   * más abajo — un fútbol sin el empate parece de dos vías, suma mucho menos
+   * de lo que debe y produciría un margen y una ventaja inventados.
    */
-  private extraer(casa: CasaAPI, mercado: Mercado): { a: ResultadoAPI; b: ResultadoAPI } | null {
+  private extraer(casa: CasaAPI, mercado: Mercado, vias: 2 | 3): ResultadoAPI[] | null {
     const m = casa.markets.find((x) => x.key === MERCADO_API[mercado]);
-    if (!m || m.outcomes.length !== 2) return null;
-    const [a, b] = m.outcomes;
-    return a && b ? { a, b } : null;
+    if (!m || m.outcomes.length !== vias) return null;
+    return m.outcomes.every((o) => typeof o?.price === 'number') ? m.outcomes : null;
   }
 
   /**
@@ -316,7 +339,8 @@ export class TheOddsApi implements ProveedorDeCuotas {
     const enCierre = instantanea.data.find((e) => e.id === evento.id);
     if (!enCierre) return null;
 
-    const consenso = this.consenso(enCierre, mercado, evento.id, instantanea.timestamp);
+    const vias = VIAS[evento.deporte];
+    const consenso = this.consenso(enCierre, mercado, evento.id, instantanea.timestamp, vias);
     if (consenso !== null) return consenso;
 
     /*
@@ -324,77 +348,97 @@ export class TheOddsApi implements ProveedorDeCuotas {
      * bastante poblado como para que una mediana signifique algo — por ejemplo
      * un hándicap donde cada casa cuelga una línea distinta.
      */
-    const casa = enCierre.bookmakers?.find((c) => this.extraer(c, mercado) !== null);
+    const casa = enCierre.bookmakers?.find((c) => this.extraer(c, mercado, vias) !== null);
     if (!casa) return null;
 
-    const par = this.extraer(casa, mercado);
-    if (par === null) return null;
+    const salidas = this.extraer(casa, mercado, vias);
+    if (salidas === null) return null;
 
-    return validarCuotasDeCierre(NOMBRE, {
-      eventoId: evento.id,
-      mercado,
-      ladoA: { etiqueta: this.etiquetar(par.a, mercado), cuota: par.a.price },
-      ladoB: { etiqueta: this.etiquetar(par.b, mercado), cuota: par.b.price },
-      capturadoEn: new Date(casa.last_update),
-      casa: casa.title,
-      casas: 1,
-    });
+    return validarCuotasDeCierre(
+      NOMBRE,
+      {
+        eventoId: evento.id,
+        mercado,
+        lados: salidas.map((o) => ({ etiqueta: this.etiquetar(o, mercado), cuota: o.price })),
+        capturadoEn: new Date(casa.last_update),
+        casa: casa.title,
+        casas: 1,
+      },
+      vias,
+    );
   }
 
   /**
-   * Cierre de consenso: la mediana de las casas que cuelgan el MISMO par de
-   * lados.
+   * Cierre de consenso: la mediana de las casas que cuelgan el MISMO conjunto
+   * de lados.
    *
    * Antes se cogía la primera casa que tuviera el mercado. Eso metía un sesgo
    * silencioso: los picks se registran a la mediana de treinta casas, así que
    * medir su cierre contra una casa cualquiera comparaba dos cosas distintas y
    * el ruido se colaba en el CLV como si fuera habilidad (o su falta).
    *
-   * Se agrupa por PAR de etiquetas y no por lado suelto a propósito. En
+   * Se agrupa por CONJUNTO de etiquetas y no por lado suelto a propósito. En
    * hándicaps y totales cada casa puede colgar una línea diferente, y mezclar
    * un «Más 5,5» con un «Más 6,5» produciría una mediana de dos mercados que
-   * no existen juntos en ninguna parte.
+   * no existen juntos en ninguna parte. Las etiquetas se ordenan para la clave
+   * pero cada lado guarda su propia lista: en fútbol las casas no siempre
+   * devuelven local, empate y visitante en el mismo orden.
    */
   private consenso(
     evento: EventoAPI,
     mercado: Mercado,
     eventoId: string,
     instante: string,
+    vias: 2 | 3,
   ): CuotasDeCierre | null {
-    const grupos = new Map<string, { a: string; b: string; precios: [number[], number[]] }>();
+    const grupos = new Map<string, Map<string, number[]>>();
 
     for (const casa of evento.bookmakers ?? []) {
-      const par = this.extraer(casa, mercado);
-      if (par === null) continue;
-      const a = this.etiquetar(par.a, mercado);
-      const b = this.etiquetar(par.b, mercado);
-      const clave = `${a} ${b}`;
-      const grupo = grupos.get(clave) ?? { a, b, precios: [[], []] };
-      grupo.precios[0].push(par.a.price);
-      grupo.precios[1].push(par.b.price);
+      const salidas = this.extraer(casa, mercado, vias);
+      if (salidas === null) continue;
+
+      const etiquetas = salidas.map((o) => this.etiquetar(o, mercado));
+      const clave = [...etiquetas].sort().join(' | ');
+      const grupo = grupos.get(clave) ?? new Map<string, number[]>();
+      etiquetas.forEach((e, i) => {
+        const precios = grupo.get(e) ?? [];
+        precios.push((salidas[i] as ResultadoAPI).price);
+        grupo.set(e, precios);
+      });
       grupos.set(clave, grupo);
     }
 
-    let mejor: { a: string; b: string; precios: [number[], number[]] } | null = null;
+    let mejor: Map<string, number[]> | null = null;
+    let casas = 0;
     for (const g of grupos.values()) {
-      if (mejor === null || g.precios[0].length > mejor.precios[0].length) mejor = g;
+      const n = Math.min(...[...g.values()].map((v) => v.length));
+      if (n > casas) {
+        casas = n;
+        mejor = g;
+      }
     }
 
     // Con menos de tres casas la mediana no representa a ningún mercado.
-    if (mejor === null || mejor.precios[0].length < 3) return null;
+    if (mejor === null || casas < 3) return null;
 
     const redondear = (x: number) => Math.round(x * 100) / 100;
 
-    return validarCuotasDeCierre(NOMBRE, {
-      eventoId,
-      mercado,
-      ladoA: { etiqueta: mejor.a, cuota: redondear(TheOddsApi.mediana(mejor.precios[0])) },
-      ladoB: { etiqueta: mejor.b, cuota: redondear(TheOddsApi.mediana(mejor.precios[1])) },
-      /* El instante de la instantánea, no el `last_update` de una casa: el dato
-         es de todas ellas, así que la fecha honesta es la del corte. */
-      capturadoEn: new Date(instante),
-      casa: `mediana de ${mejor.precios[0].length} casas`,
-      casas: mejor.precios[0].length,
-    });
+    return validarCuotasDeCierre(
+      NOMBRE,
+      {
+        eventoId,
+        mercado,
+        lados: [...mejor.entries()].map(([etiqueta, precios]) => ({
+          etiqueta,
+          cuota: redondear(TheOddsApi.mediana(precios)),
+        })),
+        /* El instante de la instantánea, no el `last_update` de una casa: el dato
+           es de todas ellas, así que la fecha honesta es la del corte. */
+        capturadoEn: new Date(instante),
+        casa: `mediana de ${casas} casas`,
+        casas,
+      },
+      vias,
+    );
   }
 }

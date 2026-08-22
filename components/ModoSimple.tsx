@@ -1,7 +1,7 @@
 'use client';
 
 import { useId, useMemo, useState } from 'react';
-import { analizarApuesta, ErrorCuota, type AnalisisApuesta, type MetodoDevig } from '@/lib/clv';
+import { analizarApuestaN, ErrorCuota, type AnalisisApuesta, type MetodoDevig } from '@/lib/clv';
 import type { Locale } from '@/i18n/config';
 import type { Textos } from '@/i18n/textos';
 import { ResultadoCLV } from './ResultadoCLV';
@@ -10,6 +10,9 @@ const METODOS: readonly MetodoDevig[] = ['multiplicativo', 'power', 'aditivo'];
 
 /** Ejemplo real: 1,95 tomada contra un cierre de 1,87 / 2,02. Ventaja pequeña y positiva. */
 const EJEMPLO = { tomada: '1,95', cierreA: '1,87', cierreB: '2,02' };
+
+/** Ejemplo de fútbol: Remo @ Fluminense, Brasileirão. Empate cogido a 4,60. */
+const EJEMPLO_FUTBOL = { tomada: '4,60', cierreA: '4,27', cierreB: '1,50', empate: '7,04' };
 
 type Estado =
   | { tipo: 'incompleto' }
@@ -20,6 +23,8 @@ export function ModoSimple({ locale, textos: t }: { locale: Locale; textos: Text
   const [tomada, setTomada] = useState('');
   const [cierreA, setCierreA] = useState('');
   const [cierreB, setCierreB] = useState('');
+  const [empate, setEmpate] = useState('');
+  const [tresVias, setTresVias] = useState(false);
   const [metodo, setMetodo] = useState<MetodoDevig>('multiplicativo');
 
   const id = useId();
@@ -31,15 +36,21 @@ export function ModoSimple({ locale, textos: t }: { locale: Locale; textos: Text
    * número para ver qué cambia. La calculadora se explica sola.
    */
   const estado: Estado = useMemo(() => {
-    if ([tomada, cierreA, cierreB].some((v) => v.trim() === '')) return { tipo: 'incompleto' };
+    /*
+     * El empate cuenta como campo obligatorio en cuanto se marca fútbol. Sin
+     * él el mercado suma mucho menos de lo que vale y saldría un margen
+     * ridículo y una ventaja inflada: mejor no enseñar nada que enseñar eso.
+     */
+    const cierres = tresVias ? [cierreA, cierreB, empate] : [cierreA, cierreB];
+    if ([tomada, ...cierres].some((v) => v.trim() === '')) return { tipo: 'incompleto' };
     try {
-      return { tipo: 'listo', analisis: analizarApuesta(tomada, cierreA, cierreB, metodo) };
+      return { tipo: 'listo', analisis: analizarApuestaN(tomada, cierres, 0, metodo) };
     } catch (fallo) {
       return { tipo: 'error', mensaje: fallo instanceof ErrorCuota ? fallo.message : String(fallo) };
     }
-  }, [tomada, cierreA, cierreB, metodo]);
+  }, [tomada, cierreA, cierreB, empate, tresVias, metodo]);
 
-  const vacio = tomada === '' && cierreA === '' && cierreB === '';
+  const vacio = tomada === '' && cierreA === '' && cierreB === '' && empate === '';
 
   const campo = (
     clave: string,
@@ -86,6 +97,27 @@ export function ModoSimple({ locale, textos: t }: { locale: Locale; textos: Text
           cierreB,
           setCierreB,
         )}
+        {tresVias &&
+          campo(
+            'empate',
+            t.campos.cierreEmpate,
+            t.campos.cierreEmpateAyuda,
+            empate,
+            setEmpate,
+          )}
+
+        <label className="flex min-h-11 cursor-pointer items-center gap-3 text-sm text-tenue">
+          <input
+            type="checkbox"
+            checked={tresVias}
+            onChange={(e) => {
+              setTresVias(e.target.checked);
+              if (!e.target.checked) setEmpate('');
+            }}
+            className="h-4 w-4 accent-[var(--color-acento)]"
+          />
+          {t.campos.tresVias}
+        </label>
 
         <details className="rounded-xl border border-borde bg-fondo/40 px-3.5 py-2.5">
           <summary className="cursor-pointer text-sm font-medium text-tenue">
@@ -121,9 +153,11 @@ export function ModoSimple({ locale, textos: t }: { locale: Locale; textos: Text
           <button
             type="button"
             onClick={() => {
-              setTomada(EJEMPLO.tomada);
-              setCierreA(EJEMPLO.cierreA);
-              setCierreB(EJEMPLO.cierreB);
+              const e = tresVias ? EJEMPLO_FUTBOL : EJEMPLO;
+              setTomada(e.tomada);
+              setCierreA(e.cierreA);
+              setCierreB(e.cierreB);
+              setEmpate(tresVias ? EJEMPLO_FUTBOL.empate : '');
             }}
             className="min-h-11 flex-1 rounded-xl bg-acento px-4 text-sm font-semibold text-fondo transition-opacity hover:opacity-90"
           >
@@ -136,6 +170,7 @@ export function ModoSimple({ locale, textos: t }: { locale: Locale; textos: Text
                 setTomada('');
                 setCierreA('');
                 setCierreB('');
+                setEmpate('');
               }}
               className="min-h-11 rounded-xl border border-borde px-4 text-sm font-medium text-tenue transition-colors hover:border-borde-fuerte hover:text-tinta"
             >

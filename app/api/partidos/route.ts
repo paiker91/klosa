@@ -20,9 +20,9 @@ export async function GET(peticion: Request) {
   }
 
   try {
-    const partidos = await partidosCerrables(deporte);
+    const { partidos, proximo } = await partidosCerrables(deporte);
     return NextResponse.json(
-      { partidos },
+      { partidos, proximo },
       { headers: { 'cache-control': 'public, s-maxage=300, stale-while-revalidate=1800' } },
     );
   } catch {

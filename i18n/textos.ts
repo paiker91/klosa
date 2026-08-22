@@ -21,6 +21,10 @@ export interface Textos {
     calcular: string;
     ejemplo: string;
     limpiar: string;
+    /** Fútbol: hay que meter también el cierre del empate. */
+    tresVias: string;
+    cierreEmpate: string;
+    cierreEmpateAyuda: string;
     /** Se ve mientras faltan campos: la calculadora no espera a un botón. */
     incompleto: string;
   };
@@ -47,6 +51,8 @@ export interface Textos {
     elegir: string;
     cargando: string;
     sinPartidos: string;
+    /** Lleva {fecha}. Se ve cuando la competición no ha jugado en 3 días. */
+    proximo: string;
     sinCierre: string;
     sinCuota: string;
     fallo: string;
@@ -79,6 +85,9 @@ const pt: Textos = {
     calcular: 'Calcular',
     ejemplo: 'Preencher com um exemplo',
     limpiar: 'Limpar',
+    tresVias: 'Futebol (tem empate)',
+    cierreEmpate: 'Odd de fechamento do empate',
+    cierreEmpateAyuda: 'No futebol são três resultados. Sem o empate, a margem sai errada.',
     incompleto: 'Preencha as três odds e o resultado aparece aqui na hora.',
   },
   metodos: {
@@ -103,13 +112,14 @@ const pt: Textos = {
     intro:
       'Escolha o jogo e o lado, diga a odd que você pegou e nós buscamos a linha de fechamento. Você não precisa anotar nada nem procurar em lugar nenhum.',
     cobertura:
-      'NBA, Euroliga e MLB, jogos dos últimos 3 dias, moneyline. O fechamento é a mediana das casas, não a melhor odd: a melhor de trinta casas bate o fechamento quase sempre e daria vantagem de mentira.',
-    deporte: 'Esporte',
+      'Brasileirão (A e B), Libertadores, Sul-Americana, as grandes ligas europeias, NBA, Euroliga e MLB. Jogos dos últimos 3 dias, mercado de resultado. O fechamento é a mediana das casas, não a melhor odd: a melhor de trinta casas bate o fechamento quase sempre e daria vantagem de mentira.',
+    deporte: 'Competição',
     partido: 'Jogo',
     lado: 'Seu lado',
     elegir: 'Escolha…',
     cargando: 'Buscando…',
-    sinPartidos: 'Nenhum jogo desse esporte começou nos últimos 3 dias.',
+    sinPartidos: 'Nenhum jogo dessa competição começou nos últimos 3 dias.',
+    proximo: 'A janela do provedor é de 3 dias e liga de futebol joga uma vez por semana. O próximo jogo é em {fecha}: depois que ele começar, o fechamento aparece aqui.',
     sinCierre:
       'Não achamos o fechamento desse jogo. Pode ser que ele tenha começado agora mesmo. Dá para usar a aba manual.',
     sinCuota:
@@ -172,6 +182,9 @@ const es: Textos = {
     calcular: 'Calcular',
     ejemplo: 'Rellenar con un ejemplo',
     limpiar: 'Limpiar',
+    tresVias: 'Fútbol (hay empate)',
+    cierreEmpate: 'Cuota de cierre del empate',
+    cierreEmpateAyuda: 'En fútbol son tres resultados. Sin el empate, el margen sale mal.',
     incompleto: 'Rellena las tres cuotas y el resultado aparece aquí al momento.',
   },
   metodos: {
@@ -196,13 +209,14 @@ const es: Textos = {
     intro:
       'Elige el partido y el lado, di la cuota que cogiste y nosotros buscamos la línea de cierre. No tienes que apuntar nada ni buscarla en ningún sitio.',
     cobertura:
-      'NBA, Euroliga y MLB, partidos de los últimos 3 días, moneyline. El cierre es la mediana de las casas, no la mejor cuota: la mejor de treinta casas bate al cierre casi siempre y daría una ventaja de mentira.',
-    deporte: 'Deporte',
+      'Brasileirão (A y B), Libertadores, Sudamericana, las grandes ligas europeas, NBA, Euroliga y MLB. Partidos de los últimos 3 días, mercado de resultado. El cierre es la mediana de las casas, no la mejor cuota: la mejor de treinta casas bate al cierre casi siempre y daría una ventaja de mentira.',
+    deporte: 'Competición',
     partido: 'Partido',
     lado: 'Tu lado',
     elegir: 'Elige…',
     cargando: 'Buscando…',
-    sinPartidos: 'No hay partidos de ese deporte empezados en los últimos 3 días.',
+    sinPartidos: 'No hay partidos de esa competición empezados en los últimos 3 días.',
+    proximo: 'La ventana del proveedor es de 3 días y una liga de fútbol juega una vez por semana. El próximo partido es el {fecha}: en cuanto empiece, el cierre aparece aquí.',
     sinCierre:
       'No encontramos el cierre de ese partido. Puede que acabe de empezar. Puedes usar la pestaña manual.',
     sinCuota:
@@ -265,6 +279,9 @@ const en: Textos = {
     calcular: 'Calculate',
     ejemplo: 'Fill in an example',
     limpiar: 'Clear',
+    tresVias: 'Football (has a draw)',
+    cierreEmpate: 'Closing odds for the draw',
+    cierreEmpateAyuda: 'Football has three outcomes. Without the draw the margin comes out wrong.',
     incompleto: 'Fill in the three odds and the result appears here straight away.',
   },
   metodos: {
@@ -289,13 +306,14 @@ const en: Textos = {
     intro:
       'Pick the game and the side, tell us the odds you took and we fetch the closing line. You do not have to record anything or look it up anywhere.',
     cobertura:
-      'NBA, Euroleague and MLB, games from the last 3 days, moneyline. The close is the median across bookmakers, not the best price: the best of thirty books beats the close almost always and would hand you a fake edge.',
-    deporte: 'Sport',
+      'Brasileirão (A and B), Libertadores, Sudamericana, the big European leagues, NBA, Euroleague and MLB. Games from the last 3 days, match result market. The close is the median across bookmakers, not the best price: the best of thirty books beats the close almost always and would hand you a fake edge.',
+    deporte: 'Competition',
     partido: 'Game',
     lado: 'Your side',
     elegir: 'Choose…',
     cargando: 'Looking up…',
-    sinPartidos: 'No games of that sport have started in the last 3 days.',
+    sinPartidos: 'No games in that competition have started in the last 3 days.',
+    proximo: 'The provider window is 3 days and a football league plays once a week. The next game is on {fecha}: once it starts, the close shows up here.',
     sinCierre:
       'We could not find the close for that game. It may have just started. You can use the manual tab.',
     sinCuota:

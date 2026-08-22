@@ -11,7 +11,7 @@
 import type { Cierre, Pick, ResultadoPick } from './dominio';
 import { auditar, type Auditoria } from './dominio';
 import {
-  analizarApuesta,
+  analizarApuestaN,
   agregar,
   agregarPorGrupo,
   type AnalisisApuesta,
@@ -134,11 +134,7 @@ export function construirRegistro(
       let analisis: AnalisisApuesta | null = null;
       if (auditoria.valido && cierre) {
         try {
-          analisis = analizarApuesta(
-            pick.cuotaTomada,
-            cierre.cuotaLadoTomado,
-            cierre.cuotaLadoContrario,
-          );
+          analisis = analizarApuestaN(pick.cuotaTomada, cierre.cuotas, cierre.indiceTomado);
         } catch {
           analisis = null;
         }

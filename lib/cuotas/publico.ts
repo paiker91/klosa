@@ -66,8 +66,8 @@ export interface PartidoPublico {
 }
 
 export interface CierrePublico {
-  ladoA: { etiqueta: string; cuota: number };
-  ladoB: { etiqueta: string; cuota: number };
+  /** Dos lados en baloncesto y béisbol, tres en fútbol (con el empate). */
+  lados: { etiqueta: string; cuota: number }[];
   casas: number;
   capturadoEn: string;
 }
@@ -83,10 +83,21 @@ function clave(): string {
  *
  * Solo esos: la línea de cierre de un partido que aún no ha empezado no
  * existe todavía, y ofrecerla sería ofrecer un número inventado.
+ *
+ * Se devuelve además cuándo empieza el siguiente, y no es un adorno. Tres días
+ * es el máximo que admite el proveedor, y una liga de fútbol juega una vez por
+ * semana: es normal abrir el Brasileirão un martes y que no haya nada. Sin
+ * esta fecha, la lista vacía parece una avería; con ella, se entiende y se
+ * sabe cuándo volver. No cuesta ninguna petición extra: viene en la misma
+ * respuesta que ya se ha pedido.
  */
-export async function partidosCerrables(deporte: Deporte): Promise<PartidoPublico[]> {
+export async function partidosCerrables(
+  deporte: Deporte,
+): Promise<{ partidos: PartidoPublico[]; proximo: string | null }> {
   const ahora = Date.now();
-  return (await cliente(clave()).resultados(deporte, 3))
+  const todos = await cliente(clave()).resultados(deporte, 3);
+
+  const partidos = todos
     .filter((r) => r.comienzo.getTime() <= ahora)
     .sort((a, b) => b.comienzo.getTime() - a.comienzo.getTime())
     .map((r) => ({
@@ -97,6 +108,12 @@ export async function partidosCerrables(deporte: Deporte): Promise<PartidoPublic
       comienzo: r.comienzo.toISOString(),
       terminado: r.terminado,
     }));
+
+  const futuros = todos
+    .filter((r) => r.comienzo.getTime() > ahora)
+    .sort((a, b) => a.comienzo.getTime() - b.comienzo.getTime());
+
+  return { partidos, proximo: futuros[0]?.comienzo.toISOString() ?? null };
 }
 
 /**
@@ -126,8 +143,7 @@ export async function cierreDe(
   if (cierre === null) return null;
 
   return {
-    ladoA: cierre.ladoA,
-    ladoB: cierre.ladoB,
+    lados: cierre.lados,
     casas: cierre.casas,
     capturadoEn: cierre.capturadoEn.toISOString(),
   };

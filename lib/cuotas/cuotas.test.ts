@@ -37,8 +37,10 @@ const ref = (id: string, comienzo = '2026-04-09T23:12:28Z') =>
 const cierreValido: CuotasDeCierre = {
   eventoId: 'x',
   mercado: 'moneyline',
-  ladoA: { etiqueta: 'Boston Celtics', cuota: 2.02 },
-  ladoB: { etiqueta: 'Detroit Pistons', cuota: 1.83 },
+  lados: [
+    { etiqueta: 'Boston Celtics', cuota: 2.02 },
+    { etiqueta: 'Detroit Pistons', cuota: 1.83 },
+  ],
   capturadoEn: new Date('2026-08-21T17:46:26Z'),
   casa: 'FanDuel',
   casas: 1,
@@ -51,7 +53,10 @@ describe('validación de frontera', () => {
 
   it('rechaza una cuota imposible antes de que entre en el dominio', () => {
     expect(() =>
-      validarCuotasDeCierre('p', { ...cierreValido, ladoB: { etiqueta: 'x', cuota: 0 } }),
+      validarCuotasDeCierre('p', {
+        ...cierreValido,
+        lados: [cierreValido.lados[0]!, { etiqueta: 'x', cuota: 0 }],
+      }),
     ).toThrow(ErrorProveedor);
   });
 
@@ -64,15 +69,20 @@ describe('validación de frontera', () => {
     expect(() =>
       validarCuotasDeCierre('p', {
         ...cierreValido,
-        ladoA: { etiqueta: 'a', cuota: 2.5 },
-        ladoB: { etiqueta: 'b', cuota: 2.5 },
+        lados: [
+          { etiqueta: 'a', cuota: 2.5 },
+          { etiqueta: 'b', cuota: 2.5 },
+        ],
       }),
     ).toThrow(/no cierra por debajo del 100/i);
   });
 
   it('rechaza una etiqueta vacía', () => {
     expect(() =>
-      validarCuotasDeCierre('p', { ...cierreValido, ladoA: { etiqueta: '  ', cuota: 2 } }),
+      validarCuotasDeCierre('p', {
+        ...cierreValido,
+        lados: [{ etiqueta: '  ', cuota: 2 }, cierreValido.lados[1]!],
+      }),
     ).toThrow(ErrorProveedor);
   });
 });
@@ -119,11 +129,11 @@ describe('adaptador de The Odds API', () => {
 
     const cierre = await api.cuotasDeCierre(ref(evento?.id ?? ''), 'moneyline');
     expect(cierre).not.toBeNull();
-    expect(cierre?.ladoA.cuota).toBeGreaterThan(1);
-    expect(cierre?.ladoB.cuota).toBeGreaterThan(1);
+    expect(cierre?.lados).toHaveLength(2);
+    for (const l of cierre?.lados ?? []) expect(l.cuota).toBeGreaterThan(1);
     expect(cierre?.casa).toBeTruthy();
     // Y lo importante: sale ya validado, así que sirve para el de-vig.
-    expect(1 / (cierre?.ladoA.cuota ?? 1) + 1 / (cierre?.ladoB.cuota ?? 1)).toBeGreaterThanOrEqual(1);
+    expect((cierre?.lados ?? []).reduce((s, l) => s + 1 / l.cuota, 0)).toBeGreaterThanOrEqual(1);
   });
 
   it('etiqueta los totales con su línea, que es lo que distingue Más 5,5 de Más 6,5', async () => {
@@ -134,7 +144,7 @@ describe('adaptador de The Odds API', () => {
     ]);
 
     const cierre = await api.cuotasDeCierre(ref(evento?.id ?? ''), 'totales');
-    expect(cierre?.ladoA.etiqueta).toMatch(/Over 5\.5|Under 5\.5/);
+    expect(cierre?.lados[0]?.etiqueta).toMatch(/Over 5\.5|Under 5\.5/);
   });
 
   it('traduce el 429 a cuota agotada, que no se reintenta', async () => {
@@ -253,8 +263,8 @@ describe('etiquetado por mercado', () => {
 
   it('en totales el punto es un umbral y no lleva signo', async () => {
     const cierre = await conMercado(mlbTotales[0], 'totales');
-    expect(cierre?.ladoA.etiqueta).toBe('Over 5.5');
-    expect(cierre?.ladoB.etiqueta).toBe('Under 5.5');
+    expect(cierre?.lados[0]?.etiqueta).toBe('Over 5.5');
+    expect(cierre?.lados[1]?.etiqueta).toBe('Under 5.5');
   });
 });
 
@@ -314,8 +324,8 @@ describe('cierre de consenso', () => {
 
     expect(cierre?.casas).toBe(4);
     expect(cierre?.casa).toBe('mediana de 4 casas');
-    expect(cierre?.ladoA.cuota).toBeCloseTo(2.05, 2);
-    expect(cierre?.ladoB.cuota).toBeCloseTo(1.85, 2);
+    expect(cierre?.lados[0]?.cuota).toBeCloseTo(2.05, 2);
+    expect(cierre?.lados[1]?.cuota).toBeCloseTo(1.85, 2);
   });
 
   it('la fecha es la del corte, no el last_update de una casa cualquiera', async () => {
@@ -346,7 +356,7 @@ describe('cierre de consenso', () => {
     );
 
     expect(cierre?.casas).toBe(3);
-    expect(cierre?.ladoA.etiqueta).toBe('Over 5.5');
-    expect(cierre?.ladoA.cuota).toBeCloseTo(1.92, 2);
+    expect(cierre?.lados[0]?.etiqueta).toBe('Over 5.5');
+    expect(cierre?.lados[0]?.cuota).toBeCloseTo(1.92, 2);
   });
 });

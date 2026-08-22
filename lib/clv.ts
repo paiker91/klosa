@@ -89,10 +89,16 @@ export function validarCuota(cuota: number): number {
 // De-vig
 // ---------------------------------------------------------------------------
 
-export interface ProbabilidadesJustas {
-  /** Probabilidad justa del lado A, ya sin margen. */
-  pA: number;
-  pB: number;
+/**
+ * Probabilidades justas de un mercado de cualquier número de salidas.
+ *
+ * Se generalizó a N para el fútbol, que es de tres vías y es lo que más se
+ * apuesta en Brasil. Los tres métodos generalizan de forma natural; el que
+ * cambia de comportamiento es el aditivo, y por eso lleva aviso.
+ */
+export interface ProbabilidadesJustasN {
+  /** Probabilidad justa de cada lado, en el mismo orden que las cuotas. */
+  p: readonly number[];
   /** Suma de las probabilidades implícitas brutas. Mayor que 1 cuando hay margen. */
   overround: number;
   /** El margen de la casa: overround - 1. */
@@ -103,8 +109,19 @@ export interface ProbabilidadesJustas {
   aviso?: string;
 }
 
+/** Atajo para el caso de dos vías, que es la mayoría de lo que se calcula. */
+export interface ProbabilidadesJustas extends ProbabilidadesJustasN {
+  /** Probabilidad justa del lado A, ya sin margen. */
+  pA: number;
+  pB: number;
+}
+
+export function overroundN(cuotas: readonly number[]): number {
+  return cuotas.reduce((s, c) => s + 1 / c, 0);
+}
+
 export function overroundDe(cuotaA: number, cuotaB: number): number {
-  return 1 / cuotaA + 1 / cuotaB;
+  return overroundN([cuotaA, cuotaB]);
 }
 
 /**
@@ -116,8 +133,8 @@ export function overroundDe(cuotaA: number, cuotaB: number): number {
  * 33 %) tiene k ≈ 1.71 y la bisección no encontraría la raíz. Por eso aquí se
  * arranca en [1, 2] y se amplía el techo hasta encontrar el cambio de signo.
  */
-export function resolverK(cuotaA: number, cuotaB: number, tolerancia = 1e-10): number {
-  const f = (k: number): number => (1 / cuotaA) ** k + (1 / cuotaB) ** k - 1;
+export function resolverKN(cuotas: readonly number[], tolerancia = 1e-10): number {
+  const f = (k: number): number => cuotas.reduce((s, c) => s + (1 / c) ** k, 0) - 1;
 
   let bajo = 1;
   let alto = 2;
@@ -139,53 +156,61 @@ export function resolverK(cuotaA: number, cuotaB: number, tolerancia = 1e-10): n
   return (bajo + alto) / 2;
 }
 
-export function devig(
-  cuotaA: number,
-  cuotaB: number,
-  metodo: MetodoDevig = 'multiplicativo',
-): ProbabilidadesJustas {
-  validarCuota(cuotaA);
-  validarCuota(cuotaB);
+export function resolverK(cuotaA: number, cuotaB: number, tolerancia = 1e-10): number {
+  return resolverKN([cuotaA, cuotaB], tolerancia);
+}
 
-  const overround = overroundDe(cuotaA, cuotaB);
+/**
+ * Quita el margen de un mercado de N salidas.
+ *
+ * Dos o más: dos vías para baloncesto y béisbol, tres para el fútbol
+ * (local, empate, visitante). El orden de las cuotas se conserva, y es
+ * responsabilidad de quien llama saber qué lado es cada una.
+ */
+export function devigN(
+  cuotas: readonly number[],
+  metodo: MetodoDevig = 'multiplicativo',
+): ProbabilidadesJustasN {
+  if (cuotas.length < 2) {
+    throw new ErrorCuota('Hacen falta al menos dos cuotas para quitar el margen.');
+  }
+  for (const c of cuotas) validarCuota(c);
+
+  const overround = overroundN(cuotas);
   const margen = overround - 1;
 
   if (overround < 1) {
     throw new ErrorCuota(
       `Estas cuotas suman menos del 100 % (${(overround * 100).toFixed(2)} %). ` +
         'O son una oportunidad de arbitraje, o hay un error al copiarlas. ' +
-        'Revise que las dos cuotas sean del mismo mercado y del mismo momento.',
+        'Revise que las cuotas sean del mismo mercado y del mismo momento.',
     );
   }
 
-  const brutaA = 1 / cuotaA;
-  const brutaB = 1 / cuotaB;
+  const brutas = cuotas.map((c) => 1 / c);
 
   switch (metodo) {
     case 'multiplicativo':
-      return { pA: brutaA / overround, pB: brutaB / overround, overround, margen, metodo };
+      return { p: brutas.map((b) => b / overround), overround, margen, metodo };
 
     case 'power': {
-      const k = resolverK(cuotaA, cuotaB);
-      return { pA: brutaA ** k, pB: brutaB ** k, overround, margen, metodo, k };
+      const k = resolverKN(cuotas);
+      return { p: brutas.map((b) => b ** k), overround, margen, metodo, k };
     }
 
     case 'aditivo': {
-      const mitad = margen / 2;
-      const pA = brutaA - mitad;
-      const pB = brutaB - mitad;
+      const parte = margen / cuotas.length;
+      const p = brutas.map((b) => b - parte);
       /*
-       * En un mercado de dos vías con ambas cuotas por encima de 1 esto nunca
-       * puede salir negativo: exigiría 1/oA - 1 > 1/oB, y el lado izquierdo es
-       * siempre negativo. La guarda se queda igualmente, porque el día que
-       * alguien reutilice esto para un mercado de tres vías sí puede pasar, y
-       * devolver una probabilidad negativa en silencio sería justo el tipo de
-       * error que este producto existe para no cometer.
+       * Con dos vías esto no puede salir negativo. Con tres sí, y de hecho
+       * pasa a menudo: en un partido con un favorito claro el empate y la
+       * sorpresa quedan cerca del reparto del margen. Repartir a partes
+       * iguales le quita a un lado del 6 % lo mismo que a uno del 66 %, que
+       * es lo que hace inservible al método aquí.
        */
-      if (pA <= 0 || pB <= 0) {
+      if (p.some((x) => x <= 0)) {
         return {
-          pA: Math.max(pA, Number.EPSILON),
-          pB: Math.max(pB, Number.EPSILON),
+          p: p.map((x) => Math.max(x, Number.EPSILON)),
           overround,
           margen,
           metodo,
@@ -194,9 +219,18 @@ export function devig(
             'iguales y aquí eso deja una probabilidad en cero o negativa. Use el multiplicativo.',
         };
       }
-      return { pA, pB, overround, margen, metodo };
+      return { p, overround, margen, metodo };
     }
   }
+}
+
+export function devig(
+  cuotaA: number,
+  cuotaB: number,
+  metodo: MetodoDevig = 'multiplicativo',
+): ProbabilidadesJustas {
+  const r = devigN([cuotaA, cuotaB], metodo);
+  return { ...r, pA: r.p[0] as number, pB: r.p[1] as number };
 }
 
 export const cuotaJusta = (probabilidad: number): number => 1 / probabilidad;
@@ -221,9 +255,12 @@ export const ventajaSobreCierre = (cuotaTomada: number, probabilidadJusta: numbe
 
 export interface AnalisisApuesta {
   cuotaTomada: number;
+  /** Cierres de todos los lados del mercado, en orden. Dos o tres. */
+  cierres: readonly number[];
+  /** Cuál de esos lados se apostó. */
+  indiceTomado: number;
   cuotaCierreTomada: number;
-  cuotaCierreContraria: number;
-  justas: ProbabilidadesJustas;
+  justas: ProbabilidadesJustasN;
   /** Cuota de cierre una vez quitado el margen de la casa. */
   cuotaJustaCierre: number;
   clvBruto: number;
@@ -232,8 +269,46 @@ export interface AnalisisApuesta {
 }
 
 /**
- * Analiza una apuesta. `cuotaCierreTomada` es el cierre del lado que se apostó;
- * `cuotaCierreContraria`, el del otro lado, necesario para conocer el margen.
+ * Analiza una apuesta sobre un mercado de cualquier número de salidas.
+ *
+ * Hacen falta TODOS los lados del mercado, no solo el apostado: sin ellos no
+ * se conoce el margen, y sin margen la comparación contra el cierre exagera el
+ * CLV. En fútbol eso significa las tres: local, empate y visitante.
+ */
+export function analizarApuestaN(
+  cuotaTomada: number | string,
+  cierresDeCierre: readonly (number | string)[],
+  indiceTomado: number,
+  metodo: MetodoDevig = 'multiplicativo',
+): AnalisisApuesta {
+  const tomada = parsearCuota(cuotaTomada);
+  const cierres = cierresDeCierre.map(parsearCuota);
+
+  const tomadaCierre = cierres[indiceTomado];
+  if (tomadaCierre === undefined) {
+    throw new ErrorCuota('El lado apostado no está entre las cuotas de cierre.');
+  }
+
+  const justas = devigN(cierres, metodo);
+  const justaTomada = justas.p[indiceTomado] as number;
+  const ventaja = ventajaSobreCierre(tomada, justaTomada);
+
+  return {
+    cuotaTomada: tomada,
+    cierres,
+    indiceTomado,
+    cuotaCierreTomada: tomadaCierre,
+    justas,
+    cuotaJustaCierre: cuotaJusta(justaTomada),
+    clvBruto: clvBruto(tomada, tomadaCierre),
+    ventaja,
+    cogioValor: ventaja > 0,
+  };
+}
+
+/**
+ * Analiza una apuesta de dos vías. `cuotaCierreTomada` es el cierre del lado
+ * que se apostó; `cuotaCierreContraria`, el del otro, necesario para el margen.
  */
 export function analizarApuesta(
   cuotaTomada: number | string,
@@ -241,23 +316,7 @@ export function analizarApuesta(
   cuotaCierreContraria: number | string,
   metodo: MetodoDevig = 'multiplicativo',
 ): AnalisisApuesta {
-  const tomada = parsearCuota(cuotaTomada);
-  const cierreA = parsearCuota(cuotaCierreTomada);
-  const cierreB = parsearCuota(cuotaCierreContraria);
-
-  const justas = devig(cierreA, cierreB, metodo);
-  const ventaja = ventajaSobreCierre(tomada, justas.pA);
-
-  return {
-    cuotaTomada: tomada,
-    cuotaCierreTomada: cierreA,
-    cuotaCierreContraria: cierreB,
-    justas,
-    cuotaJustaCierre: cuotaJusta(justas.pA),
-    clvBruto: clvBruto(tomada, cierreA),
-    ventaja,
-    cogioValor: ventaja > 0,
-  };
+  return analizarApuestaN(cuotaTomada, [cuotaCierreTomada, cuotaCierreContraria], 0, metodo);
 }
 
 // ---------------------------------------------------------------------------

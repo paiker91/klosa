@@ -12,7 +12,7 @@
  * y falso, que es peor que no tener dato.
  */
 import { TheOddsApi } from '../lib/cuotas/the-odds-api';
-import { ErrorCuotaAgotada } from '../lib/cuotas/dominio';
+import { ErrorCuotaAgotada, esFutbol } from '../lib/cuotas/dominio';
 import {
   estadoDelRegistro,
   anadirCierre,
@@ -22,7 +22,7 @@ import {
 } from '../lib/picks/registro';
 import type { Pick } from '../lib/picks/dominio';
 import type { Deporte } from '../lib/cuotas/dominio';
-import { analizarApuesta } from '../lib/clv';
+import { analizarApuestaN } from '../lib/clv';
 
 const claveApi = process.env.THE_ODDS_API_KEY;
 if (!claveApi) {
@@ -60,34 +60,40 @@ for (const pick of estado.pendientesDeCierre) {
     }
 
     /*
-     * Emparejamiento estricto por etiqueta. El proveedor devuelve los dos
+     * Emparejamiento estricto por etiqueta. El proveedor devuelve todos los
      * lados; hay que saber cuál es el apostado para no invertir el cálculo.
+     * En fútbol son tres, así que buscarlo por posición sería adivinar.
      */
     const normal = (s: string) => s.trim().toLowerCase();
-    const esA = normal(cierre.ladoA.etiqueta) === normal(pick.lado);
-    const esB = normal(cierre.ladoB.etiqueta) === normal(pick.lado);
+    const indiceTomado = cierre.lados.findIndex((l) => normal(l.etiqueta) === normal(pick.lado));
 
-    if (!esA && !esB) {
+    if (indiceTomado === -1) {
       sinEmparejar.push(
-        `${pick.id}: el lado "${pick.lado}" no coincide con "${cierre.ladoA.etiqueta}" ni "${cierre.ladoB.etiqueta}"`,
+        `${pick.id}: el lado "${pick.lado}" no está entre ${cierre.lados
+          .map((l) => `"${l.etiqueta}"`)
+          .join(', ')}`,
       );
       continue;
     }
 
-    const tomado = esA ? cierre.ladoA : cierre.ladoB;
-    const contrario = esA ? cierre.ladoB : cierre.ladoA;
+    const tomado = cierre.lados[indiceTomado] as { etiqueta: string; cuota: number };
 
     anadirCierre({
       pickId: pick.id,
       capturadoEn: cierre.capturadoEn.toISOString(),
-      cuotaLadoTomado: tomado.cuota,
-      cuotaLadoContrario: contrario.cuota,
+      lados: cierre.lados.map((l) => l.etiqueta),
+      cuotas: cierre.lados.map((l) => l.cuota),
+      indiceTomado,
       casa: cierre.casa,
       proveedor: api.nombre,
     });
     capturados++;
 
-    const analisis = analizarApuesta(pick.cuotaTomada, tomado.cuota, contrario.cuota);
+    const analisis = analizarApuestaN(
+      pick.cuotaTomada,
+      cierre.lados.map((l) => l.cuota),
+      indiceTomado,
+    );
     const signo = analisis.ventaja >= 0 ? '+' : '';
     console.log(
       `  ${pick.id}  ${pick.lado} @ ${pick.cuotaTomada} → cierre ${tomado.cuota} · ` +
@@ -153,7 +159,7 @@ if (sinResolver.length > 0) {
           continue;
         }
 
-        const desenlace = resolverMoneyline(pick.lado, m.marcador);
+        const desenlace = resolverMoneyline(pick.lado, m.marcador, esFutbol(pick.deporte));
         if (desenlace === null) {
           console.log(`  ${pick.id}  marcador no concluyente, se deja sin resolver`);
           continue;

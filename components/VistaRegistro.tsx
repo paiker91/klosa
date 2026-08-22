@@ -2,6 +2,8 @@ import type { Locale } from '@/i18n/config';
 import type { TextosRegistro } from '@/i18n/textos-registro';
 import type { TextosMarco } from '@/i18n/textos-marco';
 import type { RegistroPublico } from '@/lib/picks/remoto';
+import { cuotaTomadaDelCierre } from '@/lib/picks/dominio';
+import { etiquetaLado } from '@/i18n/lados';
 import { N_MINIMO } from '@/lib/clv';
 import { porcentaje, porcentajeSinSigno, decimal, entero } from './formato';
 import { Medidor, CosteDeLaMuestra } from './Medidor';
@@ -276,7 +278,9 @@ export function VistaRegistro({
                 </tr>
               </thead>
               <tbody>
-                {entradas.map(({ pick, auditoria, cierre, resultado, analisis }) => (
+                {entradas.map(({ pick, auditoria, cierre, resultado, analisis }) => {
+                  const cerrada = cierre ? cuotaTomadaDelCierre(cierre) : undefined;
+                  return (
                   <tr
                     key={pick.id}
                     className="border-b border-borde/40 transition-colors last:border-0 hover:bg-superficie-alta/60"
@@ -301,12 +305,12 @@ export function VistaRegistro({
                         </span>
                       )}
                     </td>
-                    <td className="px-3 py-3.5 text-tenue">{pick.lado}</td>
+                    <td className="px-3 py-3.5 text-tenue">{etiquetaLado(pick.lado, locale)}</td>
                     <td className="cifra px-3 py-3.5 text-right">
                       {decimal(pick.cuotaTomada, locale, 2)}
                     </td>
                     <td className="cifra hidden px-3 py-3.5 text-right text-tenue sm:table-cell">
-                      {cierre ? decimal(cierre.cuotaLadoTomado, locale, 2) : '—'}
+                      {cerrada === undefined ? '—' : decimal(cerrada, locale, 2)}
                     </td>
                     <td className="cifra px-3 py-3.5 text-right">
                       {!auditoria.valido ? (
@@ -327,7 +331,8 @@ export function VistaRegistro({
                       )}
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </section>

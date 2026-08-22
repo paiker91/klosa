@@ -34,9 +34,10 @@ const pick = (deporte: Deporte, cuotaTomada: number): Pick => {
 const cierre = (p: Pick, cuotaCierre: number): Cierre => ({
   pickId: p.id,
   capturadoEn: p.comienzo,
-  cuotaLadoTomado: cuotaCierre,
+  lados: ['Visitante', 'Local'],
   // Contraria elegida para que el mercado sume algo más del 100 %.
-  cuotaLadoContrario: 1 / (1.05 - 1 / cuotaCierre),
+  cuotas: [cuotaCierre, 1 / (1.05 - 1 / cuotaCierre)],
+  indiceTomado: 0,
   casa: 'Casa',
   proveedor: 'prueba',
 });

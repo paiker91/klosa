@@ -136,8 +136,9 @@ describe('ficheros de solo-añadir', () => {
     const cierre = {
       pickId: 'x',
       capturadoEn: '2026-10-20T19:00:00.000Z',
-      cuotaLadoTomado: 2.0,
-      cuotaLadoContrario: 1.9,
+      lados: ['Visitante', 'Local'],
+      cuotas: [2.0, 1.9],
+      indiceTomado: 0,
       casa: 'FanDuel',
       proveedor: 'the-odds-api',
     };
@@ -199,8 +200,9 @@ describe('estado del registro', () => {
       {
         pickId: pick.id,
         capturadoEn: '2026-10-20T19:00:00.000Z',
-        cuotaLadoTomado: 2.0,
-        cuotaLadoContrario: 1.9,
+        lados: ['Visitante', 'Local'],
+        cuotas: [2.0, 1.9],
+        indiceTomado: 0,
         casa: 'FanDuel',
         proveedor: 'the-odds-api',
       },
@@ -262,5 +264,36 @@ describe('resolución del moneyline', () => {
 
   it('tolera diferencias de mayúsculas y espacios', () => {
     expect(resolverMoneyline('  boston celtics ', m(10, 9))).toBe('ganada');
+  });
+});
+
+describe('resolución con empate: fútbol', () => {
+  const m = (a: number, b: number) => [
+    { equipo: 'Fluminense', puntos: a },
+    { equipo: 'Remo', puntos: b },
+  ];
+
+  it('sin empate posible, un marcador igualado es partido sin terminar', () => {
+    expect(resolverMoneyline('Fluminense', m(1, 1), false)).toBeNull();
+  });
+
+  it('con empate posible, un marcador igualado resuelve los tres lados', () => {
+    expect(resolverMoneyline('Draw', m(1, 1), true)).toBe('ganada');
+    expect(resolverMoneyline('Fluminense', m(1, 1), true)).toBe('perdida');
+    expect(resolverMoneyline('Remo', m(1, 1), true)).toBe('perdida');
+  });
+
+  it('el empate apostado y no dado es perdida, gane quien gane', () => {
+    expect(resolverMoneyline('Draw', m(2, 0), true)).toBe('perdida');
+    expect(resolverMoneyline('Draw', m(0, 2), true)).toBe('perdida');
+  });
+
+  it('los equipos se resuelven igual que siempre cuando hay ganador', () => {
+    expect(resolverMoneyline('Fluminense', m(2, 0), true)).toBe('ganada');
+    expect(resolverMoneyline('Remo', m(2, 0), true)).toBe('perdida');
+  });
+
+  it('un lado que no es del partido sigue sin resolverse', () => {
+    expect(resolverMoneyline('Palmeiras', m(2, 0), true)).toBeNull();
   });
 });

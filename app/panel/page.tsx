@@ -2,7 +2,7 @@ import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { COOKIE_SESION, configuracionPanel, tokenValido } from '@/lib/sesion';
 import { TheOddsApi } from '@/lib/cuotas/the-odds-api';
-import { DEPORTES, type Deporte } from '@/lib/cuotas/dominio';
+import { DEPORTES, NOMBRE_DEPORTE, EMPATE, esFutbol, type Deporte } from '@/lib/cuotas/dominio';
 import { FormularioEntrada, FormularioPick, type OpcionEvento } from './Formularios';
 import { salir } from './acciones';
 
@@ -21,17 +21,21 @@ async function opcionesDe(claveApi: string, deporte: Deporte): Promise<{
       .sort((a, b) => a.comienzo.getTime() - b.comienzo.getTime());
 
     if (eventos.length === 0) {
-      return { opciones: [], error: `No hay partidos abiertos de ${deporte} ahora mismo.` };
+      return {
+        opciones: [],
+        error: `No hay partidos abiertos de ${NOMBRE_DEPORTE[deporte]} ahora mismo.`,
+      };
     }
 
     // Una opción por lado: elegir partido y lado en un solo gesto.
+    // En fútbol son tres, porque el empate también se apuesta.
     const opciones = eventos.flatMap((e) => {
       const horas = ((e.comienzo.getTime() - Date.now()) / 3_600_000).toFixed(1);
-      return [e.visitante, e.local].map((lado) => {
+      return (esFutbol(deporte) ? [e.visitante, EMPATE, e.local] : [e.visitante, e.local]).map((lado) => {
         const precio = e.mercado?.find((m) => m.lado === lado);
         return {
           valor: JSON.stringify({ id: e.id, lado }),
-          etiqueta: `${lado} ${precio ? `· ${precio.mediana.toFixed(2)} ` : ''}— ${e.visitante} @ ${e.local} (en ${horas} h)`,
+          etiqueta: `${lado === EMPATE ? 'Empate' : lado} ${precio ? `· ${precio.mediana.toFixed(2)} ` : ''}— ${e.visitante} @ ${e.local} (en ${horas} h)`,
           // Rellena la casilla de la cuota al elegir, para no teclear a mano.
           cuota: precio ? precio.mediana.toFixed(2).replace('.', ',') : '',
         };
@@ -87,7 +91,7 @@ export default async function Panel({
   }
 
   const { deporte: pedido } = await searchParams;
-  const deporte: Deporte = esDeporte(pedido) ? pedido : 'MLB';
+  const deporte: Deporte = esDeporte(pedido) ? pedido : 'Brasileirao';
   const { opciones, error } = await opcionesDe(config.claveOdds, deporte);
 
   return marco(
@@ -103,17 +107,18 @@ export default async function Panel({
         al instante. El cierre lo captura el robot cada dos horas.
       </p>
 
-      <nav aria-label="Deporte" className="mt-6 flex gap-2">
+      {/* Trece competiciones no caben en una fila: se envuelven. */}
+      <nav aria-label="Competición" className="mt-6 flex flex-wrap gap-2">
         {DEPORTES.map((d) => (
           <Link
             key={d}
             href={`/panel?deporte=${d}`}
             aria-current={d === deporte ? 'page' : undefined}
-            className={`flex min-h-11 flex-1 items-center justify-center rounded border px-3 text-sm ${
+            className={`flex min-h-11 items-center justify-center rounded-xl border px-3 text-sm ${
               d === deporte ? 'border-acento text-tinta' : 'border-borde text-tenue'
             }`}
           >
-            {d}
+            {NOMBRE_DEPORTE[d]}
           </Link>
         ))}
       </nav>

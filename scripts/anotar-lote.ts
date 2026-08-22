@@ -33,7 +33,8 @@ if (!claveApi) {
   process.exit(1);
 }
 
-const SPORT_KEY: Record<Deporte, string> = {
+/* Solo los deportes que este script sabe anotar en lote. */
+const SPORT_KEY: Partial<Record<Deporte, string>> = {
   NBA: 'basketball_nba',
   Euroliga: 'basketball_euroleague',
   MLB: 'baseball_mlb',

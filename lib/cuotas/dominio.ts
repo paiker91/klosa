@@ -11,13 +11,93 @@
  */
 import { validarCuota, ErrorCuota } from '../clv';
 
-export type Deporte = 'NBA' | 'Euroliga' | 'MLB';
+/**
+ * Competiciones cubiertas.
+ *
+ * El fútbol va primero y el Brasileirão el primero de todos: es lo que se
+ * apuesta en el mercado objetivo. Las otras están porque el mismo proveedor
+ * las trae sin coste adicional.
+ */
+export type Deporte =
+  | 'Brasileirao'
+  | 'BrasileiraoB'
+  | 'Libertadores'
+  | 'Sudamericana'
+  | 'PremierLeague'
+  | 'LaLiga'
+  | 'SerieA'
+  | 'Bundesliga'
+  | 'Ligue1'
+  | 'Champions'
+  | 'NBA'
+  | 'Euroliga'
+  | 'MLB';
 
-/** Solo mercados de dos vías: el de-vig de `lib/clv.ts` asume dos resultados. */
 export type Mercado = 'moneyline' | 'handicap' | 'totales';
 
-export const DEPORTES: readonly Deporte[] = ['NBA', 'Euroliga', 'MLB'];
+export const DEPORTES: readonly Deporte[] = [
+  'Brasileirao',
+  'BrasileiraoB',
+  'Libertadores',
+  'Sudamericana',
+  'PremierLeague',
+  'LaLiga',
+  'SerieA',
+  'Bundesliga',
+  'Ligue1',
+  'Champions',
+  'NBA',
+  'Euroliga',
+  'MLB',
+];
+
 export const MERCADOS: readonly Mercado[] = ['moneyline', 'handicap', 'totales'];
+
+/**
+ * Salidas del mercado principal de cada competición.
+ *
+ * El fútbol es de tres vías y no es un detalle: quitar el margen suponiendo
+ * dos salidas cuando hay tres da un número creíble y equivocado. Aquí está
+ * declarado para poder rechazar en la frontera lo que no cuadre, en vez de
+ * fiarse de lo que traiga el proveedor.
+ */
+export const VIAS: Record<Deporte, 2 | 3> = {
+  Brasileirao: 3,
+  BrasileiraoB: 3,
+  Libertadores: 3,
+  Sudamericana: 3,
+  PremierLeague: 3,
+  LaLiga: 3,
+  SerieA: 3,
+  Bundesliga: 3,
+  Ligue1: 3,
+  Champions: 3,
+  NBA: 2,
+  Euroliga: 2,
+  MLB: 2,
+};
+
+export const esFutbol = (deporte: Deporte): boolean => VIAS[deporte] === 3;
+
+/** Nombres propios: no se traducen, se escriben como se llaman. */
+export const NOMBRE_DEPORTE: Record<Deporte, string> = {
+  Brasileirao: 'Brasileirão Série A',
+  BrasileiraoB: 'Brasileirão Série B',
+  Libertadores: 'Copa Libertadores',
+  Sudamericana: 'Copa Sudamericana',
+  PremierLeague: 'Premier League',
+  LaLiga: 'LaLiga',
+  SerieA: 'Serie A',
+  Bundesliga: 'Bundesliga',
+  Ligue1: 'Ligue 1',
+  Champions: 'Champions League',
+  NBA: 'NBA',
+  Euroliga: 'Euroliga',
+  MLB: 'MLB',
+};
+
+/** Etiqueta con la que el proveedor nombra al empate. */
+export const EMPATE = 'Draw';
 
 /**
  * Precio de mercado de un lado en un momento dado.
@@ -50,18 +130,19 @@ export interface LadoCuota {
 }
 
 /**
- * Las dos cuotas de cierre de un mercado.
+ * Las cuotas de cierre de un mercado, TODAS.
  *
- * Los dos lados son obligatorios y no es un capricho: sin el contrario no se
- * puede calcular el margen, y sin margen no hay ventaja que valga. Que el tipo
- * lo imponga evita que un adaptador devuelva medio dato y el fallo aparezca
- * tres capas más abajo.
+ * Todos los lados son obligatorios y no es un capricho: sin ellos no se puede
+ * calcular el margen, y sin margen no hay ventaja que valga. En fútbol son
+ * tres, y quedarse con dos daría un margen falso y una ventaja falsa. Que el
+ * tipo lo imponga evita que un adaptador devuelva medio dato y el fallo
+ * aparezca tres capas más abajo.
  */
 export interface CuotasDeCierre {
   eventoId: string;
   mercado: Mercado;
-  ladoA: LadoCuota;
-  ladoB: LadoCuota;
+  /** Dos o tres, en el orden en que los da el proveedor. */
+  lados: LadoCuota[];
   /** Momento del último dato antes del comienzo, no el momento de la consulta. */
   capturadoEn: Date;
   /**
@@ -167,30 +248,48 @@ export class ErrorCuotaAgotada extends ErrorProveedor {
 export function validarCuotasDeCierre(
   proveedor: string,
   datos: CuotasDeCierre,
+  /** Salidas esperadas. Si se pasa y no cuadra, se rechaza. */
+  vias?: 2 | 3,
 ): CuotasDeCierre {
-  for (const [nombre, lado] of [
-    ['ladoA', datos.ladoA],
-    ['ladoB', datos.ladoB],
-  ] as const) {
+  if (datos.lados.length < 2) {
+    throw new ErrorProveedor(
+      proveedor,
+      `El cierre de ${datos.eventoId} trae ${datos.lados.length} lado(s). Sin todos no hay margen.`,
+    );
+  }
+
+  /*
+   * Un mercado de fútbol al que le falta el empate parece de dos vías y suma
+   * bastante menos de lo que debería: el margen saldría negativo o ridículo y
+   * la ventaja calculada, inventada. Mejor romper aquí.
+   */
+  if (vias !== undefined && datos.lados.length !== vias) {
+    throw new ErrorProveedor(
+      proveedor,
+      `El cierre de ${datos.eventoId} trae ${datos.lados.length} lados y se esperaban ${vias}.`,
+    );
+  }
+
+  datos.lados.forEach((lado, i) => {
     try {
       validarCuota(lado.cuota);
     } catch (fallo) {
       throw new ErrorProveedor(
         proveedor,
-        `Cuota inválida en ${nombre} del evento ${datos.eventoId}: ${lado.cuota}`,
+        `Cuota inválida en el lado ${i} del evento ${datos.eventoId}: ${lado.cuota}`,
         fallo instanceof ErrorCuota ? fallo : undefined,
       );
     }
     if (lado.etiqueta.trim() === '') {
-      throw new ErrorProveedor(proveedor, `Falta la etiqueta de ${nombre} en ${datos.eventoId}.`);
+      throw new ErrorProveedor(proveedor, `Falta la etiqueta del lado ${i} en ${datos.eventoId}.`);
     }
-  }
+  });
 
-  const overround = 1 / datos.ladoA.cuota + 1 / datos.ladoB.cuota;
+  const overround = datos.lados.reduce((s, l) => s + 1 / l.cuota, 0);
   if (overround < 1) {
     throw new ErrorProveedor(
       proveedor,
-      `Las dos cuotas de cierre de ${datos.eventoId} suman ${(overround * 100).toFixed(2)} %. ` +
+      `Las cuotas de cierre de ${datos.eventoId} suman ${(overround * 100).toFixed(2)} %. ` +
         'Un mercado real no cierra por debajo del 100 %: probablemente sean de casas o momentos distintos.',
     );
   }

@@ -1,8 +1,9 @@
 'use client';
 
 import { useEffect, useId, useMemo, useState } from 'react';
-import { analizarApuesta, ErrorCuota, type AnalisisApuesta } from '@/lib/clv';
-import { DEPORTES, type Deporte } from '@/lib/cuotas/dominio';
+import { analizarApuestaN, ErrorCuota, type AnalisisApuesta } from '@/lib/clv';
+import { DEPORTES, NOMBRE_DEPORTE, esFutbol, EMPATE, type Deporte } from '@/lib/cuotas/dominio';
+import { etiquetaLado } from '@/i18n/lados';
 import type { Locale } from '@/i18n/config';
 import type { Textos } from '@/i18n/textos';
 import { decimal } from './formato';
@@ -17,8 +18,8 @@ interface Partido {
 }
 
 interface Cierre {
-  ladoA: { etiqueta: string; cuota: number };
-  ladoB: { etiqueta: string; cuota: number };
+  /** Dos lados, o tres si hay empate. */
+  lados: { etiqueta: string; cuota: number }[];
   casas: number;
   capturadoEn: string;
 }
@@ -43,6 +44,8 @@ export function ModoBuscar({ locale, textos: t }: { locale: Locale; textos: Text
   const [seleccion, setSeleccion] = useState('');
   const [tomada, setTomada] = useState('');
   const [cierre, setCierre] = useState<Carga<Cierre>>({ estado: 'vacio' });
+  /** Cuándo juega la competición otra vez, si ahora mismo no hay nada cerrable. */
+  const [proximo, setProximo] = useState<string | null>(null);
 
   const id = useId();
 
@@ -55,8 +58,10 @@ export function ModoBuscar({ locale, textos: t }: { locale: Locale; textos: Text
 
     fetch(`/api/partidos?deporte=${deporte}`)
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
-      .then((d: { partidos: Partido[] }) => {
-        if (vigente) setPartidos({ estado: 'ok', datos: d.partidos });
+      .then((d: { partidos: Partido[]; proximo: string | null }) => {
+        if (!vigente) return;
+        setPartidos({ estado: 'ok', datos: d.partidos });
+        setProximo(d.proximo);
       })
       .catch(() => {
         if (vigente) setPartidos({ estado: 'fallo', motivo: 'fallo' });
@@ -97,20 +102,23 @@ export function ModoBuscar({ locale, textos: t }: { locale: Locale; textos: Text
   }, [deporte, eventoId]);
 
   /*
-   * El de-vig necesita los DOS lados, así que se ordenan según cuál apostó el
-   * usuario. Si su lado no aparece en el cierre, no se calcula nada: inventar
-   * cuál era sería exactamente el tipo de dato falso que este producto
-   * existe para denunciar.
+   * El de-vig necesita TODOS los lados: dos en baloncesto y béisbol, tres en
+   * fútbol. Se busca por etiqueta y no por posición, porque las casas no
+   * devuelven local, empate y visitante en un orden fijo. Si el lado apostado
+   * no aparece, no se calcula nada: adivinar cuál era sería exactamente el
+   * tipo de dato falso que este producto existe para denunciar.
    */
   const analisis = useMemo((): AnalisisApuesta | { error: string } | null => {
     if (cierre.estado !== 'ok' || tomada.trim() === '' || !lado) return null;
-    const { ladoA, ladoB } = cierre.datos;
-    const mio = ladoA.etiqueta === lado ? ladoA : ladoB.etiqueta === lado ? ladoB : null;
-    const otro = mio === ladoA ? ladoB : ladoA;
-    if (mio === null) return { error: t.buscar.sinCierre };
+    const indice = cierre.datos.lados.findIndex((l) => l.etiqueta === lado);
+    if (indice === -1) return { error: t.buscar.sinCierre };
 
     try {
-      return analizarApuesta(tomada, mio.cuota, otro.cuota);
+      return analizarApuestaN(
+        tomada,
+        cierre.datos.lados.map((l) => l.cuota),
+        indice,
+      );
     } catch (fallo) {
       return { error: fallo instanceof ErrorCuota ? fallo.message : String(fallo) };
     }
@@ -143,7 +151,7 @@ export function ModoBuscar({ locale, textos: t }: { locale: Locale; textos: Text
             <option value="">{t.buscar.elegir}</option>
             {DEPORTES.map((d) => (
               <option key={d} value={d}>
-                {d}
+                {NOMBRE_DEPORTE[d]}
               </option>
             ))}
           </select>
@@ -170,16 +178,26 @@ export function ModoBuscar({ locale, textos: t }: { locale: Locale; textos: Text
                   key={p.id}
                   label={`${p.visitante} @ ${p.local} — ${fechaCorta(p.comienzo)}`}
                 >
-                  {[p.visitante, p.local].map((l) => (
+                  {(deporte !== '' && esFutbol(deporte)
+                    ? [p.visitante, EMPATE, p.local]
+                    : [p.visitante, p.local]
+                  ).map((l) => (
                     <option key={l} value={`${p.id}|${l}`}>
-                      {l}
+                      {etiquetaLado(l, locale)}
                     </option>
                   ))}
                 </optgroup>
               ))}
           </select>
           {partidos.estado === 'ok' && partidos.datos.length === 0 && (
-            <p className="mt-2 text-xs text-aviso">{t.buscar.sinPartidos}</p>
+            <div className="mt-2 space-y-1">
+              <p className="text-xs text-aviso">{t.buscar.sinPartidos}</p>
+              {proximo !== null && (
+                <p className="text-xs leading-relaxed text-apagado">
+                  {t.buscar.proximo.replace('{fecha}', fechaCorta(proximo))}
+                </p>
+              )}
+            </div>
           )}
           {partidos.estado === 'fallo' && <p className="mt-2 text-xs text-negativo">{t.buscar.fallo}</p>}
         </div>
@@ -215,10 +233,10 @@ export function ModoBuscar({ locale, textos: t }: { locale: Locale; textos: Text
           <div className="tarjeta p-4">
             <p className="etiqueta-dato">{t.buscar.fechamento}</p>
             <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1">
-              {[cierre.datos.ladoA, cierre.datos.ladoB].map((l) => (
+              {cierre.datos.lados.map((l) => (
                 <span key={l.etiqueta} className="text-sm">
-                  <span className={l.etiqueta === lado ? 'text-tinta' : 'text-tenue'}>
-                    {l.etiqueta}
+                  <span className={l.etiqueta === lado ? 'text-tinta' : 'text-apagado'}>
+                    {etiquetaLado(l.etiqueta, locale)}
                   </span>{' '}
                   <span className="cifra text-tinta">{decimal(l.cuota, locale, 2)}</span>
                 </span>
