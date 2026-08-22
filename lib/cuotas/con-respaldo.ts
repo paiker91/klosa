@@ -104,6 +104,19 @@ export class ProveedorConRespaldo implements ProveedorDeCuotas {
     );
   }
 
+  async cierresDelMomento(
+    deporte: Deporte,
+    comienzo: Date,
+    mercado: Mercado,
+  ): Promise<Map<string, CuotasDeCierre>> {
+    const r = await this.intentar(
+      (c) => c.historico && c.deportes.includes(deporte) && c.mercados.includes(mercado),
+      (p) => p.cierresDelMomento(deporte, comienzo, mercado),
+      (x) => x.size > 0,
+    );
+    return r ?? new Map();
+  }
+
   async resultados(deporte: Deporte, diasAtras: number): Promise<ResultadoEvento[]> {
     const r = await this.intentar(
       (c) => c.deportes.includes(deporte),

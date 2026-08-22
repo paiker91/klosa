@@ -318,54 +318,83 @@ export class TheOddsApi implements ProveedorDeCuotas {
     evento: ReferenciaEvento,
     mercado: Mercado,
   ): Promise<CuotasDeCierre | null> {
-    /*
-     * Una sola petición al histórico, indexada por deporte y momento de
-     * comienzo. La versión anterior buscaba primero el evento entre los
-     * próximos partidos, lo que además de gastar peticiones no podía
-     * funcionar: un partido ya jugado no está en esa lista.
-     */
+    const todos = await this.cierresDelMomento(evento.deporte, evento.comienzo, mercado);
+    return todos.get(evento.id) ?? null;
+  }
+
+  /**
+   * Todos los cierres de una instantánea, indexados por evento.
+   *
+   * Esta es la forma barata de preguntar y la razón de que exista el método.
+   * El histórico cuesta 20 peticiones por consulta y devuelve TODOS los
+   * partidos de esa competición a esa hora, así que pedir uno por uno los
+   * cierres de tres partidos que empiezan a la misma hora cuesta 60 en vez de
+   * 20. Con un solo usuario da igual; con cien, es la diferencia entre que el
+   * producto se sostenga y que no.
+   */
+  async cierresDelMomento(
+    deporte: Deporte,
+    comienzo: Date,
+    mercado: Mercado,
+  ): Promise<Map<string, CuotasDeCierre>> {
     const instantanea = await this.pedir<HistoricoAPI>(
-      `/historical/sports/${DEPORTE_API[evento.deporte]}/odds/`,
+      `/historical/sports/${DEPORTE_API[deporte]}/odds/`,
       {
         regions: this.regiones,
         markets: MERCADO_API[mercado],
         oddsFormat: 'decimal',
         // Sin milisegundos: `toISOString()` produce ".000Z" y la API responde
         // 422 con INVALID_HISTORICAL_TIMESTAMP. Verificado contra la API real.
-        date: `${evento.comienzo.toISOString().slice(0, 19)}Z`,
+        date: `${comienzo.toISOString().slice(0, 19)}Z`,
       },
     );
 
-    const enCierre = instantanea.data.find((e) => e.id === evento.id);
-    if (!enCierre) return null;
+    const vias = VIAS[deporte];
+    const salida = new Map<string, CuotasDeCierre>();
 
-    const vias = VIAS[evento.deporte];
-    const consenso = this.consenso(enCierre, mercado, evento.id, instantanea.timestamp, vias);
-    if (consenso !== null) return consenso;
+    for (const bruto of instantanea.data) {
+      const consenso = this.consenso(bruto, mercado, bruto.id, instantanea.timestamp, vias);
+      if (consenso !== null) {
+        salida.set(bruto.id, consenso);
+        continue;
+      }
 
-    /*
-     * Respaldo: una sola casa. Solo se llega aquí si el mercado no está lo
-     * bastante poblado como para que una mediana signifique algo — por ejemplo
-     * un hándicap donde cada casa cuelga una línea distinta.
-     */
-    const casa = enCierre.bookmakers?.find((c) => this.extraer(c, mercado, vias) !== null);
-    if (!casa) return null;
+      /*
+       * Respaldo: una sola casa. Solo se llega aquí si el mercado no está lo
+       * bastante poblado como para que una mediana signifique algo — por
+       * ejemplo un hándicap donde cada casa cuelga una línea distinta.
+       */
+      const casa = bruto.bookmakers?.find((c) => this.extraer(c, mercado, vias) !== null);
+      const salidas = casa ? this.extraer(casa, mercado, vias) : null;
+      if (!casa || salidas === null) continue;
 
-    const salidas = this.extraer(casa, mercado, vias);
-    if (salidas === null) return null;
+      try {
+        salida.set(
+          bruto.id,
+          validarCuotasDeCierre(
+            NOMBRE,
+            {
+              eventoId: bruto.id,
+              mercado,
+              lados: salidas.map((o) => ({ etiqueta: this.etiquetar(o, mercado), cuota: o.price })),
+              capturadoEn: new Date(casa.last_update),
+              casa: casa.title,
+              casas: 1,
+            },
+            vias,
+          ),
+        );
+      } catch {
+        /*
+         * Un partido con datos imposibles se descarta y no tumba a los demás
+         * de la misma instantánea. Antes, con una petición por evento, ese
+         * fallo solo afectaba a su pick; ahora que van juntos, dejar que
+         * propague costaría los cierres de todo el grupo.
+         */
+      }
+    }
 
-    return validarCuotasDeCierre(
-      NOMBRE,
-      {
-        eventoId: evento.id,
-        mercado,
-        lados: salidas.map((o) => ({ etiqueta: this.etiquetar(o, mercado), cuota: o.price })),
-        capturadoEn: new Date(casa.last_update),
-        casa: casa.title,
-        casas: 1,
-      },
-      vias,
-    );
+    return salida;
   }
 
   /**

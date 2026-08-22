@@ -207,6 +207,17 @@ export interface ProveedorDeCuotas {
   buscarEventos(criterio: CriterioBusqueda): Promise<Evento[]>;
   /** `null` cuando el proveedor no tiene ese cierre, que no es lo mismo que fallar. */
   cuotasDeCierre(evento: ReferenciaEvento, mercado: Mercado): Promise<CuotasDeCierre | null>;
+  /**
+   * Todos los cierres de una competición a una hora dada, por evento.
+   *
+   * Está en la interfaz y no solo en el adaptador porque es la forma barata de
+   * preguntar: una instantánea sirve a todos los picks que empiecen a la vez.
+   */
+  cierresDelMomento(
+    deporte: Deporte,
+    comienzo: Date,
+    mercado: Mercado,
+  ): Promise<Map<string, CuotasDeCierre>>;
   /** Marcadores de los partidos terminados de un deporte en los últimos días. */
   resultados(deporte: Deporte, diasAtras: number): Promise<ResultadoEvento[]>;
 }

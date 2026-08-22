@@ -176,6 +176,11 @@ function proveedorFalso(
       if (comportamiento.falla) throw comportamiento.falla;
       return comportamiento.cierre ?? null;
     },
+    async cierresDelMomento() {
+      if (comportamiento.falla) throw comportamiento.falla;
+      const c = comportamiento.cierre;
+      return c ? new Map([[c.eventoId, c]]) : new Map();
+    },
     async resultados() {
       if (comportamiento.falla) throw comportamiento.falla;
       return [];

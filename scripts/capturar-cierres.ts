@@ -1,18 +1,31 @@
 /**
- * Captura la línea de cierre de los picks cuyo partido ya empezó.
+ * Captura la línea de cierre y el resultado de los picks cuyo partido ya empezó.
  *
  *   npm run capturar
  *
- * Pensado para ejecutarse periódicamente. El pick lo pone una persona; el
- * cierre lo pone el proveedor. Nadie toca las dos cosas, y por eso el CLV que
- * sale de ahí significa algo.
+ * El pick lo pone una persona; el cierre lo pone el proveedor. Nadie toca las
+ * dos cosas, y por eso el CLV que sale de ahí significa algo.
+ *
+ * Atiende a la vez dos orígenes: el registro público en ficheros (los picks
+ * propios, que se publican en GitHub) y la base de datos (los picks de los
+ * usuarios). Van juntos por una razón de dinero, no de elegancia: el histórico
+ * cuesta 20 peticiones por consulta y una instantánea trae TODOS los partidos
+ * de esa competición a esa hora. Pidiendo pick a pick, tres apuestas al mismo
+ * partido costarían 60; agrupadas, 20. Con un usuario da igual; con cien es la
+ * diferencia entre que esto se sostenga y que no.
  *
  * Si un lado no se puede emparejar con las etiquetas del proveedor, NO se
  * inventa: se deja pendiente y se avisa. Adivinar produciría un CLV plausible
  * y falso, que es peor que no tener dato.
  */
 import { TheOddsApi } from '../lib/cuotas/the-odds-api';
-import { ErrorCuotaAgotada, esFutbol } from '../lib/cuotas/dominio';
+import {
+  ErrorCuotaAgotada,
+  esFutbol,
+  type Deporte,
+  type Mercado,
+  type CuotasDeCierre,
+} from '../lib/cuotas/dominio';
 import {
   estadoDelRegistro,
   anadirCierre,
@@ -20,8 +33,7 @@ import {
   leerResultados,
   resolverMoneyline,
 } from '../lib/picks/registro';
-import type { Pick } from '../lib/picks/dominio';
-import type { Deporte } from '../lib/cuotas/dominio';
+import { clienteDeServicio } from '../lib/tracker/servicio';
 import { analizarApuestaN } from '../lib/clv';
 
 const claveApi = process.env.THE_ODDS_API_KEY;
@@ -30,11 +42,55 @@ if (!claveApi) {
   process.exit(1);
 }
 
-const api = new TheOddsApi({ claveApi });
-const estado = estadoDelRegistro();
+/**
+ * Peticiones que no se gastan aquí. Deja margen para que la calculadora
+ * pública siga respondiendo entre una ejecución y la siguiente.
+ */
+const RESERVA = 300;
+/** El histórico cuesta esto por consulta. Medido contra la API, no supuesto. */
+const COSTE = 20;
+/**
+ * Tope de instantáneas por pasada. Existe para que un día raro —muchos
+ * usuarios, muchas horas de comienzo distintas— no vacíe la clave de una vez.
+ * Lo que se quede fuera se dice en voz alta y se coge en la pasada siguiente.
+ */
+const MAX_INSTANTANEAS = 12;
 
-console.log(`Registro: ${estado.resumen.total} picks · ${estado.resumen.validos} válidos · ` +
-  `${estado.resumen.conCierre} con cierre · ${estado.resumen.pendientes} pendientes`);
+const api = new TheOddsApi({ claveApi });
+const supabase = clienteDeServicio();
+
+// ---------------------------------------------------------------------------
+// Qué hay pendiente, de los dos orígenes
+// ---------------------------------------------------------------------------
+
+interface Pendiente {
+  origen: 'registro' | 'usuario';
+  /** Identificador en su propio origen: el sello, o el uuid de la fila. */
+  id: string;
+  deporte: Deporte;
+  eventoId: string;
+  comienzo: Date;
+  mercado: Mercado;
+  lado: string;
+  cuotaTomada: number;
+}
+
+const estado = estadoDelRegistro();
+const pendientes: Pendiente[] = estado.pendientesDeCierre.map((p) => ({
+  origen: 'registro',
+  id: p.id,
+  deporte: p.deporte,
+  eventoId: p.eventoId,
+  comienzo: new Date(p.comienzo),
+  mercado: p.mercado,
+  lado: p.lado,
+  cuotaTomada: p.cuotaTomada,
+}));
+
+console.log(
+  `Registro público: ${estado.resumen.total} picks · ${estado.resumen.validos} válidos · ` +
+    `${estado.resumen.conCierre} con cierre · ${estado.resumen.pendientes} pendientes`,
+);
 
 if (estado.resumen.invalidos > 0) {
   console.log(`\n⚠ ${estado.resumen.invalidos} pick(s) no pasan la auditoría y no se van a cerrar:`);
@@ -43,146 +99,264 @@ if (estado.resumen.invalidos > 0) {
   }
 }
 
-if (estado.pendientesDeCierre.length === 0) {
+if (supabase === null) {
+  console.log('\nSin SUPABASE_SERVICE_KEY: no se tocan los picks de usuarios.');
+} else {
+  /*
+   * Picks de usuario con el partido empezado y sin cierre. El filtro de "sin
+   * cierre" se hace aquí y no en SQL porque Postgrest no tiene un anti-join
+   * directo: se piden los que ya empezaron y se descartan los que traen cierre.
+   */
+  const { data, error } = await supabase
+    .from('picks')
+    .select('id, deporte, evento_id, comienzo, mercado, lado, cuota_tomada, cierres(pick_id)')
+    .lte('comienzo', new Date().toISOString())
+    .order('comienzo', { ascending: true })
+    .limit(500);
+
+  if (error) {
+    console.error(`\nNo se pudieron leer los picks de usuarios: ${error.message}`);
+  } else {
+    const sinCierre = (data ?? []).filter(
+      (p) => (p.cierres as unknown[] | null)?.length !== 1,
+    );
+    console.log(
+      `Picks de usuarios: ${data?.length ?? 0} empezados · ${sinCierre.length} pendientes`,
+    );
+    for (const p of sinCierre) {
+      pendientes.push({
+        origen: 'usuario',
+        id: p.id as string,
+        deporte: p.deporte as Deporte,
+        eventoId: p.evento_id as string,
+        comienzo: new Date(p.comienzo as string),
+        mercado: p.mercado as Mercado,
+        lado: p.lado as string,
+        cuotaTomada: Number(p.cuota_tomada),
+      });
+    }
+  }
+}
+
+if (pendientes.length === 0) {
   console.log('\nNada que capturar.');
   process.exit(0);
 }
 
+// ---------------------------------------------------------------------------
+// Agrupar: una instantánea por competición, hora y mercado
+// ---------------------------------------------------------------------------
+
+const grupos = new Map<string, Pendiente[]>();
+for (const p of pendientes) {
+  // La hora de comienzo entra entera en la clave: la instantánea que sirve a
+  // un partido de las 23:06 no es la del de las 23:10.
+  const clave = `${p.deporte}|${p.comienzo.toISOString()}|${p.mercado}`;
+  grupos.set(clave, [...(grupos.get(clave) ?? []), p]);
+}
+
+console.log(
+  `\n${pendientes.length} pick(s) pendientes en ${grupos.size} instantánea(s). ` +
+    `Coste máximo: ${Math.min(grupos.size, MAX_INSTANTANEAS) * COSTE} peticiones.`,
+);
+
+const normal = (s: string) => s.trim().toLowerCase();
 let capturados = 0;
+let instantaneas = 0;
 const sinEmparejar: string[] = [];
+const sinDatos: string[] = [];
 
-for (const pick of estado.pendientesDeCierre) {
+for (const [clave, delGrupo] of grupos) {
+  if (instantaneas >= MAX_INSTANTANEAS) {
+    console.log(`\n⚠ Tope de ${MAX_INSTANTANEAS} instantáneas por pasada. ` +
+      `Quedan ${grupos.size - instantaneas} para la siguiente.`);
+    break;
+  }
+
+  const restante = api.cuotaRestante();
+  if (restante !== null && restante - COSTE < RESERVA) {
+    console.log(`\n⚠ Quedan ${restante} peticiones y la reserva es ${RESERVA}. Se para aquí.`);
+    break;
+  }
+
+  const primero = delGrupo[0] as Pendiente;
+  let cierres: Map<string, CuotasDeCierre>;
   try {
-    const cierre = await api.cuotasDeCierre({ id: pick.eventoId, deporte: pick.deporte, comienzo: new Date(pick.comienzo) }, pick.mercado);
-    if (cierre === null) {
-      console.log(`  ${pick.id}  sin datos de cierre todavía`);
-      continue;
-    }
-
-    /*
-     * Emparejamiento estricto por etiqueta. El proveedor devuelve todos los
-     * lados; hay que saber cuál es el apostado para no invertir el cálculo.
-     * En fútbol son tres, así que buscarlo por posición sería adivinar.
-     */
-    const normal = (s: string) => s.trim().toLowerCase();
-    const indiceTomado = cierre.lados.findIndex((l) => normal(l.etiqueta) === normal(pick.lado));
-
-    if (indiceTomado === -1) {
-      sinEmparejar.push(
-        `${pick.id}: el lado "${pick.lado}" no está entre ${cierre.lados
-          .map((l) => `"${l.etiqueta}"`)
-          .join(', ')}`,
-      );
-      continue;
-    }
-
-    const tomado = cierre.lados[indiceTomado] as { etiqueta: string; cuota: number };
-
-    anadirCierre({
-      pickId: pick.id,
-      capturadoEn: cierre.capturadoEn.toISOString(),
-      lados: cierre.lados.map((l) => l.etiqueta),
-      cuotas: cierre.lados.map((l) => l.cuota),
-      indiceTomado,
-      casa: cierre.casa,
-      proveedor: api.nombre,
-    });
-    capturados++;
-
-    const analisis = analizarApuestaN(
-      pick.cuotaTomada,
-      cierre.lados.map((l) => l.cuota),
-      indiceTomado,
-    );
-    const signo = analisis.ventaja >= 0 ? '+' : '';
-    console.log(
-      `  ${pick.id}  ${pick.lado} @ ${pick.cuotaTomada} → cierre ${tomado.cuota} · ` +
-        `ventaja ${signo}${(analisis.ventaja * 100).toFixed(2)} %`,
-    );
+    cierres = await api.cierresDelMomento(primero.deporte, primero.comienzo, primero.mercado);
+    instantaneas++;
   } catch (fallo) {
     if (fallo instanceof ErrorCuotaAgotada) {
       console.error('\nCuota del proveedor agotada. Se para aquí y se retoma en la próxima pasada.');
       break;
     }
-    console.error(`  ${pick.id}  error: ${fallo instanceof Error ? fallo.message : String(fallo)}`);
+    console.error(`  ${clave}: ${fallo instanceof Error ? fallo.message : String(fallo)}`);
+    continue;
+  }
+
+  for (const p of delGrupo) {
+    const cierre = cierres.get(p.eventoId);
+    if (!cierre) {
+      sinDatos.push(`${p.id} (${p.eventoId})`);
+      continue;
+    }
+
+    /*
+     * Emparejamiento estricto por etiqueta, nunca por posición: en fútbol son
+     * tres lados y las casas no los devuelven en un orden fijo.
+     */
+    const indice = cierre.lados.findIndex((l) => normal(l.etiqueta) === normal(p.lado));
+    if (indice === -1) {
+      sinEmparejar.push(
+        `${p.id}: "${p.lado}" no está entre ${cierre.lados.map((l) => `"${l.etiqueta}"`).join(', ')}`,
+      );
+      continue;
+    }
+
+    const cuotas = cierre.lados.map((l) => l.cuota);
+    const lados = cierre.lados.map((l) => l.etiqueta);
+
+    if (p.origen === 'registro') {
+      anadirCierre({
+        pickId: p.id,
+        capturadoEn: cierre.capturadoEn.toISOString(),
+        lados,
+        cuotas,
+        indiceTomado: indice,
+        casa: cierre.casa,
+        proveedor: api.nombre,
+      });
+    } else if (supabase) {
+      const { error } = await supabase.from('cierres').insert({
+        pick_id: p.id,
+        capturado_en: cierre.capturadoEn.toISOString(),
+        lados,
+        cuotas,
+        indice_tomado: indice,
+        casa: cierre.casa,
+        proveedor: api.nombre,
+      });
+      if (error) {
+        console.error(`  ${p.id}: no se pudo guardar el cierre — ${error.message}`);
+        continue;
+      }
+    }
+
+    capturados++;
+    const analisis = analizarApuestaN(p.cuotaTomada, cuotas, indice);
+    const signo = analisis.ventaja >= 0 ? '+' : '';
+    console.log(
+      `  ${p.origen === 'registro' ? '📄' : '👤'} ${p.lado} @ ${p.cuotaTomada} → ` +
+        `cierre ${cuotas[indice]} · ventaja ${signo}${(analisis.ventaja * 100).toFixed(2)} %`,
+    );
   }
 }
 
-if (sinEmparejar.length > 0) {
-  console.log(`\n⚠ ${sinEmparejar.length} pick(s) sin emparejar. Se dejan pendientes a propósito:`);
-  for (const s of sinEmparejar) console.log(`  ${s}`);
-  console.log('  Corrija la etiqueta del lado o capture ese cierre a mano.');
+console.log(`\n${capturados} cierre(s) capturados en ${instantaneas} instantánea(s).`);
+if (sinDatos.length > 0) {
+  console.log(`${sinDatos.length} sin datos de cierre todavía: ${sinDatos.slice(0, 5).join(', ')}`);
 }
-
-console.log(`\n${capturados} cierre(s) capturados. Cuota restante: ${api.cuotaRestante() ?? '?'}`);
-if (capturados > 0) {
-  console.log('\nConsolide el registro:');
-  console.log('  git add picks/cierres.jsonl && git commit -m "cierres" && git push');
+if (sinEmparejar.length > 0) {
+  console.log('\n⚠ Sin emparejar (se dejan pendientes, no se adivina):');
+  for (const s of sinEmparejar) console.log(`  ${s}`);
 }
 
 // ---------------------------------------------------------------------------
-// Resultados: quién ganó el partido
+// Resultados
 // ---------------------------------------------------------------------------
 
 /*
- * El desenlace se captura aparte del cierre y a otro ritmo: un partido puede
- * tener línea de cierre mucho antes de tener marcador final. Van en ficheros
- * distintos por lo mismo de siempre — cada uno solo crece, y el pick original
- * no se toca nunca.
+ * Los marcadores son baratos —2 peticiones por competición— y una llamada trae
+ * todos los partidos de los últimos días, así que se pide una vez por deporte
+ * y sirve a los dos orígenes.
  */
-const conResultado = new Set(leerResultados().map((r) => r.pickId));
-const sinResolver = estado.auditorias
-  .filter((a) => a.valido && !conResultado.has(a.pick.id))
-  .map((a) => a.pick)
-  .filter((p) => new Date(p.comienzo) <= new Date());
+const yaResueltos = new Set(leerResultados().map((r) => r.pickId));
+const porResolverRegistro = estado.auditorias
+  .filter((a) => a.valido && new Date(a.pick.comienzo) <= new Date() && !yaResueltos.has(a.pick.id))
+  .map((a) => a.pick);
 
-if (sinResolver.length > 0) {
-  console.log(`\n${sinResolver.length} pick(s) sin resultado. Consultando marcadores...`);
-  let resueltos = 0;
-  const porDeporte = new Map<Deporte, Pick[]>();
-  for (const p of sinResolver) {
-    porDeporte.set(p.deporte, [...(porDeporte.get(p.deporte) ?? []), p]);
+interface PorResolver {
+  origen: 'registro' | 'usuario';
+  id: string;
+  deporte: Deporte;
+  eventoId: string;
+  lado: string;
+}
+
+const porResolver: PorResolver[] = porResolverRegistro.map((p) => ({
+  origen: 'registro',
+  id: p.id,
+  deporte: p.deporte,
+  eventoId: p.eventoId,
+  lado: p.lado,
+}));
+
+if (supabase) {
+  const { data } = await supabase
+    .from('picks')
+    .select('id, deporte, evento_id, lado, mercado, resultados(pick_id)')
+    .lte('comienzo', new Date().toISOString())
+    .eq('mercado', 'moneyline')
+    .limit(500);
+
+  for (const p of data ?? []) {
+    if ((p.resultados as unknown[] | null)?.length === 1) continue;
+    porResolver.push({
+      origen: 'usuario',
+      id: p.id as string,
+      deporte: p.deporte as Deporte,
+      eventoId: p.evento_id as string,
+      lado: p.lado as string,
+    });
   }
+}
 
-  for (const [deporte, picks] of porDeporte) {
+if (porResolver.length > 0) {
+  const deportes = [...new Set(porResolver.map((p) => p.deporte))];
+  let resueltos = 0;
+
+  for (const deporte of deportes) {
+    let marcadores;
     try {
-      const marcadores = new Map(
+      marcadores = new Map(
         (await api.resultados(deporte, 3)).map((r) => [r.eventoId, r]),
       );
-      for (const pick of picks) {
-        const m = marcadores.get(pick.eventoId);
-        if (!m || !m.terminado) continue;
+    } catch (fallo) {
+      console.error(`  resultados de ${deporte}: ${fallo instanceof Error ? fallo.message : fallo}`);
+      continue;
+    }
 
-        // Solo moneyline por ahora: hándicap y totales necesitan la línea.
-        if (pick.mercado !== 'moneyline') {
-          console.log(`  ${pick.id}  ${pick.mercado} aún no se resuelve automáticamente`);
-          continue;
-        }
+    for (const p of porResolver.filter((x) => x.deporte === deporte)) {
+      const m = marcadores.get(p.eventoId);
+      if (!m || !m.terminado) continue;
 
-        const desenlace = resolverMoneyline(pick.lado, m.marcador, esFutbol(pick.deporte));
-        if (desenlace === null) {
-          console.log(`  ${pick.id}  marcador no concluyente, se deja sin resolver`);
-          continue;
-        }
+      const desenlace = resolverMoneyline(p.lado, m.marcador, esFutbol(deporte));
+      if (desenlace === null) continue;
 
-        const marcador = m.marcador.map((x) => `${x.equipo} ${x.puntos}`).join(' — ');
+      const marcador = m.marcador.map((x) => `${x.equipo} ${x.puntos}`).join(' — ');
+      if (p.origen === 'registro') {
         anadirResultado({
-          pickId: pick.id,
+          pickId: p.id,
           desenlace,
           marcador,
           capturadoEn: m.actualizadoEn.toISOString(),
           proveedor: api.nombre,
         });
-        resueltos++;
-        console.log(`  ${pick.id}  ${desenlace.toUpperCase()}  ${marcador}`);
+      } else if (supabase) {
+        const { error } = await supabase.from('resultados').insert({
+          pick_id: p.id,
+          desenlace,
+          marcador,
+          capturado_en: m.actualizadoEn.toISOString(),
+          proveedor: api.nombre,
+        });
+        if (error) continue;
       }
-    } catch (fallo) {
-      if (fallo instanceof ErrorCuotaAgotada) {
-        console.error('\nCuota agotada al pedir marcadores. Se retoma en la próxima pasada.');
-        break;
-      }
-      console.error(`  ${deporte}: ${fallo instanceof Error ? fallo.message : String(fallo)}`);
+      resueltos++;
     }
   }
-  console.log(`\n${resueltos} resultado(s) capturados.`);
+
+  console.log(`${resueltos} resultado(s) capturados de ${porResolver.length} pendiente(s).`);
 }
+
+const restante = api.cuotaRestante();
+if (restante !== null) console.log(`\nCuota restante del proveedor: ${restante}`);
