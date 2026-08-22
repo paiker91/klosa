@@ -14,8 +14,10 @@
 import { parsearCuota } from '../lib/clv';
 import { TheOddsApi } from '../lib/cuotas/the-odds-api';
 import { DEPORTES, MERCADOS, type Deporte, type Mercado } from '../lib/cuotas/dominio';
+import { dirname } from 'node:path';
 import { crearPick } from '../lib/picks/dominio';
-import { anadirPick } from '../lib/picks/registro';
+import { anadirPick, RUTA_PICKS } from '../lib/picks/registro';
+import { sellarEnGit } from '../lib/picks/sellar';
 
 const args = process.argv.slice(2);
 const opcion = (nombre: string): string | undefined => {
@@ -122,7 +124,15 @@ console.log(`\nPick anotado · sello ${pick.id}`);
 console.log(`  ${pick.visitante} @ ${pick.local}`);
 console.log(`  ${pick.mercado} · ${pick.lado} @ ${pick.cuotaTomada}`);
 console.log(`  Comienza en ${horas} h (${pick.comienzo})`);
-console.log(`\nAhora consolide la marca de tiempo:`);
-console.log(`  git add picks/picks.jsonl`);
-console.log(`  git commit -m "pick: ${pick.lado} @ ${pick.cuotaTomada}"`);
-console.log(`  git push`);
+/*
+ * Se sella solo. La marca de tiempo que vale no es la del fichero local, sino
+ * la del momento en que GitHub recibe el push: cuanto menos tiempo pase entre
+ * anotar y empujar, más estrecha es la ventana que alguien puede cuestionar.
+ * Dejarlo a mano significa, en la práctica, hacerlo tarde.
+ */
+if (args.includes('--sin-sellar')) {
+  console.log('\nSin sellar. Recuerde confirmarlo y empujarlo a mano.');
+} else {
+  const r = sellarEnGit(dirname(RUTA_PICKS), `pick: ${pick.lado} @ ${pick.cuotaTomada}`);
+  console.log(r.sellado ? `\nSellado y empujado · commit ${r.commit}` : `\nNO sellado: ${r.motivo}`);
+}

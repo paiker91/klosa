@@ -13,8 +13,10 @@
  */
 import { TheOddsApi } from '../lib/cuotas/the-odds-api';
 import { DEPORTES, type Deporte } from '../lib/cuotas/dominio';
+import { dirname } from 'node:path';
 import { crearPick } from '../lib/picks/dominio';
 import { anadirPick, RUTA_PICKS } from '../lib/picks/registro';
+import { sellarEnGit } from '../lib/picks/sellar';
 
 const args = process.argv.slice(2);
 const opcion = (n: string) => args[args.indexOf(`--${n}`) + 1];
@@ -140,5 +142,7 @@ if (omitidos.length) {
   console.log(`\n${omitidos.length} omitido(s):`);
   for (const o of omitidos) console.log(`  ${o}`);
 }
-console.log('\nSelle la marca de tiempo cuanto antes:');
-console.log('  git add picks.jsonl && git commit -m "picks: no favoritos MLB" && git push');
+if (anotados > 0 && !args.includes('--sin-sellar')) {
+  const r = sellarEnGit(dirname(RUTA_PICKS), `picks: ${anotados} no favoritos (${deporte})`);
+  console.log(r.sellado ? `Sellado y empujado · commit ${r.commit}` : `NO sellado: ${r.motivo}`);
+}
