@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState } from 'react';
+import { useActionState, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { anotarPick, entrar, type Resultado } from './acciones';
 import type { Deporte } from '@/lib/cuotas/dominio';
@@ -58,6 +58,8 @@ export function FormularioEntrada() {
 export interface OpcionEvento {
   valor: string;
   etiqueta: string;
+  /** Mediana del mercado, para rellenar la casilla al elegir. */
+  cuota: string;
 }
 
 export function FormularioPick({
@@ -68,6 +70,7 @@ export function FormularioPick({
   opciones: OpcionEvento[];
 }) {
   const [estado, accion] = useActionState(anotarPick, null);
+  const [cuota, setCuota] = useState(opciones[0]?.cuota ?? '');
 
   return (
     <form action={accion} className="mt-6 flex flex-col gap-4">
@@ -82,6 +85,9 @@ export function FormularioPick({
           id="seleccion"
           name="seleccion"
           required
+          onChange={(e) =>
+            setCuota(opciones.find((o) => o.valor === e.target.value)?.cuota ?? '')
+          }
           className="w-full rounded border border-borde bg-superficie px-3 py-3"
         >
           {opciones.map((o) => (
@@ -94,7 +100,7 @@ export function FormularioPick({
 
       <div>
         <label htmlFor="cuota" className="mb-1.5 block text-sm font-medium">
-          Tu cuota
+          Cuota
         </label>
         <input
           id="cuota"
@@ -103,10 +109,13 @@ export function FormularioPick({
           placeholder="2,10"
           required
           autoComplete="off"
+          value={cuota}
+          onChange={(e) => setCuota(e.target.value)}
           className="w-full rounded border border-borde bg-superficie px-3 py-3 font-mono text-lg tabular-nums"
         />
         <p className="mt-1 text-xs text-tenue">
-          La que cogiste tú, no la del mercado. Acepta coma y formato americano.
+          Se rellena con la mediana del mercado. Cámbiala si cogiste otra —
+          el pick guardará las dos, para que se pueda auditar.
         </p>
       </div>
 

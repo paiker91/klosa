@@ -27,10 +27,15 @@ async function opcionesDe(claveApi: string, deporte: Deporte): Promise<{
     // Una opción por lado: elegir partido y lado en un solo gesto.
     const opciones = eventos.flatMap((e) => {
       const horas = ((e.comienzo.getTime() - Date.now()) / 3_600_000).toFixed(1);
-      return [e.visitante, e.local].map((lado) => ({
-        valor: JSON.stringify({ id: e.id, lado }),
-        etiqueta: `${lado} — ${e.visitante} @ ${e.local} (en ${horas} h)`,
-      }));
+      return [e.visitante, e.local].map((lado) => {
+        const precio = e.mercado?.find((m) => m.lado === lado);
+        return {
+          valor: JSON.stringify({ id: e.id, lado }),
+          etiqueta: `${lado} ${precio ? `· ${precio.mediana.toFixed(2)} ` : ''}— ${e.visitante} @ ${e.local} (en ${horas} h)`,
+          // Rellena la casilla de la cuota al elegir, para no teclear a mano.
+          cuota: precio ? precio.mediana.toFixed(2).replace('.', ',') : '',
+        };
+      });
     });
     return { opciones, error: null };
   } catch (fallo) {

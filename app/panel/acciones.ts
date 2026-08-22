@@ -72,6 +72,17 @@ export async function anotarPick(_previo: Resultado | null, datos: FormData): Pr
       throw new Error('Ese partido ya ha empezado. No se anotan picks a toro pasado.');
     }
 
+    /*
+     * La referencia de mercado se toma del servidor, no del formulario, y se
+     * guarda SIEMPRE. Así quien audite ve la cuota registrada y el precio que
+     * había en ese momento: si coinciden, es la mediana; si no, se ve cuánto
+     * se apartó y puede juzgarlo. Un precio sin referencia no es auditable.
+     */
+    const precio = evento.mercado?.find((m) => m.lado === seleccion.lado);
+    const referencia = precio
+      ? `mercado ${precio.mediana.toFixed(2)} (mediana de ${precio.casas} casas)`
+      : 'sin referencia de mercado';
+
     const pick = crearPick({
       registradoEn: new Date().toISOString(),
       deporte,
@@ -83,7 +94,7 @@ export async function anotarPick(_previo: Resultado | null, datos: FormData): Pr
       lado: seleccion.lado,
       cuotaTomada: parsearCuota(String(datos.get('cuota') ?? '')),
       casa: String(datos.get('casa') ?? '').trim() || null,
-      nota: String(datos.get('nota') ?? '').trim() || null,
+      nota: [referencia, String(datos.get('nota') ?? '').trim()].filter(Boolean).join(' · ') || null,
     });
 
     const commit = await anadirLinea(

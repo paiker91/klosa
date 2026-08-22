@@ -23,6 +23,7 @@ import {
   type Deporte,
   type Evento,
   type Mercado,
+  type PrecioDeMercado,
   type ProveedorDeCuotas,
   type ReferenciaEvento,
   ErrorProveedor,
@@ -156,13 +157,44 @@ export class TheOddsApi implements ProveedorDeCuotas {
     }
   }
 
+  /** Mediana de una lista de precios. */
+  private static mediana(xs: number[]): number {
+    const s = [...xs].sort((a, b) => a - b);
+    const m = Math.floor(s.length / 2);
+    return s.length % 2 ? (s[m] as number) : (((s[m - 1] as number) + (s[m] as number)) / 2);
+  }
+
   private aEvento(bruto: EventoAPI, deporte: Deporte): Evento {
+    /*
+     * Los precios ya vienen en esta misma respuesta, así que calcular la
+     * mediana no cuesta ninguna petición extra. Antes se descartaban.
+     */
+    const mercado: PrecioDeMercado[] = [];
+    for (const lado of [bruto.away_team, bruto.home_team]) {
+      const precios = (bruto.bookmakers ?? []).flatMap(
+        (c) =>
+          c.markets
+            .find((m) => m.key === 'h2h')
+            ?.outcomes.filter((o) => o.name === lado)
+            .map((o) => o.price) ?? [],
+      );
+      // Con menos de tres casas la mediana no es representativa: mejor nada.
+      if (precios.length >= 3) {
+        mercado.push({
+          lado,
+          mediana: Math.round(TheOddsApi.mediana(precios) * 100) / 100,
+          casas: precios.length,
+        });
+      }
+    }
+
     return {
       id: bruto.id,
       deporte,
       local: bruto.home_team,
       visitante: bruto.away_team,
       comienzo: new Date(bruto.commence_time),
+      ...(mercado.length > 0 ? { mercado } : {}),
     };
   }
 

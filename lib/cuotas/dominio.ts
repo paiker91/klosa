@@ -19,6 +19,19 @@ export type Mercado = 'moneyline' | 'handicap' | 'totales';
 export const DEPORTES: readonly Deporte[] = ['NBA', 'Euroliga', 'MLB'];
 export const MERCADOS: readonly Mercado[] = ['moneyline', 'handicap', 'totales'];
 
+/**
+ * Precio de mercado de un lado en un momento dado.
+ *
+ * Se usa la MEDIANA de las casas, nunca la mejor. El máximo de treinta casas
+ * supera al cierre casi siempre, así que registrarlo daría CLV positivo por
+ * construcción: aritmética disfrazada de habilidad.
+ */
+export interface PrecioDeMercado {
+  lado: string;
+  mediana: number;
+  casas: number;
+}
+
 export interface Evento {
   /** Identificador del proveedor. Opaco a propósito: no se interpreta. */
   id: string;
@@ -26,6 +39,8 @@ export interface Evento {
   local: string;
   visitante: string;
   comienzo: Date;
+  /** Precio de mercado por lado, si el proveedor lo trae en la misma respuesta. */
+  mercado?: PrecioDeMercado[];
 }
 
 export interface LadoCuota {
