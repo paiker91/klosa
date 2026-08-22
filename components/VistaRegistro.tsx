@@ -8,6 +8,12 @@ import { Medidor, CosteDeLaMuestra } from './Medidor';
 import { Dispersion } from './Dispersion';
 import { TablaGrupos } from './TablaGrupos';
 
+/*
+ * Sin datos no se escribe un cero. Un 0,00 % se lee como una medición que dio
+ * cero, y aquí significa que no hay ninguna medición todavía.
+ */
+const SIN_DATO = '—';
+
 /**
  * Vista del registro público. Componente de servidor: no hay nada que
  * interactuar, solo datos que enseñar.
@@ -99,8 +105,14 @@ export function VistaRegistro({
                 {(
                   [
                     [t.etiquetas.n, entero(resumen.n, locale)],
-                    [t.etiquetas.ventajaMedia, porcentaje(resumen.ventajaMedia, locale)],
-                    [t.etiquetas.tasaAcierto, porcentajeSinSigno(resumen.tasaDeAcierto, locale)],
+                    [
+                      t.etiquetas.ventajaMedia,
+                      resumen.n === 0 ? SIN_DATO : porcentaje(resumen.ventajaMedia, locale),
+                    ],
+                    [
+                      t.etiquetas.tasaAcierto,
+                      resumen.n === 0 ? SIN_DATO : porcentajeSinSigno(resumen.tasaDeAcierto, locale),
+                    ],
                     [t.etiquetas.t, resumen.t === null ? '—' : decimal(resumen.t, locale, 2)],
                   ] as const
                 ).map(([etiqueta, valor]) => (
@@ -133,7 +145,7 @@ export function VistaRegistro({
                   textos={tm}
                 />
               ) : (
-                <p className="mt-4 text-sm leading-relaxed text-apagado">{t.tabla.esperando}</p>
+                <p className="mt-4 text-sm leading-relaxed text-apagado">{tm.grafico.vacio}</p>
               )}
             </div>
           </section>

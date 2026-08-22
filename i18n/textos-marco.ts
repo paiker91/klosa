@@ -40,6 +40,7 @@ export interface TextosMarco {
     mejor: string;
     media: string;
     pie: string;
+    vacio: string;
   };
   hero: {
     /** Píldora sobre el titular. */
@@ -88,6 +89,7 @@ const pt: TextosMarco = {
     mejor: 'Acima do fechamento',
     media: 'média',
     pie: 'Cada ponto é um pick. O que importa não é a média: é a largura da nuvem. Quanto mais espalhada, mais picks são necessários para distinguir vantagem de sorte.',
+    vacio: 'Ainda não há nenhum pick com fechamento capturado. A nuvem aparece assim que os jogos terminarem.',
   },
   hero: {
     distintivo: 'Grátis · sem cadastro · nada sai do seu navegador',
@@ -135,6 +137,7 @@ const es: TextosMarco = {
     mejor: 'Por encima del cierre',
     media: 'media',
     pie: 'Cada punto es un pick. Lo que importa no es la media: es lo ancha que sea la nube. Cuanto más dispersa, más picks hacen falta para distinguir ventaja de suerte.',
+    vacio: 'Todavía no hay ningún pick con cierre capturado. La nube aparece en cuanto terminen los partidos.',
   },
   hero: {
     distintivo: 'Gratis · sin registro · nada sale de tu navegador',
@@ -182,6 +185,7 @@ const en: TextosMarco = {
     mejor: 'Above the close',
     media: 'mean',
     pie: 'Each dot is one pick. What matters is not the mean: it is how wide the cloud is. The more spread out, the more picks are needed to tell edge from luck.',
+    vacio: 'No picks with a captured close yet. The cloud appears once the games finish.',
   },
   hero: {
     distintivo: 'Free · no sign-up · nothing leaves your browser',
