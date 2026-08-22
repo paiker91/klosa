@@ -5,6 +5,7 @@ import {
   analizarApuesta,
   agregar,
   agregarPorGrupo,
+  N_MINIMO,
   type GrupoAgregado,
   type ResumenAgregado,
   type MetodoDevig,
@@ -12,7 +13,11 @@ import {
 import { parsearTabla, type ErrorFila, type Delimitador } from '@/lib/tabla';
 import type { Locale } from '@/i18n/config';
 import type { TextosAgregado } from '@/i18n/textos-agregado';
+import type { TextosMarco } from '@/i18n/textos-marco';
 import { porcentaje, porcentajeSinSigno, decimal, entero } from './formato';
+import { Medidor } from './Medidor';
+import { Dispersion } from './Dispersion';
+import { TablaGrupos } from './TablaGrupos';
 
 /** El tipo de la librería usa nombres de dominio en español; aquí se muestran traducidos. */
 const NOMBRE_DELIMITADOR: Record<Locale, Record<Delimitador, string>> = {
@@ -24,6 +29,8 @@ const NOMBRE_DELIMITADOR: Record<Locale, Record<Delimitador, string>> = {
 interface Analisis {
   resumen: ResumenAgregado;
   porDeporte: GrupoAgregado[];
+  /** Ventaja de cada apuesta, para dibujar la dispersión. */
+  ventajas: number[];
   errores: ErrorFila[];
   delimitador: Delimitador;
   cabeceraOmitida: boolean;
@@ -32,10 +39,12 @@ interface Analisis {
 export function ModoAgregado({
   locale,
   textos: t,
+  marco,
   metodo = 'multiplicativo',
 }: {
   locale: Locale;
   textos: TextosAgregado;
+  marco: TextosMarco;
   metodo?: MetodoDevig;
 }) {
   const [texto, setTexto] = useState('');
@@ -84,6 +93,7 @@ export function ModoAgregado({
     setAnalisis({
       resumen: agregar(analizadas),
       porDeporte: porDeporte.length > 1 ? porDeporte : [],
+      ventajas: analizadas.map((a) => a.ventaja),
       errores,
       delimitador: parseo.delimitador,
       cabeceraOmitida: parseo.cabeceraOmitida,
@@ -99,24 +109,22 @@ export function ModoAgregado({
         ? 'contra'
         : resumen.veredicto;
 
-  const colorVeredicto =
+  const tonoVeredicto =
     claveVeredicto === 'significativo'
-      ? 'border-positivo text-positivo'
+      ? 'border-positivo/30 bg-positivo/10 text-positivo'
       : claveVeredicto === 'contra'
-        ? 'border-negativo text-negativo'
-        : 'border-borde text-tinta';
+        ? 'border-negativo/30 bg-negativo/10 text-negativo'
+        : 'border-aviso/30 bg-aviso/10 text-aviso';
 
   const metrica = (etiqueta: string, valor: string) => (
     <div>
-      <dt className="text-sm text-tenue">{etiqueta}</dt>
+      <dt className="etiqueta-dato">{etiqueta}</dt>
       {/*
         Cuando la muestra no da para concluir, las cifras se atenúan a propósito.
         Enseñar un +18,7 % con el mismo peso visual que un resultado sólido es
         justo la ilusión que este producto existe para desmontar.
       */}
-      <dd
-        className={`font-mono text-xl tabular-nums ${insuficiente ? 'text-tenue opacity-60' : ''}`}
-      >
+      <dd className={`cifra mt-1 text-xl ${insuficiente ? 'text-tenue opacity-70' : 'text-tinta'}`}>
         {valor}
       </dd>
     </div>
@@ -124,12 +132,12 @@ export function ModoAgregado({
 
   return (
     <div>
-      <form onSubmit={analizar} className="space-y-4">
+      <form onSubmit={analizar} className="tarjeta space-y-4 p-5 sm:p-6">
         <div>
-          <label htmlFor={`${id}-tabla`} className="block text-sm font-medium">
+          <label htmlFor={`${id}-tabla`} className="block text-sm font-medium text-tinta">
             {t.instrucciones}
           </label>
-          <p id={`${id}-formato`} className="mt-1 font-mono text-xs text-tenue">
+          <p id={`${id}-formato`} className="mt-1.5 font-mono text-xs text-apagado">
             {t.formato}
           </p>
           <textarea
@@ -140,14 +148,14 @@ export function ModoAgregado({
             rows={8}
             spellCheck={false}
             aria-describedby={`${id}-formato`}
-            className="mt-2 w-full resize-y rounded border border-borde bg-superficie px-3 py-2.5 font-mono text-sm tabular-nums"
+            className="cifra mt-2.5 w-full resize-y rounded-xl border border-borde bg-fondo/60 px-3.5 py-3 text-sm text-tinta transition-colors placeholder:text-apagado hover:border-borde-fuerte focus:border-acento"
           />
         </div>
 
-        <div className="flex gap-3">
+        <div className="flex gap-2">
           <button
             type="submit"
-            className="flex-1 rounded bg-acento px-4 py-3 font-semibold text-fondo"
+            className="min-h-11 flex-1 rounded-xl bg-acento px-4 text-sm font-semibold text-fondo transition-opacity hover:opacity-90"
           >
             {t.analizar}
           </button>
@@ -158,7 +166,7 @@ export function ModoAgregado({
               setAnalisis(null);
               setAviso(null);
             }}
-            className="rounded border border-borde px-4 py-3 font-medium text-tenue"
+            className="min-h-11 rounded-xl border border-borde px-4 text-sm font-medium text-tenue transition-colors hover:border-borde-fuerte hover:text-tinta"
           >
             {t.limpiar}
           </button>
@@ -172,28 +180,41 @@ export function ModoAgregado({
       )}
 
       {resumen !== undefined && analisis !== null && claveVeredicto !== null && (
-        <section aria-live="polite" className="mt-8 space-y-5">
+        <section aria-live="polite" className="mt-6 space-y-5">
           {/* El veredicto va PRIMERO y a propósito: ninguna cifra sin su contexto. */}
-          <div className={`rounded border-l-4 bg-superficie p-5 ${colorVeredicto}`}>
-            <p className="font-medium">{t.veredictos[claveVeredicto]}</p>
+          <div className={`rounded-2xl border p-5 ${tonoVeredicto}`}>
+            <p className="text-sm leading-relaxed font-medium">{t.veredictos[claveVeredicto]}</p>
           </div>
 
-          <dl className="grid grid-cols-2 gap-5 rounded border border-borde bg-superficie p-5 sm:grid-cols-3">
-            {metrica(t.etiquetas.n, entero(resumen.n, locale))}
-            {metrica(t.etiquetas.ventajaMedia, porcentaje(resumen.ventajaMedia, locale))}
-            {metrica(t.etiquetas.clvMedio, porcentaje(resumen.clvMedio, locale))}
-            {metrica(t.etiquetas.tasaAcierto, porcentajeSinSigno(resumen.tasaDeAcierto, locale))}
-            {metrica(
-              t.etiquetas.desviacion,
-              Number.isNaN(resumen.desviacion) ? '—' : decimal(resumen.desviacion, locale, 4),
-            )}
-            {metrica(t.etiquetas.t, resumen.t === null ? '—' : decimal(resumen.t, locale, 2))}
-          </dl>
+          <div className="tarjeta p-5 sm:p-6">
+            <Medidor n={resumen.n} total={N_MINIMO} locale={locale} textos={marco} />
 
+            <dl className="mt-6 grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-3">
+              {metrica(t.etiquetas.n, entero(resumen.n, locale))}
+              {metrica(t.etiquetas.ventajaMedia, porcentaje(resumen.ventajaMedia, locale))}
+              {metrica(t.etiquetas.clvMedio, porcentaje(resumen.clvMedio, locale))}
+              {metrica(t.etiquetas.tasaAcierto, porcentajeSinSigno(resumen.tasaDeAcierto, locale))}
+              {metrica(
+                t.etiquetas.desviacion,
+                Number.isNaN(resumen.desviacion) ? '—' : decimal(resumen.desviacion, locale, 4),
+              )}
+              {metrica(t.etiquetas.t, resumen.t === null ? '—' : decimal(resumen.t, locale, 2))}
+            </dl>
+          </div>
+
+          <div className="tarjeta p-5 sm:p-6">
+            <h3 className="text-sm font-semibold text-tinta">{marco.grafico.titulo}</h3>
+            <Dispersion
+              valores={analisis.ventajas}
+              media={resumen.ventajaMedia}
+              locale={locale}
+              textos={marco}
+            />
+          </div>
 
           {analisis.porDeporte.length > 0 && (
-            <div>
-              <h3 className="text-lg font-semibold">{t.desglose.titulo}</h3>
+            <div className="tarjeta p-5 sm:p-6">
+              <h3 className="text-base font-semibold text-tinta">{t.desglose.titulo}</h3>
               {/*
                 El aviso va ANTES de la tabla. Separar por deporte es justo lo
                 que destapa un problema que el agregado esconde, pero cada
@@ -201,62 +222,27 @@ export function ModoAgregado({
                 pequeña. Enseñar la tabla sin decirlo invita a leer patrones en
                 el ruido — que es lo contrario de lo que hace este producto.
               */}
-              <p className="mt-2 text-xs text-tenue">{t.desglose.aviso}</p>
-              <div className="mt-3 overflow-x-auto">
-                <table className="w-full border-collapse text-sm">
-                  <thead>
-                    <tr className="border-b border-borde text-left text-tenue">
-                      <th scope="col" className="py-2 pr-4 font-medium">{t.desglose.grupo}</th>
-                      <th scope="col" className="py-2 pr-4 text-right font-medium">{t.etiquetas.n}</th>
-                      <th scope="col" className="py-2 pr-4 text-right font-medium">{t.etiquetas.ventajaMedia}</th>
-                      <th scope="col" className="py-2 text-right font-medium">{t.etiquetas.t}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {analisis.porDeporte.map((g) => {
-                      const flojo = g.resumen.veredicto === 'muestra_insuficiente';
-                      const color =
-                        g.resumen.veredicto !== 'significativo'
-                          ? 'text-tenue'
-                          : g.resumen.signo === 'contra'
-                            ? 'text-negativo'
-                            : 'text-positivo';
-                      return (
-                        <tr key={g.clave} className="border-b border-borde/50">
-                          <td className="py-2.5 pr-4">{g.clave}</td>
-                          <td className="py-2.5 pr-4 text-right font-mono tabular-nums">
-                            {entero(g.resumen.n, locale)}
-                          </td>
-                          <td
-                            className={`py-2.5 pr-4 text-right font-mono tabular-nums ${
-                              flojo ? 'text-tenue opacity-60' : color
-                            }`}
-                          >
-                            {porcentaje(g.resumen.ventajaMedia, locale)}
-                          </td>
-                          <td
-                            className={`py-2.5 text-right font-mono tabular-nums ${
-                              flojo ? 'text-tenue opacity-60' : color
-                            }`}
-                          >
-                            {g.resumen.t === null ? '—' : decimal(g.resumen.t, locale, 2)}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
+              <p className="mt-2 text-xs leading-relaxed text-apagado">{t.desglose.aviso}</p>
+              <TablaGrupos
+                grupos={analisis.porDeporte}
+                locale={locale}
+                encabezados={{
+                  grupo: t.desglose.grupo,
+                  n: t.etiquetas.n,
+                  ventaja: t.etiquetas.ventajaMedia,
+                  t: t.etiquetas.t,
+                }}
+              />
             </div>
           )}
 
-          <div className="space-y-1 text-xs text-tenue">
+          <div className="space-y-1 text-xs text-apagado">
             <p>{t.detectado(NOMBRE_DELIMITADOR[locale][analisis.delimitador])}</p>
             {analisis.cabeceraOmitida && <p>{t.cabeceraOmitida}</p>}
           </div>
 
           {analisis.errores.length > 0 && (
-            <div className="rounded border border-negativo bg-superficie p-4 text-sm">
+            <div className="tarjeta border-negativo/50 p-5 text-sm">
               <p className="font-semibold text-negativo">{t.errores(analisis.errores.length)}</p>
               <ul className="mt-2 space-y-1 text-tenue">
                 {analisis.errores.slice(0, 10).map((e) => (

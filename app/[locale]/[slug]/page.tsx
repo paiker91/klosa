@@ -8,15 +8,17 @@ import {
   esLocale,
   paginaDe,
   url as urlDe,
-  urlCalculadora,
   urlRegistro,
   type Locale,
   type Pagina,
 } from '@/i18n/config';
 import { TEXTOS } from '@/i18n/textos';
 import { TEXTOS_REGISTRO } from '@/i18n/textos-registro';
+import { TEXTOS_MARCO } from '@/i18n/textos-marco';
 import { CalculadoraCLV } from '@/components/CalculadoraCLV';
 import { VistaRegistro } from '@/components/VistaRegistro';
+import { Cabecera } from '@/components/Cabecera';
+import { PiePagina } from '@/components/PiePagina';
 import { leerRegistroPublico, URL_REPO, type RegistroPublico } from '@/lib/picks/remoto';
 
 const SITIO = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://klosa-five.vercel.app';
@@ -105,83 +107,70 @@ export default async function Pagina({
   const { idioma, pagina } = resolver(locale, slug);
   const t = TEXTOS[idioma];
   const tr = TEXTOS_REGISTRO[idioma];
+  const tm = TEXTOS_MARCO[idioma];
 
   return (
-    <main className="mx-auto max-w-2xl px-5 py-10 sm:py-14">
-      <nav aria-label="Secciones" className="mb-8 flex gap-5 font-mono text-sm">
-        <Link
-          href={urlCalculadora(idioma)}
-          className={pagina === 'calculadora' ? 'text-tinta' : 'text-acento hover:underline'}
-          aria-current={pagina === 'calculadora' ? 'page' : undefined}
-        >
-          {t.h1}
-        </Link>
-        <Link
-          href={urlRegistro(idioma)}
-          className={pagina === 'registro' ? 'text-tinta' : 'text-acento hover:underline'}
-          aria-current={pagina === 'registro' ? 'page' : undefined}
-        >
-          {tr.h1}
-        </Link>
-      </nav>
+    <>
+      <Cabecera locale={idioma} pagina={pagina} textos={tm} />
 
-      {pagina === 'calculadora' ? (
-        <>
-          <h1 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">{t.h1}</h1>
-          <p className="mt-4 text-tenue">{t.entradilla}</p>
-
-          <CalculadoraCLV locale={idioma} textos={t} />
-
-          {/* Contenido indexable: la mitad del motivo por el que existe la página. */}
-          <div className="mt-16 space-y-10">
-            {t.contenido.map((seccion) => (
-              <section key={seccion.titulo}>
-                <h2 className="text-xl font-semibold text-balance">{seccion.titulo}</h2>
-                {seccion.parrafos.map((parrafo) => (
-                  <p key={parrafo.slice(0, 40)} className="mt-3 text-tenue">
-                    {parrafo}
-                  </p>
-                ))}
-              </section>
-            ))}
-          </div>
-        </>
-      ) : (
-        <VistaRegistro
-          locale={idioma}
-          textos={tr}
-          registro={await registroONull()}
-          urlRepo={URL_REPO}
-        />
-      )}
-
-      {/*
-        Los enlaces llevan alto y ancho mínimos a propósito: en móvil un objetivo
-        de 17 px es imposible de acertar, y la cláusula 9.2.5.8 pide 24 px.
-      */}
-      <nav aria-label="Idiomas" className="mt-16 border-t border-borde pt-4">
-        <ul className="flex gap-2 font-mono text-sm">
-          {LOCALES.map((l) => (
-            <li key={l}>
-              {l === idioma ? (
-                <span
-                  aria-current="page"
-                  className="flex min-h-11 min-w-11 items-center justify-center px-3 text-tenue"
-                >
-                  {HREFLANG[l]}
-                </span>
-              ) : (
+      <main className="mx-auto max-w-6xl px-4 pt-10 pb-4 sm:px-6 sm:pt-14">
+        {pagina === 'calculadora' ? (
+          <>
+            {/*
+              El titular y la calculadora, sin nada en medio. La página se abre
+              desde un enlace de Telegram o Reddit: si lo primero que se ve es
+              un bloque de texto, el visitante se va antes de usar la herramienta.
+            */}
+            <section className="max-w-3xl">
+              <p className="inline-flex items-center gap-2 rounded-full border border-borde bg-superficie px-3 py-1 text-xs text-tenue">
+                <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-dato" />
+                {tm.hero.distintivo}
+              </p>
+              <h1 className="mt-5 text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
+                {t.h1}
+              </h1>
+              <p className="mt-4 text-base leading-relaxed text-tenue sm:text-lg">{t.entradilla}</p>
+              <p className="mt-6">
                 <Link
-                  href={urlDe(pagina, l)}
-                  className="flex min-h-11 min-w-11 items-center justify-center px-3 text-acento hover:underline"
+                  href={urlRegistro(idioma)}
+                  className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-borde bg-superficie px-4 text-sm font-medium text-tinta transition-colors hover:border-borde-fuerte"
                 >
-                  {HREFLANG[l]}
+                  {tm.hero.verRegistro}
+                  <span aria-hidden="true">→</span>
                 </Link>
-              )}
-            </li>
-          ))}
-        </ul>
-      </nav>
-    </main>
+              </p>
+            </section>
+
+            <CalculadoraCLV locale={idioma} textos={t} marco={tm} />
+
+            {/* Contenido indexable: la mitad del motivo por el que existe la página. */}
+            <div className="mt-20 max-w-3xl space-y-12">
+              {t.contenido.map((seccion) => (
+                <section key={seccion.titulo}>
+                  <h2 className="text-2xl font-semibold tracking-tight text-balance">
+                    {seccion.titulo}
+                  </h2>
+                  {seccion.parrafos.map((parrafo) => (
+                    <p key={parrafo.slice(0, 40)} className="mt-3.5 leading-relaxed text-tenue">
+                      {parrafo}
+                    </p>
+                  ))}
+                </section>
+              ))}
+            </div>
+          </>
+        ) : (
+          <VistaRegistro
+            locale={idioma}
+            textos={tr}
+            marco={tm}
+            registro={await registroONull()}
+            urlRepo={URL_REPO}
+          />
+        )}
+      </main>
+
+      <PiePagina locale={idioma} textos={tm} urlRepoPicks={URL_REPO} />
+    </>
   );
 }

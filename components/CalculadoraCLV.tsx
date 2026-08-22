@@ -4,13 +4,22 @@ import { useId, useRef, useState, type KeyboardEvent } from 'react';
 import type { Locale } from '@/i18n/config';
 import type { Textos } from '@/i18n/textos';
 import { TEXTOS_AGREGADO } from '@/i18n/textos-agregado';
+import type { TextosMarco } from '@/i18n/textos-marco';
 import { ModoSimple } from './ModoSimple';
 import { ModoAgregado } from './ModoAgregado';
 
 type Modo = 'simple' | 'agregado';
 const MODOS: readonly Modo[] = ['simple', 'agregado'];
 
-export function CalculadoraCLV({ locale, textos: t }: { locale: Locale; textos: Textos }) {
+export function CalculadoraCLV({
+  locale,
+  textos: t,
+  marco,
+}: {
+  locale: Locale;
+  textos: Textos;
+  marco: TextosMarco;
+}) {
   const [modo, setModo] = useState<Modo>('simple');
   const refs = useRef<Record<Modo, HTMLButtonElement | null>>({ simple: null, agregado: null });
   const ta = TEXTOS_AGREGADO[locale];
@@ -52,8 +61,10 @@ export function CalculadoraCLV({ locale, textos: t }: { locale: Locale; textos: 
         tabIndex={activa ? 0 : -1}
         onClick={() => setModo(valor)}
         onKeyDown={alPulsarTecla}
-        className={`flex-1 border-b-2 px-4 py-3.5 text-sm font-medium ${
-          activa ? 'border-acento text-tinta' : 'border-borde text-tenue'
+        className={`min-h-10 flex-1 rounded-lg px-4 text-sm font-medium transition-colors ${
+          activa
+            ? 'bg-superficie-alta text-tinta shadow-[inset_0_0_0_1px_var(--color-borde-fuerte)]'
+            : 'text-tenue hover:text-tinta'
         }`}
       >
         {etiqueta}
@@ -62,17 +73,21 @@ export function CalculadoraCLV({ locale, textos: t }: { locale: Locale; textos: 
   };
 
   return (
-    <div className="mt-10">
-      <div role="tablist" aria-label={t.h1} className="flex">
+    <div className="mt-8">
+      <div
+        role="tablist"
+        aria-label={t.h1}
+        className="flex max-w-md gap-1 rounded-xl border border-borde bg-superficie p-1"
+      >
         {pestana('simple', ta.pestanaSimple)}
         {pestana('agregado', ta.pestanaAgregado)}
       </div>
 
-      <div role="tabpanel" id={`${id}-panel`} aria-labelledby={`${id}-${modo}`} className="pt-7">
+      <div role="tabpanel" id={`${id}-panel`} aria-labelledby={`${id}-${modo}`} className="pt-6">
         {modo === 'simple' ? (
           <ModoSimple locale={locale} textos={t} />
         ) : (
-          <ModoAgregado locale={locale} textos={ta} />
+          <ModoAgregado locale={locale} textos={ta} marco={marco} />
         )}
       </div>
     </div>

@@ -19,7 +19,7 @@ export default async function LayoutIdioma({
 
   return (
     <html lang={HTML_LANG[locale]}>
-      <body className="min-h-dvh bg-fondo text-tinta antialiased">{children}</body>
+      <body className="flex min-h-dvh flex-col bg-fondo text-tinta antialiased">{children}</body>
     </html>
   );
 }

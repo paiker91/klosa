@@ -1,33 +1,46 @@
 'use client';
 
-import { useId, useState, type FormEvent } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { analizarApuesta, ErrorCuota, type AnalisisApuesta, type MetodoDevig } from '@/lib/clv';
 import type { Locale } from '@/i18n/config';
 import type { Textos } from '@/i18n/textos';
 import { porcentaje, porcentajeSinSigno, decimal } from './formato';
+import { ComparadorCuotas } from './ComparadorCuotas';
 
 const METODOS: readonly MetodoDevig[] = ['multiplicativo', 'power', 'aditivo'];
+
+/** Ejemplo real: 1,95 tomada contra un cierre de 1,87 / 2,02. Ventaja pequeña y positiva. */
+const EJEMPLO = { tomada: '1,95', cierreA: '1,87', cierreB: '2,02' };
+
+type Estado =
+  | { tipo: 'incompleto' }
+  | { tipo: 'error'; mensaje: string }
+  | { tipo: 'listo'; analisis: AnalisisApuesta };
 
 export function ModoSimple({ locale, textos: t }: { locale: Locale; textos: Textos }) {
   const [tomada, setTomada] = useState('');
   const [cierreA, setCierreA] = useState('');
   const [cierreB, setCierreB] = useState('');
   const [metodo, setMetodo] = useState<MetodoDevig>('multiplicativo');
-  const [resultado, setResultado] = useState<AnalisisApuesta | null>(null);
-  const [error, setError] = useState<string | null>(null);
 
   const id = useId();
 
-  function calcular(e: FormEvent) {
-    e.preventDefault();
+  /*
+   * Se calcula al escribir, sin botón. Con botón, quien llega sin saber qué es
+   * el CLV tiene que rellenar tres campos a ciegas antes de ver nada; así el
+   * resultado aparece en cuanto los tres son válidos y se puede mover un
+   * número para ver qué cambia. La calculadora se explica sola.
+   */
+  const estado: Estado = useMemo(() => {
+    if ([tomada, cierreA, cierreB].some((v) => v.trim() === '')) return { tipo: 'incompleto' };
     try {
-      setResultado(analizarApuesta(tomada, cierreA, cierreB, metodo));
-      setError(null);
+      return { tipo: 'listo', analisis: analizarApuesta(tomada, cierreA, cierreB, metodo) };
     } catch (fallo) {
-      setError(fallo instanceof ErrorCuota ? fallo.message : String(fallo));
-      setResultado(null);
+      return { tipo: 'error', mensaje: fallo instanceof ErrorCuota ? fallo.message : String(fallo) };
     }
-  }
+  }, [tomada, cierreA, cierreB, metodo]);
+
+  const vacio = tomada === '' && cierreA === '' && cierreB === '';
 
   const campo = (
     clave: string,
@@ -37,7 +50,7 @@ export function ModoSimple({ locale, textos: t }: { locale: Locale; textos: Text
     set: (v: string) => void,
   ) => (
     <div>
-      <label htmlFor={`${id}-${clave}`} className="block text-sm font-medium">
+      <label htmlFor={`${id}-${clave}`} className="block text-sm font-medium text-tinta">
         {etiqueta}
       </label>
       <input
@@ -46,21 +59,25 @@ export function ModoSimple({ locale, textos: t }: { locale: Locale; textos: Text
         type="text"
         inputMode="decimal"
         autoComplete="off"
-        required
+        placeholder="—"
         value={valor}
         onChange={(e) => set(e.target.value)}
         aria-describedby={`${id}-${clave}-ayuda`}
-        className="mt-1.5 w-full rounded border border-borde bg-superficie px-3 py-2.5 font-mono text-lg tabular-nums"
+        className="cifra mt-2 w-full rounded-xl border border-borde bg-fondo/60 px-3.5 py-3 text-lg text-tinta transition-colors placeholder:text-apagado hover:border-borde-fuerte focus:border-acento"
       />
-      <p id={`${id}-${clave}-ayuda`} className="mt-1 text-xs text-tenue">
+      <p id={`${id}-${clave}-ayuda`} className="mt-1.5 text-xs leading-relaxed text-apagado">
         {ayuda}
       </p>
     </div>
   );
 
   return (
-    <div>
-      <form onSubmit={calcular} className="space-y-5">
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:items-start">
+      <form
+        onSubmit={(e) => e.preventDefault()}
+        className="tarjeta space-y-5 p-5 sm:p-6"
+        aria-label={t.h1}
+      >
         {campo('tomada', t.campos.cuotaTomada, t.campos.cuotaTomadaAyuda, tomada, setTomada)}
         {campo('cierre-a', t.campos.cierreTomado, t.campos.cierreTomadoAyuda, cierreA, setCierreA)}
         {campo(
@@ -71,9 +88,11 @@ export function ModoSimple({ locale, textos: t }: { locale: Locale; textos: Text
           setCierreB,
         )}
 
-        <details className="rounded border border-borde bg-superficie px-3 py-2">
-          <summary className="cursor-pointer text-sm font-medium">{t.campos.metodo}</summary>
-          <fieldset className="mt-2 border-0 p-0">
+        <details className="rounded-xl border border-borde bg-fondo/40 px-3.5 py-2.5">
+          <summary className="cursor-pointer text-sm font-medium text-tenue">
+            {t.campos.metodo}
+          </summary>
+          <fieldset className="mt-1 border-0 p-0">
             <legend className="sr-only">{t.campos.metodo}</legend>
             {/*
               La etiqueta ocupa toda la fila y llega a 44 px de alto: el círculo
@@ -81,14 +100,17 @@ export function ModoSimple({ locale, textos: t }: { locale: Locale; textos: Text
               móvil, que es desde donde va a llegar la mayoría del tráfico.
             */}
             {METODOS.map((m) => (
-              <label key={m} className="flex min-h-11 cursor-pointer items-center gap-3 text-sm">
+              <label
+                key={m}
+                className="flex min-h-11 cursor-pointer items-center gap-3 text-sm text-tenue"
+              >
                 <input
                   type="radio"
-                  name="metodo"
+                  name={`${id}-metodo`}
                   value={m}
                   checked={metodo === m}
                   onChange={() => setMetodo(m)}
-                  className="h-4 w-4"
+                  className="h-4 w-4 accent-[var(--color-acento)]"
                 />
                 {t.metodos[m]}
               </label>
@@ -96,69 +118,129 @@ export function ModoSimple({ locale, textos: t }: { locale: Locale; textos: Text
           </fieldset>
         </details>
 
-        <button type="submit" className="w-full rounded bg-acento px-4 py-3 font-semibold text-fondo">
-          {t.campos.calcular}
-        </button>
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => {
+              setTomada(EJEMPLO.tomada);
+              setCierreA(EJEMPLO.cierreA);
+              setCierreB(EJEMPLO.cierreB);
+            }}
+            className="min-h-11 flex-1 rounded-xl bg-acento px-4 text-sm font-semibold text-fondo transition-opacity hover:opacity-90"
+          >
+            {t.campos.ejemplo}
+          </button>
+          {!vacio && (
+            <button
+              type="button"
+              onClick={() => {
+                setTomada('');
+                setCierreA('');
+                setCierreB('');
+              }}
+              className="min-h-11 rounded-xl border border-borde px-4 text-sm font-medium text-tenue transition-colors hover:border-borde-fuerte hover:text-tinta"
+            >
+              {t.campos.limpiar}
+            </button>
+          )}
+        </div>
       </form>
 
-      {error !== null && (
-        <div role="alert" className="mt-6 rounded border border-negativo bg-superficie px-4 py-3 text-sm">
-          <p className="font-semibold text-negativo">{t.errores.titulo}</p>
-          <p className="mt-1 text-tenue">{error}</p>
-        </div>
-      )}
+      <div aria-live="polite" className="lg:sticky lg:top-24">
+        {estado.tipo === 'incompleto' && (
+          <div className="tarjeta flex min-h-[19rem] items-center justify-center p-8 text-center">
+            <p className="max-w-xs text-sm leading-relaxed text-apagado">{t.campos.incompleto}</p>
+          </div>
+        )}
 
-      {resultado !== null && (
-        <section aria-live="polite" className="mt-8 rounded border border-borde bg-superficie p-5">
-          <p
-            className={`text-2xl font-semibold ${
-              resultado.cogioValor ? 'text-positivo' : 'text-negativo'
-            }`}
-          >
-            {resultado.cogioValor ? t.resultado.cogioValor : t.resultado.noCogioValor}
-          </p>
+        {estado.tipo === 'error' && (
+          <div role="alert" className="tarjeta border-negativo/60 p-5">
+            <p className="text-sm font-semibold text-negativo">{t.errores.titulo}</p>
+            <p className="mt-1.5 text-sm text-tenue">{estado.mensaje}</p>
+          </div>
+        )}
 
-          <dl className="mt-5 space-y-4">
-            <div>
-              <dt className="text-sm text-tenue">{t.resultado.ventaja}</dt>
-              <dd className="font-mono text-3xl tabular-nums">
-                {porcentaje(resultado.ventaja, locale)}
-              </dd>
-              <p className="mt-1 text-xs text-tenue">{t.resultado.ventajaExplicacion}</p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-4 border-t border-borde pt-4">
-              <div>
-                <dt className="text-sm text-tenue">{t.resultado.clvBruto}</dt>
-                <dd className="font-mono text-lg tabular-nums">
-                  {porcentaje(resultado.clvBruto, locale)}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-sm text-tenue">{t.resultado.cuotaJusta}</dt>
-                <dd className="font-mono text-lg tabular-nums">
-                  {decimal(resultado.cuotaJustaCierre, locale)}
-                </dd>
-              </div>
-              <div>
-                <dt className="text-sm text-tenue">{t.resultado.margen}</dt>
-                <dd className="font-mono text-lg tabular-nums">
-                  {porcentajeSinSigno(resultado.justas.margen, locale)}
-                </dd>
-              </div>
-            </div>
-          </dl>
-
-          <p className="mt-4 border-t border-borde pt-4 text-xs text-tenue">
-            {t.resultado.clvBrutoExplicacion}
-          </p>
-          <p className="mt-2 text-xs text-tenue">{t.resultado.supuesto}</p>
-
-          {resultado.justas.aviso !== undefined && (
-            <p className="mt-3 text-xs text-negativo">{resultado.justas.aviso}</p>
-          )}
-        </section>
-      )}
+        {estado.tipo === 'listo' && (
+          <Resultado analisis={estado.analisis} locale={locale} textos={t} />
+        )}
+      </div>
     </div>
+  );
+}
+
+function Resultado({
+  analisis: r,
+  locale,
+  textos: t,
+}: {
+  analisis: AnalisisApuesta;
+  locale: Locale;
+  textos: Textos;
+}) {
+  const bien = r.cogioValor;
+
+  return (
+    <section className="tarjeta overflow-hidden">
+      {/* El veredicto arriba y en color: es lo único que mucha gente va a leer. */}
+      <div
+        className={`flex items-center gap-3 border-b px-5 py-4 ${
+          bien ? 'border-positivo/25 bg-positivo/10' : 'border-negativo/25 bg-negativo/10'
+        }`}
+      >
+        <span
+          aria-hidden="true"
+          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-lg ${
+            bien ? 'bg-positivo/15 text-positivo' : 'bg-negativo/15 text-negativo'
+          }`}
+        >
+          {bien ? '↑' : '↓'}
+        </span>
+        <p className={`text-base font-semibold ${bien ? 'text-positivo' : 'text-negativo'}`}>
+          {bien ? t.resultado.cogioValor : t.resultado.noCogioValor}
+        </p>
+      </div>
+
+      <div className="p-5 sm:p-6">
+        <p className="etiqueta-dato">{t.resultado.ventaja}</p>
+        <p
+          className={`cifra mt-1 text-5xl font-semibold ${bien ? 'text-positivo' : 'text-negativo'}`}
+        >
+          {porcentaje(r.ventaja, locale)}
+        </p>
+        <p className="mt-2 text-xs leading-relaxed text-apagado">{t.resultado.ventajaExplicacion}</p>
+
+        <ComparadorCuotas
+          tomada={r.cuotaTomada}
+          justa={r.cuotaJustaCierre}
+          etiquetaTomada={t.campos.cuotaTomada}
+          etiquetaJusta={t.resultado.cuotaJusta}
+          locale={locale}
+        />
+
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-4 border-t border-borde pt-5 sm:grid-cols-3">
+          {(
+            [
+              [t.resultado.clvBruto, porcentaje(r.clvBruto, locale), 'text-tinta'],
+              [t.resultado.cuotaJusta, decimal(r.cuotaJustaCierre, locale), 'text-tinta'],
+              /* El margen es de la casa, no una ganancia: nunca en verde. */
+              [t.resultado.margen, porcentajeSinSigno(r.justas.margen, locale), 'text-tenue'],
+            ] as const
+          ).map(([etiqueta, valor, tono]) => (
+            <div key={etiqueta}>
+              <dt className="etiqueta-dato">{etiqueta}</dt>
+              <dd className={`cifra mt-1 text-lg ${tono}`}>{valor}</dd>
+            </div>
+          ))}
+        </dl>
+
+        <div className="mt-5 space-y-2 border-t border-borde pt-4">
+          <p className="text-xs leading-relaxed text-apagado">{t.resultado.clvBrutoExplicacion}</p>
+          <p className="text-xs leading-relaxed text-apagado">{t.resultado.supuesto}</p>
+          {r.justas.aviso !== undefined && (
+            <p className="text-xs leading-relaxed text-negativo">{r.justas.aviso}</p>
+          )}
+        </div>
+      </div>
+    </section>
   );
 }

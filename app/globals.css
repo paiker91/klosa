@@ -1,33 +1,130 @@
 @import 'tailwindcss';
 
 /*
- * Sobrio y legible en móvil: el tráfico esperado viene de Telegram y Reddit,
- * y es móvil. Sin animaciones, sin fuentes remotas, carga inmediata.
+ * Sistema visual.
+ *
+ * Dos restricciones mandan sobre el gusto:
+ *   1. Móvil primero. El tráfico esperado viene de Telegram y Reddit.
+ *   2. Sin fuentes remotas ni imágenes de decoración. Cada petición de red que
+ *      se añade aquí se paga en la primera pintura, y la primera pintura es lo
+ *      único que ve quien llega desde un enlace.
+ *
+ * Todo lo "visual" de esta hoja es CSS: degradados, rejilla y sombras. Cero
+ * bytes de imagen.
  */
+
 @theme {
-  --color-fondo: #0f1115;
-  --color-superficie: #171a20;
-  --color-borde: #262b34;
-  --color-tinta: #e9eaec;
-  --color-tenue: #9aa1ad;
-  --color-positivo: #4ba36b;
-  --color-negativo: #c25b4e;
-  --color-acento: #5b8def;
+  /* Fondo en capas. Tres niveles bastan; con más, nada destaca. */
+  --color-fondo: #0a0c10;
+  --color-superficie: #12151c;
+  --color-superficie-alta: #191d26;
+  --color-borde: #222834;
+  --color-borde-fuerte: #333b4b;
+
+  --color-tinta: #eef1f6;
+  --color-tenue: #98a1b0;
+  --color-apagado: #6b7484;
+
+  /*
+   * Verde y rojo son datos, no decoración: solo se usan cuando el signo del
+   * número es la información. El ámbar es "todavía no se sabe", que en este
+   * producto es un estado de primera clase y no un error.
+   */
+  --color-positivo: #34c48b;
+  --color-negativo: #f2705c;
+  --color-aviso: #e0a83f;
+
+  --color-acento: #6e8bff;
+  --color-acento-suave: #2b3557;
+  --color-dato: #45d1c5;
+
+  --font-sans:
+    ui-sans-serif, system-ui, -apple-system, 'Segoe UI Variable Text', 'Segoe UI', Roboto,
+    'Helvetica Neue', Arial, sans-serif;
+  --font-mono:
+    ui-monospace, 'SF Mono', 'Cascadia Mono', 'Segoe UI Mono', 'Roboto Mono', Menlo, Consolas,
+    monospace;
+
+  --radius-xl: 0.875rem;
+  --radius-2xl: 1.125rem;
 }
 
 html {
   color-scheme: dark;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
   background: var(--color-fondo);
   color: var(--color-tinta);
+  font-family: var(--font-sans);
+  /* Cifras de la misma anchura en todas partes: las tablas no bailan al cambiar. */
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * Ambiente del fondo: una rejilla muy tenue y dos halos de color.
+ * Va en un pseudoelemento fijo para que no cueste repintado al hacer scroll.
+ */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background:
+    radial-gradient(58rem 32rem at 12% -8%, rgb(110 139 255 / 0.11), transparent 60%),
+    radial-gradient(46rem 30rem at 92% 4%, rgb(69 209 197 / 0.07), transparent 62%),
+    linear-gradient(to bottom, rgb(255 255 255 / 0.022) 1px, transparent 1px),
+    linear-gradient(to right, rgb(255 255 255 / 0.022) 1px, transparent 1px);
+  background-size:
+    100% 100%,
+    100% 100%,
+    100% 4.5rem,
+    4.5rem 100%;
+  /* La rejilla se desvanece hacia abajo: si llega al pie, parece un error de fondo. */
+  mask-image: linear-gradient(to bottom, #000 0%, #000 22rem, transparent 46rem);
 }
 
 /* El foco tiene que verse siempre: se navega mucho con teclado en escritorio. */
 :focus-visible {
   outline: 2px solid var(--color-acento);
   outline-offset: 2px;
+  border-radius: 4px;
+}
+
+::selection {
+  background: var(--color-acento-suave);
+  color: var(--color-tinta);
+}
+
+/* ---------------------------------------------------------------------------
+ * Piezas que se repiten. Se definen aquí y no como componente porque son
+ * puramente visuales: no tienen estado ni lógica que probar.
+ * ------------------------------------------------------------------------ */
+
+@utility tarjeta {
+  background: linear-gradient(180deg, var(--color-superficie-alta), var(--color-superficie));
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radius-2xl);
+  box-shadow:
+    0 1px 0 0 rgb(255 255 255 / 0.03) inset,
+    0 12px 32px -18px rgb(0 0 0 / 0.9);
+}
+
+@utility etiqueta-dato {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: var(--color-apagado);
+}
+
+/* Número grande de dato. Mono y tabular: se comparan en columna. */
+@utility cifra {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
 }
 
 @media (prefers-reduced-motion: reduce) {

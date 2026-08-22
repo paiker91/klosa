@@ -1,8 +1,12 @@
 import type { Locale } from '@/i18n/config';
 import type { TextosRegistro } from '@/i18n/textos-registro';
+import type { TextosMarco } from '@/i18n/textos-marco';
 import type { RegistroPublico } from '@/lib/picks/remoto';
 import { N_MINIMO } from '@/lib/clv';
 import { porcentaje, porcentajeSinSigno, decimal, entero } from './formato';
+import { Medidor, CosteDeLaMuestra } from './Medidor';
+import { Dispersion } from './Dispersion';
+import { TablaGrupos } from './TablaGrupos';
 
 /**
  * Vista del registro público. Componente de servidor: no hay nada que
@@ -10,16 +14,19 @@ import { porcentaje, porcentajeSinSigno, decimal, entero } from './formato';
  *
  * Regla de la página: ninguna cifra sin su contexto de significancia, y el
  * veredicto siempre antes que los números. Mientras la muestra sea pequeña,
- * las cifras se atenúan a propósito.
+ * las cifras se atenúan a propósito y el medidor lo dice antes de que nadie
+ * llegue a leer una sola frase.
  */
 export function VistaRegistro({
   locale,
   textos: t,
+  marco: tm,
   registro,
   urlRepo,
 }: {
   locale: Locale;
   textos: TextosRegistro;
+  marco: TextosMarco;
   /** `null` cuando no se pudo leer, que NO es lo mismo que estar vacío. */
   registro: RegistroPublico | null;
   urlRepo: string;
@@ -27,14 +34,14 @@ export function VistaRegistro({
   if (registro === null) {
     return (
       <>
-        <h1 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">{t.h1}</h1>
-        <section role="alert" className="mt-8 rounded border border-negativo bg-superficie p-6">
+        <Titulo t={t} />
+        <section role="alert" className="tarjeta mt-8 border-negativo/50 p-6">
           <h2 className="text-lg font-semibold text-negativo">{t.noDisponible.titulo}</h2>
           <p className="mt-2 text-tenue">{t.noDisponible.texto}</p>
-          <p className="mt-4">
+          <p className="mt-5">
             <a
               href={urlRepo}
-              className="rounded border border-acento px-3 py-2 text-sm text-acento hover:bg-fondo"
+              className="inline-flex min-h-10 items-center rounded-xl border border-borde bg-superficie px-4 text-sm font-medium text-tinta hover:border-borde-fuerte"
             >
               {t.verificar.enlaceRepo}
             </a>
@@ -52,104 +59,124 @@ export function VistaRegistro({
       ? 'contra'
       : resumen.veredicto;
 
-  const colorVeredicto =
-    claveVeredicto === 'significativo'
-      ? 'border-positivo text-positivo'
-      : claveVeredicto === 'contra'
-        ? 'border-negativo text-negativo'
-        : 'border-borde text-tinta';
-
   const flojoResultados = resultados.veredicto === 'muestra_insuficiente';
   const claveResultados =
     resultados.veredicto === 'significativo' && resultados.signo === 'contra'
       ? 'contra'
       : resultados.veredicto;
 
+  const ventajas = entradas
+    .map((e) => e.analisis?.ventaja)
+    .filter((v): v is number => v !== undefined);
+
   const fecha = (iso: string) =>
-    new Date(iso).toLocaleDateString(locale === 'pt' ? 'pt-BR' : locale === 'es' ? 'es-ES' : 'en-US', {
-      day: '2-digit',
-      month: '2-digit',
-      year: '2-digit',
-    });
+    new Date(iso).toLocaleDateString(
+      locale === 'pt' ? 'pt-BR' : locale === 'es' ? 'es-ES' : 'en-US',
+      { day: '2-digit', month: '2-digit', year: '2-digit' },
+    );
 
   return (
     <>
-      <h1 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">{t.h1}</h1>
-      <p className="mt-4 text-tenue">{t.entradilla}</p>
+      <Titulo t={t} />
 
       {conteos.total === 0 ? (
-        <section className="mt-10 rounded border border-borde bg-superficie p-6">
+        <section className="tarjeta mt-10 p-6">
           <h2 className="text-lg font-semibold">{t.vacio.titulo}</h2>
           <p className="mt-2 text-tenue">{t.vacio.texto}</p>
         </section>
       ) : (
         <>
-          {/* El veredicto va primero, siempre. */}
-          <div className={`mt-10 rounded border-l-4 bg-superficie p-5 ${colorVeredicto}`}>
-            <p className="font-medium">{t.veredictos[claveVeredicto]}</p>
-          </div>
+          <section className="mt-10 grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:items-start">
+            {/* Bloque de CLV: veredicto, medidor y cifras, en ese orden. */}
+            <div className="tarjeta p-5 sm:p-6">
+              <Veredicto clave={claveVeredicto} texto={t.veredictos[claveVeredicto]} />
 
-          <dl className="mt-5 grid grid-cols-2 gap-5 rounded border border-borde bg-superficie p-5 sm:grid-cols-4">
-            {(
-              [
-                [t.etiquetas.n, entero(resumen.n, locale)],
-                [t.etiquetas.ventajaMedia, porcentaje(resumen.ventajaMedia, locale)],
-                [t.etiquetas.tasaAcierto, porcentajeSinSigno(resumen.tasaDeAcierto, locale)],
-                [t.etiquetas.t, resumen.t === null ? '—' : decimal(resumen.t, locale, 2)],
-              ] as const
-            ).map(([etiqueta, valor]) => (
-              <div key={etiqueta}>
-                <dt className="text-sm text-tenue">{etiqueta}</dt>
-                <dd
-                  className={`font-mono text-xl tabular-nums ${insuficiente ? 'text-tenue opacity-60' : ''}`}
-                >
-                  {valor}
-                </dd>
+              <div className="mt-5">
+                <Medidor n={resumen.n} total={N_MINIMO} locale={locale} textos={tm} />
               </div>
-            ))}
-          </dl>
 
-          {conteos.pendientes > 0 && (
-            <p className="mt-3 text-sm text-tenue">
-              {t.etiquetas.pendientes}: {conteos.pendientes}
-            </p>
-          )}
+              <dl className="mt-6 grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-4">
+                {(
+                  [
+                    [t.etiquetas.n, entero(resumen.n, locale)],
+                    [t.etiquetas.ventajaMedia, porcentaje(resumen.ventajaMedia, locale)],
+                    [t.etiquetas.tasaAcierto, porcentajeSinSigno(resumen.tasaDeAcierto, locale)],
+                    [t.etiquetas.t, resumen.t === null ? '—' : decimal(resumen.t, locale, 2)],
+                  ] as const
+                ).map(([etiqueta, valor]) => (
+                  <div key={etiqueta}>
+                    <dt className="etiqueta-dato">{etiqueta}</dt>
+                    <dd
+                      className={`cifra mt-1 text-2xl ${insuficiente ? 'text-tenue opacity-70' : 'text-tinta'}`}
+                    >
+                      {valor}
+                    </dd>
+                  </div>
+                ))}
+              </dl>
 
+              {conteos.pendientes > 0 && (
+                <p className="mt-5 border-t border-borde pt-4 text-xs text-apagado">
+                  {t.etiquetas.pendientes}: {entero(conteos.pendientes, locale)}
+                </p>
+              )}
+            </div>
+
+            {/* La dispersión: lo que explica por qué hacen falta tantos picks. */}
+            <div className="tarjeta p-5 sm:p-6">
+              <h2 className="text-sm font-semibold text-tinta">{tm.grafico.titulo}</h2>
+              {ventajas.length > 0 ? (
+                <Dispersion
+                  valores={ventajas}
+                  media={resumen.ventajaMedia}
+                  locale={locale}
+                  textos={tm}
+                />
+              ) : (
+                <p className="mt-4 text-sm leading-relaxed text-apagado">{t.tabla.esperando}</p>
+              )}
+            </div>
+          </section>
 
           {/*
             Yield, cuota media y acierto. Van DESPUÉS del CLV y con su propia
             cuenta de apuestas necesarias: enseñados así, el registro demuestra
             sobre sus propios datos por qué el CLV es la métrica y el yield no.
           */}
-          <section className="mt-10">
-            <h2 className="text-xl font-semibold">{t.resultados.titulo}</h2>
-            <p className="mt-2 text-sm text-tenue">{t.resultados.entradilla}</p>
+          <section className="mt-6">
+            <h2 className="text-xl font-semibold tracking-tight">{t.resultados.titulo}</h2>
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-tenue">
+              {t.resultados.entradilla}
+            </p>
 
             {resultados.n === 0 ? (
-              <p className="mt-4 rounded border border-borde bg-superficie p-5 text-sm text-tenue">
+              <p className="tarjeta mt-4 p-5 text-sm leading-relaxed text-apagado">
                 {t.resultados.vacio}
               </p>
             ) : (
-              <>
-                <dl className="mt-4 grid grid-cols-2 gap-5 rounded border border-borde bg-superficie p-5 sm:grid-cols-5">
+              <div className="tarjeta mt-4 p-5 sm:p-6">
+                {/* Veredicto propio: el del CLV habla de 100 picks y aquí engañaría. */}
+                <Veredicto clave={claveResultados} texto={t.resultados.veredictos[claveResultados]} />
+
+                <dl className="mt-6 grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-5">
                   {(
                     [
                       [t.resultados.resueltas, entero(resultados.n, locale), false],
                       [t.resultados.yield, porcentaje(resultados.yield, locale), true],
                       [t.resultados.cuotaMedia, decimal(resultados.cuotaMedia, locale, 2), false],
-                      [t.resultados.acierto, porcentajeSinSigno(resultados.tasaAcierto, locale), true],
                       [
-                        t.resultados.beneficio,
-                        decimal(resultados.beneficio, locale, 2),
+                        t.resultados.acierto,
+                        porcentajeSinSigno(resultados.tasaAcierto, locale),
                         true,
                       ],
+                      [t.resultados.beneficio, decimal(resultados.beneficio, locale, 2), true],
                     ] as const
                   ).map(([etiqueta, valor, atenuable]) => (
                     <div key={etiqueta}>
-                      <dt className="text-sm text-tenue">{etiqueta}</dt>
+                      <dt className="etiqueta-dato">{etiqueta}</dt>
                       <dd
-                        className={`font-mono text-xl tabular-nums ${
-                          atenuable && flojoResultados ? 'text-tenue opacity-60' : ''
+                        className={`cifra mt-1 text-2xl ${
+                          atenuable && flojoResultados ? 'text-tenue opacity-70' : 'text-tinta'
                         }`}
                       >
                         {valor}
@@ -158,169 +185,221 @@ export function VistaRegistro({
                   ))}
                 </dl>
 
-                {/* Veredicto propio: el del CLV habla de 100 picks y aquí engañaría. */}
-                <p className="mt-3 text-sm text-tenue">{t.resultados.veredictos[claveResultados]}</p>
-
-                <p className="mt-3 text-sm text-tenue">
-                  {resultados.apuestasNecesarias === null
-                    ? t.resultados.sinDato
-                    : t.resultados.necesarias
-                        .replace('{n}', entero(resultados.apuestasNecesarias, locale))
-                        .replace('{clv}', entero(N_MINIMO, locale))}
-                </p>
-              </>
+                <div className="mt-6 border-t border-borde pt-5">
+                  {resultados.apuestasNecesarias === null ? (
+                    <p className="text-sm text-apagado">{t.resultados.sinDato}</p>
+                  ) : (
+                    <>
+                      <CosteDeLaMuestra
+                        necesariasClv={N_MINIMO}
+                        necesariasYield={resultados.apuestasNecesarias}
+                        locale={locale}
+                        textos={tm}
+                      />
+                      <p className="mt-3 text-xs leading-relaxed text-apagado">
+                        {t.resultados.necesarias
+                          .replace('{n}', entero(resultados.apuestasNecesarias, locale))
+                          .replace('{clv}', entero(N_MINIMO, locale))}
+                      </p>
+                    </>
+                  )}
+                </div>
+              </div>
             )}
           </section>
 
           {registro.porDeporte.length > 0 && (
-            <section className="mt-10">
-              <h2 className="text-xl font-semibold">{t.desglose.titulo}</h2>
+            <section className="mt-6">
+              <h2 className="text-xl font-semibold tracking-tight">{t.desglose.titulo}</h2>
               {/*
                 El aviso va ANTES de la tabla. El desglose es lo que destapa un
                 deporte que pierde mientras el agregado lo tapa, pero también
                 fabrica patrones falsos: cuantos más grupos, más probable que
                 alguno parezca significativo por puro azar.
               */}
-              <p className="mt-2 text-sm text-tenue">{t.desglose.aviso}</p>
-              <div className="mt-4 overflow-x-auto">
-                <table className="w-full border-collapse text-sm">
-                  <thead>
-                    <tr className="border-b border-borde text-left text-tenue">
-                      <th scope="col" className="py-2 pr-4 font-medium">
-                        {t.desglose.grupo}
-                      </th>
-                      <th scope="col" className="py-2 pr-4 text-right font-medium">
-                        {t.etiquetas.n}
-                      </th>
-                      <th scope="col" className="py-2 pr-4 text-right font-medium">
-                        {t.etiquetas.ventajaMedia}
-                      </th>
-                      <th scope="col" className="py-2 text-right font-medium">
-                        {t.etiquetas.t}
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {registro.porDeporte.map((g) => {
-                      const flojo = g.resumen.veredicto === 'muestra_insuficiente';
-                      const color =
-                        g.resumen.veredicto !== 'significativo'
-                          ? 'text-tinta'
-                          : g.resumen.signo === 'contra'
-                            ? 'text-negativo'
-                            : 'text-positivo';
-                      const tono = flojo ? 'text-tenue opacity-60' : color;
-                      return (
-                        <tr key={g.clave} className="border-b border-borde/50">
-                          <td className="py-2.5 pr-4">{g.clave}</td>
-                          <td className="py-2.5 pr-4 text-right font-mono tabular-nums">
-                            {entero(g.resumen.n, locale)}
-                          </td>
-                          <td className={`py-2.5 pr-4 text-right font-mono tabular-nums ${tono}`}>
-                            {porcentaje(g.resumen.ventajaMedia, locale)}
-                          </td>
-                          <td className={`py-2.5 text-right font-mono tabular-nums ${tono}`}>
-                            {g.resumen.t === null ? '—' : decimal(g.resumen.t, locale, 2)}
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-tenue">
+                {t.desglose.aviso}
+              </p>
+              <div className="tarjeta mt-4 p-5 sm:p-6">
+                <TablaGrupos
+                  grupos={registro.porDeporte}
+                  locale={locale}
+                  encabezados={{
+                    grupo: t.desglose.grupo,
+                    n: t.etiquetas.n,
+                    ventaja: t.etiquetas.ventajaMedia,
+                    t: t.etiquetas.t,
+                  }}
+                />
               </div>
             </section>
           )}
 
-          <div className="mt-8 overflow-x-auto">
+          <section className="tarjeta mt-6 overflow-x-auto p-1.5 sm:p-2">
             <table className="w-full border-collapse text-sm">
               <caption className="sr-only">{t.h1}</caption>
               <thead>
-                <tr className="border-b border-borde text-left text-tenue">
-                  <th scope="col" className="py-2 pr-4 font-medium">{t.tabla.fecha}</th>
-                  <th scope="col" className="py-2 pr-4 font-medium">{t.tabla.partido}</th>
-                  <th scope="col" className="py-2 pr-4 font-medium">{t.tabla.lado}</th>
-                  <th scope="col" className="py-2 pr-4 text-right font-medium">{t.tabla.tomada}</th>
-                  <th scope="col" className="py-2 pr-4 text-right font-medium">{t.tabla.cierre}</th>
-                  <th scope="col" className="py-2 pr-4 text-right font-medium">{t.tabla.ventaja}</th>
-                  <th scope="col" className="py-2 text-right font-medium">{t.tabla.resultado}</th>
+                <tr className="border-b border-borde text-left">
+                  <th scope="col" className="etiqueta-dato hidden px-3 py-3 md:table-cell">
+                    {t.tabla.fecha}
+                  </th>
+                  <th scope="col" className="etiqueta-dato px-3 py-3">
+                    {t.tabla.partido}
+                  </th>
+                  <th scope="col" className="etiqueta-dato px-3 py-3">
+                    {t.tabla.lado}
+                  </th>
+                  <th scope="col" className="etiqueta-dato px-3 py-3 text-right">
+                    {t.tabla.tomada}
+                  </th>
+                  <th scope="col" className="etiqueta-dato hidden px-3 py-3 text-right sm:table-cell">
+                    {t.tabla.cierre}
+                  </th>
+                  <th scope="col" className="etiqueta-dato px-3 py-3 text-right">
+                    {t.tabla.ventaja}
+                  </th>
+                  <th scope="col" className="etiqueta-dato px-3 py-3 text-right">
+                    {t.tabla.resultado}
+                  </th>
                 </tr>
               </thead>
               <tbody>
                 {entradas.map(({ pick, auditoria, cierre, resultado, analisis }) => (
-                  <tr key={pick.id} className="border-b border-borde/50">
-                    <td className="py-2.5 pr-4 whitespace-nowrap font-mono text-xs text-tenue">
+                  <tr
+                    key={pick.id}
+                    className="border-b border-borde/40 transition-colors last:border-0 hover:bg-superficie-alta/60"
+                  >
+                    <td className="cifra hidden px-3 py-3.5 text-xs whitespace-nowrap text-apagado md:table-cell">
                       {fecha(pick.registradoEn)}
                     </td>
-                    <td className="py-2.5 pr-4">
-                      {pick.visitante} @ {pick.local}
+                    <td className="px-3 py-3.5">
+                      <span className="font-medium">{pick.visitante}</span>
+                      <span className="text-apagado"> @ </span>
+                      <span className="font-medium">{pick.local}</span>
                       {/*
                         La procedencia de la cuota se enseña siempre. Un 2,20 sin
                         decir si fue un precio real de una casa o una mediana
                         calculada no se puede auditar, y auditar es el punto.
                       */}
-                      {(pick.casa || pick.nota) && (
-                        <span className="block text-xs text-tenue">
-                          {[pick.casa, pick.stake ? `stake ${pick.stake}` : null, pick.nota].filter(Boolean).join(' · ')}
+                      {(pick.casa || pick.nota || pick.stake) && (
+                        <span className="mt-0.5 block text-xs text-apagado">
+                          {[pick.casa, pick.stake ? `stake ${pick.stake}` : null, pick.nota]
+                            .filter(Boolean)
+                            .join(' · ')}
                         </span>
                       )}
                     </td>
-                    <td className="py-2.5 pr-4">{pick.lado}</td>
-                    <td className="py-2.5 pr-4 text-right font-mono tabular-nums">
+                    <td className="px-3 py-3.5 text-tenue">{pick.lado}</td>
+                    <td className="cifra px-3 py-3.5 text-right">
                       {decimal(pick.cuotaTomada, locale, 2)}
                     </td>
-                    <td className="py-2.5 pr-4 text-right font-mono tabular-nums text-tenue">
+                    <td className="cifra hidden px-3 py-3.5 text-right text-tenue sm:table-cell">
                       {cierre ? decimal(cierre.cuotaLadoTomado, locale, 2) : '—'}
                     </td>
-                    <td className="py-2.5 pr-4 text-right font-mono tabular-nums">
+                    <td className="cifra px-3 py-3.5 text-right">
                       {!auditoria.valido ? (
-                        <span className="text-negativo">{t.tabla.invalido}</span>
+                        <span className="text-xs text-negativo">{t.tabla.invalido}</span>
                       ) : analisis ? (
                         <span className={analisis.ventaja >= 0 ? 'text-positivo' : 'text-negativo'}>
                           {porcentaje(analisis.ventaja, locale)}
                         </span>
                       ) : (
-                        <span className="text-tenue">{t.tabla.esperando}</span>
+                        <span className="text-xs text-apagado">{t.tabla.esperando}</span>
                       )}
                     </td>
-                    <td className="py-2.5 text-right text-xs">
+                    <td className="px-3 py-3.5 text-right">
                       {resultado === null ? (
-                        <span className="text-tenue">—</span>
-                      ) : resultado.desenlace === 'ganada' ? (
-                        <span className="text-positivo">{t.tabla.ganada}</span>
-                      ) : resultado.desenlace === 'perdida' ? (
-                        <span className="text-negativo">{t.tabla.perdida}</span>
+                        <span className="text-apagado">—</span>
                       ) : (
-                        <span className="text-tenue">{t.tabla.anulada}</span>
+                        <Insignia desenlace={resultado.desenlace} textos={t} />
                       )}
                     </td>
                   </tr>
                 ))}
               </tbody>
             </table>
-          </div>
+          </section>
         </>
       )}
 
-      <section className="mt-12 rounded border border-borde bg-superficie p-5">
+      <section className="tarjeta mt-10 p-5 sm:p-6">
         <h2 className="text-lg font-semibold">{t.verificar.titulo}</h2>
-        <p className="mt-2 text-sm text-tenue">{t.verificar.texto}</p>
-        <p className="mt-4 flex flex-wrap gap-3">
+        <p className="mt-2 max-w-2xl text-sm leading-relaxed text-tenue">{t.verificar.texto}</p>
+        <p className="mt-5 flex flex-wrap gap-2.5">
           <a
             href={urls.repo}
-            className="rounded border border-acento px-3 py-2 text-sm text-acento hover:bg-fondo"
+            rel="noopener"
+            className="inline-flex min-h-10 items-center rounded-xl bg-acento px-4 text-sm font-semibold text-fondo transition-opacity hover:opacity-90"
           >
             {t.verificar.enlaceRepo}
           </a>
           <a
             href={urls.picks}
-            className="rounded border border-borde px-3 py-2 text-sm text-tenue hover:bg-fondo"
+            rel="noopener"
+            className="inline-flex min-h-10 items-center rounded-xl border border-borde px-4 text-sm font-medium text-tenue transition-colors hover:border-borde-fuerte hover:text-tinta"
           >
             {t.verificar.enlacePicks}
           </a>
         </p>
       </section>
 
-      <p className="mt-6 text-xs text-tenue">{t.aviso}</p>
+      <p className="mt-6 text-xs leading-relaxed text-apagado">{t.aviso}</p>
     </>
+  );
+}
+
+function Titulo({ t }: { t: TextosRegistro }) {
+  return (
+    <section className="max-w-3xl">
+      <h1 className="text-4xl font-semibold tracking-tight text-balance sm:text-5xl">{t.h1}</h1>
+      <p className="mt-4 leading-relaxed text-tenue">{t.entradilla}</p>
+    </section>
+  );
+}
+
+/** Franja de veredicto. Un color por estado, y el ámbar significa "todavía no se sabe". */
+function Veredicto({
+  clave,
+  texto,
+}: {
+  clave: 'muestra_insuficiente' | 'no_distinguible' | 'significativo' | 'contra';
+  texto: string;
+}) {
+  const tono =
+    clave === 'significativo'
+      ? 'border-positivo/30 bg-positivo/10 text-positivo'
+      : clave === 'contra'
+        ? 'border-negativo/30 bg-negativo/10 text-negativo'
+        : clave === 'no_distinguible'
+          ? 'border-borde bg-fondo/40 text-tenue'
+          : 'border-aviso/30 bg-aviso/10 text-aviso';
+
+  return (
+    <div className={`rounded-xl border p-4 ${tono}`}>
+      <p className="text-sm leading-relaxed font-medium">{texto}</p>
+    </div>
+  );
+}
+
+function Insignia({
+  desenlace,
+  textos: t,
+}: {
+  desenlace: 'ganada' | 'perdida' | 'anulada';
+  textos: TextosRegistro;
+}) {
+  const estilo =
+    desenlace === 'ganada'
+      ? 'bg-positivo/15 text-positivo'
+      : desenlace === 'perdida'
+        ? 'bg-negativo/15 text-negativo'
+        : 'bg-borde text-tenue';
+
+  return (
+    <span
+      className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold ${estilo}`}
+    >
+      {t.tabla[desenlace]}
+    </span>
   );
 }

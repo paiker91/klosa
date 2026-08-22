@@ -19,6 +19,10 @@ export interface Textos {
     cierreContrarioAyuda: string;
     metodo: string;
     calcular: string;
+    ejemplo: string;
+    limpiar: string;
+    /** Se ve mientras faltan campos: la calculadora no espera a un botón. */
+    incompleto: string;
   };
   metodos: { multiplicativo: string; power: string; aditivo: string };
   resultado: {
@@ -54,6 +58,9 @@ const pt: Textos = {
     cierreContrarioAyuda: 'Serve para calcular a margem da casa e tirar ela do cálculo.',
     metodo: 'Método de remoção da margem',
     calcular: 'Calcular',
+    ejemplo: 'Preencher com um exemplo',
+    limpiar: 'Limpar',
+    incompleto: 'Preencha as três odds e o resultado aparece aqui na hora.',
   },
   metodos: {
     multiplicativo: 'Multiplicativo (padrão)',
@@ -123,6 +130,9 @@ const es: Textos = {
     cierreContrarioAyuda: 'Hace falta para calcular el margen de la casa y quitarlo.',
     metodo: 'Método para quitar el margen',
     calcular: 'Calcular',
+    ejemplo: 'Rellenar con un ejemplo',
+    limpiar: 'Limpiar',
+    incompleto: 'Rellena las tres cuotas y el resultado aparece aquí al momento.',
   },
   metodos: {
     multiplicativo: 'Multiplicativo (por defecto)',
@@ -192,6 +202,9 @@ const en: Textos = {
     cierreContrarioAyuda: 'Needed to work out the margin and remove it.',
     metodo: 'Margin removal method',
     calcular: 'Calculate',
+    ejemplo: 'Fill in an example',
+    limpiar: 'Clear',
+    incompleto: 'Fill in the three odds and the result appears here straight away.',
   },
   metodos: {
     multiplicativo: 'Multiplicative (default)',
