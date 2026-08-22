@@ -2,7 +2,13 @@
 
 import { useEffect, useId, useMemo, useState } from 'react';
 import { analizarApuestaN, ErrorCuota, type AnalisisApuesta } from '@/lib/clv';
-import { DEPORTES, NOMBRE_DEPORTE, esFutbol, EMPATE, type Deporte } from '@/lib/cuotas/dominio';
+import {
+  DEPORTES,
+  MERCADOS,
+  NOMBRE_DEPORTE,
+  type Deporte,
+  type Mercado,
+} from '@/lib/cuotas/dominio';
 import { etiquetaLado } from '@/i18n/lados';
 import type { Locale } from '@/i18n/config';
 import type { Textos } from '@/i18n/textos';
@@ -40,8 +46,10 @@ type Carga<T> =
  */
 export function ModoBuscar({ locale, textos: t }: { locale: Locale; textos: Textos }) {
   const [deporte, setDeporte] = useState<Deporte | ''>('');
+  const [mercado, setMercado] = useState<Mercado>('moneyline');
   const [partidos, setPartidos] = useState<Carga<Partido[]>>({ estado: 'vacio' });
-  const [seleccion, setSeleccion] = useState('');
+  const [eventoId, setEventoId] = useState('');
+  const [lado, setLado] = useState('');
   const [tomada, setTomada] = useState('');
   const [cierre, setCierre] = useState<Carga<Cierre>>({ estado: 'vacio' });
   /** Cuándo juega la competición otra vez, si ahora mismo no hay nada cerrable. */
@@ -53,7 +61,8 @@ export function ModoBuscar({ locale, textos: t }: { locale: Locale; textos: Text
     if (deporte === '') return;
     let vigente = true;
     setPartidos({ estado: 'cargando' });
-    setSeleccion('');
+    setEventoId('');
+    setLado('');
     setCierre({ estado: 'vacio' });
 
     fetch(`/api/partidos?deporte=${deporte}`)
@@ -74,14 +83,13 @@ export function ModoBuscar({ locale, textos: t }: { locale: Locale; textos: Text
     };
   }, [deporte]);
 
-  const [eventoId, lado] = seleccion === '' ? ['', ''] : seleccion.split('|');
-
   useEffect(() => {
     if (deporte === '' || !eventoId) return;
     let vigente = true;
     setCierre({ estado: 'cargando' });
+    setLado('');
 
-    fetch(`/api/cierre?deporte=${deporte}&evento=${eventoId}`)
+    fetch(`/api/cierre?deporte=${deporte}&evento=${eventoId}&mercado=${mercado}`)
       .then(async (r) => {
         if (r.ok) return { ok: true as const, datos: (await r.json()) as Cierre };
         if (r.status === 404) return { ok: false as const, motivo: 'sinCierre' as const };
@@ -99,7 +107,7 @@ export function ModoBuscar({ locale, textos: t }: { locale: Locale; textos: Text
     return () => {
       vigente = false;
     };
-  }, [deporte, eventoId]);
+  }, [deporte, eventoId, mercado]);
 
   /*
    * El de-vig necesita TODOS los lados: dos en baloncesto y béisbol, tres en
@@ -138,34 +146,54 @@ export function ModoBuscar({ locale, textos: t }: { locale: Locale; textos: Text
       <form onSubmit={(e) => e.preventDefault()} className="tarjeta space-y-5 p-5 sm:p-6">
         <p className="text-sm leading-relaxed text-tenue">{t.buscar.intro}</p>
 
-        <div>
-          <label htmlFor={`${id}-deporte`} className="block text-sm font-medium text-tinta">
-            {t.buscar.deporte}
-          </label>
-          <select
-            id={`${id}-deporte`}
-            value={deporte}
-            onChange={(e) => setDeporte(e.target.value as Deporte | '')}
-            className={claseCampo}
-          >
-            <option value="">{t.buscar.elegir}</option>
-            {DEPORTES.map((d) => (
-              <option key={d} value={d}>
-                {NOMBRE_DEPORTE[d]}
-              </option>
-            ))}
-          </select>
+        <div className="grid gap-4 sm:grid-cols-2">
+          <div>
+            <label htmlFor={`${id}-deporte`} className="block text-sm font-medium text-tinta">
+              {t.buscar.deporte}
+            </label>
+            <select
+              id={`${id}-deporte`}
+              value={deporte}
+              onChange={(e) => setDeporte(e.target.value as Deporte | '')}
+              className={claseCampo}
+            >
+              <option value="">{t.buscar.elegir}</option>
+              {DEPORTES.map((d) => (
+                <option key={d} value={d}>
+                  {NOMBRE_DEPORTE[d]}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label htmlFor={`${id}-mercado`} className="block text-sm font-medium text-tinta">
+              {t.buscar.mercado}
+            </label>
+            <select
+              id={`${id}-mercado`}
+              value={mercado}
+              onChange={(e) => setMercado(e.target.value as Mercado)}
+              className={claseCampo}
+            >
+              {MERCADOS.map((m) => (
+                <option key={m} value={m}>
+                  {t.buscar.mercados[m]}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div>
           <label htmlFor={`${id}-partido`} className="block text-sm font-medium text-tinta">
-            {t.buscar.partido} · {t.buscar.lado}
+            {t.buscar.partido}
           </label>
           <select
             id={`${id}-partido`}
-            value={seleccion}
+            value={eventoId}
             disabled={partidos.estado !== 'ok' || partidos.datos.length === 0}
-            onChange={(e) => setSeleccion(e.target.value)}
+            onChange={(e) => setEventoId(e.target.value)}
             className={`${claseCampo} disabled:opacity-50`}
           >
             <option value="">
@@ -173,20 +201,9 @@ export function ModoBuscar({ locale, textos: t }: { locale: Locale; textos: Text
             </option>
             {partidos.estado === 'ok' &&
               partidos.datos.map((p) => (
-                /* Una opción por lado: elegir partido y lado en un solo gesto. */
-                <optgroup
-                  key={p.id}
-                  label={`${p.visitante} @ ${p.local} — ${fechaCorta(p.comienzo)}`}
-                >
-                  {(deporte !== '' && esFutbol(deporte)
-                    ? [p.visitante, EMPATE, p.local]
-                    : [p.visitante, p.local]
-                  ).map((l) => (
-                    <option key={l} value={`${p.id}|${l}`}>
-                      {etiquetaLado(l, locale)}
-                    </option>
-                  ))}
-                </optgroup>
+                <option key={p.id} value={p.id}>
+                  {p.visitante} @ {p.local} — {fechaCorta(p.comienzo)}
+                </option>
               ))}
           </select>
           {partidos.estado === 'ok' && partidos.datos.length === 0 && (
@@ -200,6 +217,34 @@ export function ModoBuscar({ locale, textos: t }: { locale: Locale; textos: Text
             </div>
           )}
           {partidos.estado === 'fallo' && <p className="mt-2 text-xs text-negativo">{t.buscar.fallo}</p>}
+        </div>
+
+        {/*
+          El lado se elige DESPUÉS de pedir el cierre, no antes. En hándicap y
+          totales los lados llevan la línea dentro —«Boston Celtics -1.5»— y no
+          se pueden deducir del nombre de los equipos: hay que verlos.
+        */}
+        <div>
+          <label htmlFor={`${id}-lado`} className="block text-sm font-medium text-tinta">
+            {t.buscar.lado}
+          </label>
+          <select
+            id={`${id}-lado`}
+            value={lado}
+            disabled={cierre.estado !== 'ok'}
+            onChange={(e) => setLado(e.target.value)}
+            className={`${claseCampo} disabled:opacity-50`}
+          >
+            <option value="">
+              {cierre.estado === 'cargando' ? t.buscar.cargando : t.buscar.elegir}
+            </option>
+            {cierre.estado === 'ok' &&
+              cierre.datos.lados.map((l) => (
+                <option key={l.etiqueta} value={l.etiqueta}>
+                  {etiquetaLado(l.etiqueta, locale)} · {decimal(l.cuota, locale, 2)}
+                </option>
+              ))}
+          </select>
         </div>
 
         <div>

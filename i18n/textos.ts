@@ -46,6 +46,8 @@ export interface Textos {
     intro: string;
     cobertura: string;
     deporte: string;
+    mercado: string;
+    mercados: { moneyline: string; handicap: string; totales: string };
     partido: string;
     lado: string;
     elegir: string;
@@ -114,6 +116,12 @@ const pt: Textos = {
     cobertura:
       'Brasileirão (A e B), Libertadores, Sul-Americana, as grandes ligas europeias, NBA, Euroliga e MLB. Jogos dos últimos 3 dias, mercado de resultado. O fechamento é a mediana das casas, não a melhor odd: a melhor de trinta casas bate o fechamento quase sempre e daria vantagem de mentira.',
     deporte: 'Competição',
+    mercado: 'Mercado',
+    mercados: {
+      moneyline: 'Resultado',
+      handicap: 'Handicap',
+      totales: 'Total (mais/menos)',
+    },
     partido: 'Jogo',
     lado: 'Seu lado',
     elegir: 'Escolha…',
@@ -211,6 +219,12 @@ const es: Textos = {
     cobertura:
       'Brasileirão (A y B), Libertadores, Sudamericana, las grandes ligas europeas, NBA, Euroliga y MLB. Partidos de los últimos 3 días, mercado de resultado. El cierre es la mediana de las casas, no la mejor cuota: la mejor de treinta casas bate al cierre casi siempre y daría una ventaja de mentira.',
     deporte: 'Competición',
+    mercado: 'Mercado',
+    mercados: {
+      moneyline: 'Resultado',
+      handicap: 'Hándicap',
+      totales: 'Total (más/menos)',
+    },
     partido: 'Partido',
     lado: 'Tu lado',
     elegir: 'Elige…',
@@ -308,6 +322,12 @@ const en: Textos = {
     cobertura:
       'Brasileirão (A and B), Libertadores, Sudamericana, the big European leagues, NBA, Euroleague and MLB. Games from the last 3 days, match result market. The close is the median across bookmakers, not the best price: the best of thirty books beats the close almost always and would hand you a fake edge.',
     deporte: 'Competition',
+    mercado: 'Market',
+    mercados: {
+      moneyline: 'Match result',
+      handicap: 'Hándicap',
+      totales: 'Total (over/under)',
+    },
     partido: 'Game',
     lado: 'Your side',
     elegir: 'Choose…',

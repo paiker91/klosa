@@ -4,7 +4,14 @@ import { useActionState, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useFormStatus } from 'react-dom';
 import { anotarPick, entrar, type Resultado } from './acciones';
-import { DEPORTES, NOMBRE_DEPORTE, type Deporte } from '@/lib/cuotas/dominio';
+import { DEPORTES, MERCADOS, NOMBRE_DEPORTE, type Deporte, type Mercado } from '@/lib/cuotas/dominio';
+
+/** Cómo se llaman los mercados en el panel. En español, que es privado. */
+const NOMBRE_MERCADO: Record<Mercado, string> = {
+  moneyline: 'Ganador (moneyline)',
+  handicap: 'Hándicap',
+  totales: 'Totales (más/menos)',
+};
 
 const CAMPO =
   'w-full rounded-xl border border-borde bg-fondo/60 px-3.5 py-3 text-tinta transition-colors hover:border-borde-fuerte focus:border-acento';
@@ -68,31 +75,60 @@ export function FormularioEntrada() {
  * el móvil — que es desde donde se anota un pick de camino a cualquier sitio.
  * Un desplegable nativo es un toque y lo resuelve el sistema operativo.
  */
-export function SelectorCompeticion({ deporte }: { deporte: Deporte }) {
+export function SelectorCompeticion({
+  deporte,
+  mercado,
+}: {
+  deporte: Deporte;
+  mercado: Mercado;
+}) {
   const router = useRouter();
   const [cambiando, setCambiando] = useState(false);
 
+  const ir = (d: string, m: string) => {
+    setCambiando(true);
+    router.push(`/panel?deporte=${d}&mercado=${m}`);
+  };
+
   return (
-    <div>
-      <label htmlFor="competicion" className="mb-2 block text-sm font-medium">
-        Competición
-      </label>
-      <select
-        id="competicion"
-        value={deporte}
-        disabled={cambiando}
-        onChange={(e) => {
-          setCambiando(true);
-          router.push(`/panel?deporte=${e.target.value}`);
-        }}
-        className={`${CAMPO} min-h-12 disabled:opacity-60`}
-      >
-        {DEPORTES.map((d) => (
-          <option key={d} value={d}>
-            {NOMBRE_DEPORTE[d]}
-          </option>
-        ))}
-      </select>
+    <div className="grid gap-4 sm:grid-cols-2">
+      <div>
+        <label htmlFor="competicion" className="mb-2 block text-sm font-medium">
+          Competición
+        </label>
+        <select
+          id="competicion"
+          value={deporte}
+          disabled={cambiando}
+          onChange={(e) => ir(e.target.value, mercado)}
+          className={`${CAMPO} min-h-12 disabled:opacity-60`}
+        >
+          {DEPORTES.map((d) => (
+            <option key={d} value={d}>
+              {NOMBRE_DEPORTE[d]}
+            </option>
+          ))}
+        </select>
+      </div>
+
+      <div>
+        <label htmlFor="mercado" className="mb-2 block text-sm font-medium">
+          Mercado
+        </label>
+        <select
+          id="mercado"
+          value={mercado}
+          disabled={cambiando}
+          onChange={(e) => ir(deporte, e.target.value)}
+          className={`${CAMPO} min-h-12 disabled:opacity-60`}
+        >
+          {MERCADOS.map((m) => (
+            <option key={m} value={m}>
+              {NOMBRE_MERCADO[m]}
+            </option>
+          ))}
+        </select>
+      </div>
     </div>
   );
 }
@@ -106,10 +142,12 @@ export interface OpcionEvento {
 
 export function FormularioPick({
   deporte,
+  mercado,
   opciones,
   casas,
 }: {
   deporte: Deporte;
+  mercado: Mercado;
   opciones: OpcionEvento[];
   casas: Record<string, { casa: string; cuota: number }[]>;
 }) {
@@ -137,6 +175,7 @@ export function FormularioPick({
     <form action={accion} className="mt-5 flex flex-col gap-5">
       <Aviso resultado={estado} />
       <input type="hidden" name="deporte" value={deporte} />
+      <input type="hidden" name="mercado" value={mercado} />
 
       <div>
         <label htmlFor="seleccion" className="mb-2 block text-sm font-medium">

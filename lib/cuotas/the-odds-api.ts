@@ -194,26 +194,50 @@ export class TheOddsApi implements ProveedorDeCuotas {
     return s.length % 2 ? (s[m] as number) : (((s[m - 1] as number) + (s[m] as number)) / 2);
   }
 
-  private aEvento(bruto: EventoAPI, deporte: Deporte): Evento {
+  private aEvento(bruto: EventoAPI, deporte: Deporte, mercado: Mercado = 'moneyline'): Evento {
     /*
      * Los precios ya vienen en esta misma respuesta, así que calcular la
      * mediana no cuesta ninguna petición extra. Antes se descartaban.
      */
-    const mercado: PrecioDeMercado[] = [];
-    const lados = esFutbol(deporte)
-      ? [bruto.away_team, EMPATE, bruto.home_team]
-      : [bruto.away_team, bruto.home_team];
+    const claveMercado = MERCADO_API[mercado];
+    /*
+     * En moneyline los lados son los equipos y se conocen de antemano. En
+     * hándicap y totales llevan la línea pegada —«Boston Celtics -1.5»— y hay
+     * que sacarlos de lo que cuelgue cada casa, porque no todas cuelgan la
+     * misma línea.
+     */
+    const etiquetar = (o: ResultadoAPI) =>
+      o.point === undefined
+        ? o.name
+        : mercado === 'handicap'
+          ? `${o.name} ${o.point > 0 ? '+' : ''}${o.point}`
+          : `${o.name} ${o.point}`;
+
+    const lados =
+      mercado === 'moneyline'
+        ? esFutbol(deporte)
+          ? [bruto.away_team, EMPATE, bruto.home_team]
+          : [bruto.away_team, bruto.home_team]
+        : [
+            ...new Set(
+              (bruto.bookmakers ?? []).flatMap(
+                (c) => c.markets.find((m) => m.key === claveMercado)?.outcomes.map(etiquetar) ?? [],
+              ),
+            ),
+          ];
+
+    const precioDeMercado: PrecioDeMercado[] = [];
     for (const lado of lados) {
       const precios = (bruto.bookmakers ?? []).flatMap(
         (c) =>
           c.markets
-            .find((m) => m.key === 'h2h')
-            ?.outcomes.filter((o) => o.name === lado)
+            .find((m) => m.key === claveMercado)
+            ?.outcomes.filter((o) => etiquetar(o) === lado)
             .map((o) => o.price) ?? [],
       );
       // Con menos de tres casas la mediana no es representativa: mejor nada.
       if (precios.length >= 3) {
-        mercado.push({
+        precioDeMercado.push({
           lado,
           mediana: Math.round(TheOddsApi.mediana(precios) * 100) / 100,
           casas: precios.length,
@@ -227,15 +251,17 @@ export class TheOddsApi implements ProveedorDeCuotas {
      */
     const porCasa = (bruto.bookmakers ?? [])
       .map((c) => {
-        const m = c.markets.find((x) => x.key === 'h2h');
+        const m = c.markets.find((x) => x.key === claveMercado);
         return {
           casa: c.title,
           lados: (m?.outcomes ?? [])
-            .filter((o) => lados.includes(o.name))
-            .map((o) => ({ lado: o.name, cuota: o.price })),
+            .filter((o) => lados.includes(etiquetar(o)))
+            .map((o) => ({ lado: etiquetar(o), cuota: o.price })),
         };
       })
-      .filter((c) => c.lados.length === lados.length);
+      /* Una casa que no cuelga todos los lados no sirve: sin el contrario no
+         hay margen que quitar, y sin margen no hay ventaja que valga. */
+      .filter((c) => c.lados.length >= 2);
 
     return {
       id: bruto.id,
@@ -243,7 +269,7 @@ export class TheOddsApi implements ProveedorDeCuotas {
       local: bruto.home_team,
       visitante: bruto.away_team,
       comienzo: new Date(bruto.commence_time),
-      ...(mercado.length > 0 ? { mercado } : {}),
+      ...(precioDeMercado.length > 0 ? { mercado: precioDeMercado } : {}),
       ...(porCasa.length > 0 ? { porCasa } : {}),
     };
   }
@@ -280,14 +306,15 @@ export class TheOddsApi implements ProveedorDeCuotas {
 
   async buscarEventos(criterio: CriterioBusqueda): Promise<Evento[]> {
     const clave = DEPORTE_API[criterio.deporte];
+    const mercado = criterio.mercado ?? 'moneyline';
     const brutos = await this.pedir<EventoAPI[]>(`/sports/${clave}/odds/`, {
       regions: this.regiones,
-      markets: 'h2h',
+      markets: MERCADO_API[mercado],
       oddsFormat: 'decimal',
     });
 
     return brutos
-      .map((b) => this.aEvento(b, criterio.deporte))
+      .map((b) => this.aEvento(b, criterio.deporte, mercado))
       .filter((e) => {
         if (criterio.desde && e.comienzo < criterio.desde) return false;
         if (criterio.hasta && e.comienzo > criterio.hasta) return false;

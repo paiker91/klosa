@@ -35,6 +35,12 @@ import {
 } from '../lib/picks/registro';
 import { clienteDeServicio } from '../lib/tracker/servicio';
 import { analizarApuestaN } from '../lib/clv';
+import {
+  separarLinea,
+  resolverHandicap,
+  resolverTotal,
+  type Desenlace,
+} from '../lib/apuestas/handicap';
 
 const claveApi = process.env.THE_ODDS_API_KEY;
 if (!claveApi) {
@@ -303,6 +309,7 @@ interface PorResolver {
   id: string;
   deporte: Deporte;
   eventoId: string;
+  mercado: Mercado;
   lado: string;
 }
 
@@ -311,6 +318,7 @@ const porResolver: PorResolver[] = porResolverRegistro.map((p) => ({
   id: p.id,
   deporte: p.deporte,
   eventoId: p.eventoId,
+  mercado: p.mercado,
   lado: p.lado,
 }));
 
@@ -319,7 +327,6 @@ if (supabase) {
     .from('picks')
     .select('id, deporte, evento_id, lado, mercado, resultados(pick_id)')
     .lte('comienzo', new Date().toISOString())
-    .eq('mercado', 'moneyline')
     .limit(500);
 
   for (const p of data ?? []) {
@@ -329,9 +336,40 @@ if (supabase) {
       id: p.id as string,
       deporte: p.deporte as Deporte,
       eventoId: p.evento_id as string,
+      mercado: p.mercado as Mercado,
       lado: p.lado as string,
     });
   }
+}
+
+/**
+ * Resuelve según el mercado.
+ *
+ * Cada uno tiene su aritmética y confundirlas produce un desenlace creíble y
+ * falso. El caso más fácil de estropear es el hándicap de línea entera: ganar
+ * exactamente por la línea NO es ganar, se devuelve el dinero. Si eso se
+ * contara como victoria, subirían a la vez el acierto y el yield.
+ */
+function resolverPick(
+  p: PorResolver,
+  marcador: { equipo: string; puntos: number }[],
+  deporte: Deporte,
+): Desenlace | null {
+  if (p.mercado === 'moneyline') {
+    return resolverMoneyline(p.lado, marcador, esFutbol(deporte));
+  }
+
+  const partes = separarLinea(p.lado);
+  if (partes === null) return null;
+
+  if (p.mercado === 'handicap') {
+    return resolverHandicap(partes.equipo, partes.linea, marcador);
+  }
+
+  // Totales: el lado es «Over» o «Under» seguido de la línea.
+  const lado = partes.equipo.trim();
+  if (lado !== 'Over' && lado !== 'Under') return null;
+  return resolverTotal(lado, partes.linea, marcador);
 }
 
 if (porResolver.length > 0) {
@@ -353,7 +391,7 @@ if (porResolver.length > 0) {
       const m = marcadores.get(p.eventoId);
       if (!m || !m.terminado) continue;
 
-      const desenlace = resolverMoneyline(p.lado, m.marcador, esFutbol(deporte));
+      const desenlace = resolverPick(p, m.marcador, deporte);
       if (desenlace === null) continue;
 
       const marcador = m.marcador.map((x) => `${x.equipo} ${x.puntos}`).join(' — ');

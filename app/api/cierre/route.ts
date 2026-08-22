@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { DEPORTES, type Deporte } from '@/lib/cuotas/dominio';
+import { DEPORTES, MERCADOS, type Deporte, type Mercado } from '@/lib/cuotas/dominio';
 import { cierreDe, SinCuota } from '@/lib/cuotas/publico';
 
 /**
@@ -12,6 +12,7 @@ import { cierreDe, SinCuota } from '@/lib/cuotas/publico';
 export const revalidate = 31536000;
 
 const esDeporte = (v: string | null): v is Deporte => DEPORTES.includes(v as Deporte);
+const esMercado = (v: string | null): v is Mercado => MERCADOS.includes(v as Mercado);
 
 /** Los identificadores del proveedor son hexadecimales de 32. Todo lo demás, fuera. */
 const ID_VALIDO = /^[a-f0-9]{16,64}$/i;
@@ -20,13 +21,14 @@ export async function GET(peticion: Request) {
   const parametros = new URL(peticion.url).searchParams;
   const deporte = parametros.get('deporte');
   const evento = parametros.get('evento') ?? '';
+  const mercado = parametros.get('mercado') ?? 'moneyline';
 
-  if (!esDeporte(deporte) || !ID_VALIDO.test(evento)) {
+  if (!esDeporte(deporte) || !ID_VALIDO.test(evento) || !esMercado(mercado)) {
     return NextResponse.json({ error: 'parámetros inválidos' }, { status: 400 });
   }
 
   try {
-    const cierre = await cierreDe(deporte, evento);
+    const cierre = await cierreDe(deporte, evento, mercado);
     if (cierre === null) {
       /*
        * Que no haya cierre NO se cachea para siempre: puede que el partido

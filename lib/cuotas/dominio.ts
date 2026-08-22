@@ -177,6 +177,8 @@ export interface CuotasDeCierre {
 
 export interface CriterioBusqueda {
   deporte: Deporte;
+  /** Mercado a pedir. Por defecto el de resultado. */
+  mercado?: Mercado;
   desde?: Date;
   hasta?: Date;
 }

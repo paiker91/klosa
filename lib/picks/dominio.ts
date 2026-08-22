@@ -21,6 +21,7 @@
 import { createHash } from 'node:crypto';
 import type { Deporte, Mercado } from '../cuotas/dominio';
 import { validarCuota } from '../clv';
+import type { Desenlace } from '../apuestas/handicap';
 
 export interface Pick {
   /** Sello de contenido. Se recalcula al auditar: si no cuadra, se tocó algo. */
@@ -95,7 +96,13 @@ export const cuotaTomadaDelCierre = (c: Cierre): number | undefined => c.cuotas[
  */
 export interface ResultadoPick {
   pickId: string;
-  desenlace: 'ganada' | 'perdida' | 'anulada';
+  /**
+   * Las medias salen de las líneas de cuarto, donde la apuesta se parte en
+   * dos. Y `anulada` sale de las líneas enteras: ganar exactamente por la
+   * línea no es ganar, es que se devuelve el dinero. Contarlo como victoria
+   * infla el acierto y el yield a la vez.
+   */
+  desenlace: Desenlace;
   /** Marcador tal cual, para que se pueda comprobar la resolución. */
   marcador: string;
   capturadoEn: string;

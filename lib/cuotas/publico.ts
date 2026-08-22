@@ -15,7 +15,7 @@
  *      siempre; la primera consulta lo paga y las demás son gratis.
  */
 import { TheOddsApi } from './the-odds-api';
-import { EMPATE, esFutbol, ErrorProveedor, type Deporte } from './dominio';
+import { EMPATE, esFutbol, ErrorProveedor, type Deporte, type Mercado } from './dominio';
 
 /**
  * Peticiones que NO se gastan en la web.
@@ -126,6 +126,7 @@ export async function partidosCerrables(
 export async function cierreDe(
   deporte: Deporte,
   eventoId: string,
+  mercado: Mercado = 'moneyline',
 ): Promise<CierrePublico | null> {
   const api = cliente(clave());
 
@@ -138,7 +139,7 @@ export async function cierreDe(
 
   const cierre = await api.cuotasDeCierre(
     { id: eventoId, deporte, comienzo: partido.comienzo },
-    'moneyline',
+    mercado,
   );
   if (cierre === null) return null;
 

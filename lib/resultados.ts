@@ -11,8 +11,9 @@
  * Es la tesis del producto convertida en un número sobre los datos del usuario.
  */
 import { T_CRITICO, N_MINIMO, desviacionMuestral, type Veredicto } from './clv';
+import type { Desenlace } from './apuestas/handicap';
 
-export type Desenlace = 'ganada' | 'perdida' | 'anulada';
+export type { Desenlace } from './apuestas/handicap';
 
 export interface ApuestaResuelta {
   cuotaTomada: number;
@@ -62,11 +63,28 @@ const VACIO: ResumenResultados = {
   apuestasNecesarias: null,
 };
 
-/** Beneficio de una apuesta, en unidades. Ganada: (cuota-1)×stake. Perdida: -stake. */
+/**
+ * Beneficio de una apuesta, en unidades.
+ *
+ * Las medias son literalmente media apuesta: en una línea de cuarto el dinero
+ * se reparte entre dos líneas vecinas, una de las cuales empata. Redondearlas
+ * a ganada o perdida falsearía el yield en la dirección que tocara.
+ */
 function beneficioDe(a: ApuestaResuelta): number {
   const stake = a.stake ?? 1;
-  if (a.desenlace === 'anulada') return 0;
-  return a.desenlace === 'ganada' ? (a.cuotaTomada - 1) * stake : -stake;
+  const premio = (a.cuotaTomada - 1) * stake;
+  switch (a.desenlace) {
+    case 'anulada':
+      return 0;
+    case 'ganada':
+      return premio;
+    case 'perdida':
+      return -stake;
+    case 'media_ganada':
+      return premio / 2;
+    case 'media_perdida':
+      return -stake / 2;
+  }
 }
 
 export function agregarResultados(apuestas: readonly ApuestaResuelta[]): ResumenResultados {
@@ -80,7 +98,13 @@ export function agregarResultados(apuestas: readonly ApuestaResuelta[]): Resumen
   const n = validas.length;
   if (n === 0) return { ...VACIO, anuladas };
 
-  const ganadas = validas.filter((a) => a.desenlace === 'ganada').length;
+  /*
+   * Una media ganada cuenta como medio acierto: la mitad del dinero ganó y la
+   * otra mitad se devolvió. Contarla entera inflaría la tasa.
+   */
+  const ganadas =
+    validas.filter((a) => a.desenlace === 'ganada').length +
+    validas.filter((a) => a.desenlace === 'media_ganada').length / 2;
   const unidadesArriesgadas = validas.reduce((s, a) => s + (a.stake ?? 1), 0);
   const beneficio = validas.reduce((s, a) => s + beneficioDe(a), 0);
 

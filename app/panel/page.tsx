@@ -2,7 +2,15 @@ import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { COOKIE_SESION, configuracionPanel, tokenValido } from '@/lib/sesion';
 import { TheOddsApi } from '@/lib/cuotas/the-odds-api';
-import { DEPORTES, NOMBRE_DEPORTE, EMPATE, esFutbol, type Deporte } from '@/lib/cuotas/dominio';
+import {
+  DEPORTES,
+  MERCADOS,
+  NOMBRE_DEPORTE,
+  EMPATE,
+  esFutbol,
+  type Deporte,
+  type Mercado,
+} from '@/lib/cuotas/dominio';
 import {
   FormularioEntrada,
   FormularioPick,
@@ -17,15 +25,20 @@ import { salir } from './acciones';
 export const dynamic = 'force-dynamic';
 
 const esDeporte = (v: string | undefined): v is Deporte => DEPORTES.includes(v as Deporte);
+const esMercado = (v: string | undefined): v is Mercado => MERCADOS.includes(v as Mercado);
 
-async function opcionesDe(claveApi: string, deporte: Deporte): Promise<{
+async function opcionesDe(
+  claveApi: string,
+  deporte: Deporte,
+  mercado: Mercado,
+): Promise<{
   opciones: OpcionEvento[];
   /** Precio de cada casa por lado, para poder registrar uno que exista. */
   casas: Record<string, { casa: string; cuota: number }[]>;
   error: string | null;
 }> {
   try {
-    const eventos = (await new TheOddsApi({ claveApi }).buscarEventos({ deporte }))
+    const eventos = (await new TheOddsApi({ claveApi }).buscarEventos({ deporte, mercado }))
       .filter((e) => e.comienzo > new Date())
       .sort((a, b) => a.comienzo.getTime() - b.comienzo.getTime());
 
@@ -58,11 +71,22 @@ async function opcionesDe(claveApi: string, deporte: Deporte): Promise<{
       (casas[clave] as { casa: string; cuota: number }[]).sort((a, b) => b.cuota - a.cuota);
     }
 
-    // Una opción por lado: elegir partido y lado en un solo gesto.
-    // En fútbol son tres, porque el empate también se apuesta.
+    /*
+     * Una opción por lado. En moneyline son los equipos (y el empate en
+     * fútbol); en hándicap y totales, los lados vienen ya con su línea dentro
+     * de la etiqueta —«Boston Celtics -1.5»—, y esa etiqueta es lo que se
+     * guarda: el cierre se empareja por ella, así que la línea no se puede
+     * perder por el camino.
+     */
     const opciones = eventos.flatMap((e) => {
       const horas = ((e.comienzo.getTime() - Date.now()) / 3_600_000).toFixed(1);
-      return (esFutbol(deporte) ? [e.visitante, EMPATE, e.local] : [e.visitante, e.local]).map((lado) => {
+      const lados =
+        mercado === 'moneyline'
+          ? esFutbol(deporte)
+            ? [e.visitante, EMPATE, e.local]
+            : [e.visitante, e.local]
+          : [...new Set((e.porCasa ?? []).flatMap((c) => c.lados.map((l) => l.lado)))];
+      return lados.map((lado) => {
         const precio = e.mercado?.find((m) => m.lado === lado);
         return {
           valor: JSON.stringify({ id: e.id, lado }),
@@ -87,7 +111,7 @@ async function opcionesDe(claveApi: string, deporte: Deporte): Promise<{
 export default async function Panel({
   searchParams,
 }: {
-  searchParams: Promise<{ deporte?: string }>;
+  searchParams: Promise<{ deporte?: string; mercado?: string }>;
 }) {
   const { config, faltan } = configuracionPanel();
 
@@ -138,9 +162,10 @@ export default async function Panel({
     );
   }
 
-  const { deporte: pedido } = await searchParams;
+  const { deporte: pedido, mercado: mercadoPedido } = await searchParams;
   const deporte: Deporte = esDeporte(pedido) ? pedido : 'Brasileirao';
-  const { opciones, casas, error } = await opcionesDe(config.claveOdds, deporte);
+  const mercado: Mercado = esMercado(mercadoPedido) ? mercadoPedido : 'moneyline';
+  const { opciones, casas, error } = await opcionesDe(config.claveOdds, deporte, mercado);
 
   return marco(
     <>
@@ -153,14 +178,14 @@ export default async function Panel({
       </p>
 
       <div className="tarjeta mt-5 p-5 sm:p-6">
-        <SelectorCompeticion deporte={deporte} />
+        <SelectorCompeticion deporte={deporte} mercado={mercado} />
 
         {error ? (
           <p className="mt-5 rounded-xl border border-aviso/30 bg-aviso/10 p-4 text-sm leading-relaxed text-aviso">
             {error}
           </p>
         ) : (
-          <FormularioPick deporte={deporte} opciones={opciones} casas={casas} />
+          <FormularioPick deporte={deporte} mercado={mercado} opciones={opciones} casas={casas} />
         )}
       </div>
 

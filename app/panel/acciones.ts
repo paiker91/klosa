@@ -4,7 +4,7 @@ import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { parsearCuota } from '@/lib/clv';
 import { TheOddsApi } from '@/lib/cuotas/the-odds-api';
-import { DEPORTES, type Deporte } from '@/lib/cuotas/dominio';
+import { DEPORTES, MERCADOS, type Deporte, type Mercado } from '@/lib/cuotas/dominio';
 import { crearPick } from '@/lib/picks/dominio';
 import { anadirLinea } from '@/lib/github';
 import { COOKIE_VISIBLE } from '@/lib/panel-visible';
@@ -125,8 +125,13 @@ export async function anotarPick(_previo: Resultado | null, datos: FormData): Pr
      * venga del formulario: así la hora de comienzo la pone la API y nadie
      * puede falsearla manipulando el campo oculto.
      */
+    const mercado = String(datos.get('mercado') ?? 'moneyline') as Mercado;
+    if (!MERCADOS.includes(mercado)) throw new Error('Mercado no válido.');
+
     const api = new TheOddsApi({ claveApi: config.claveOdds });
-    const evento = (await api.buscarEventos({ deporte })).find((e) => e.id === seleccion.id);
+    const evento = (await api.buscarEventos({ deporte, mercado })).find(
+      (e) => e.id === seleccion.id,
+    );
     if (!evento) throw new Error('Ese partido ya no está en el mercado.');
     if (evento.comienzo <= new Date()) {
       throw new Error('Ese partido ya ha empezado. No se anotan picks a toro pasado.');
@@ -150,7 +155,7 @@ export async function anotarPick(_previo: Resultado | null, datos: FormData): Pr
       local: evento.local,
       visitante: evento.visitante,
       comienzo: evento.comienzo.toISOString(),
-      mercado: 'moneyline',
+      mercado,
       lado: seleccion.lado,
       cuotaTomada: parsearCuota(String(datos.get('cuota') ?? '')),
       stake: parsearStake(String(datos.get('stake') ?? '')),

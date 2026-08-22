@@ -4,6 +4,7 @@ import type { TextosMarco } from '@/i18n/textos-marco';
 import type { RegistroPublico } from '@/lib/picks/remoto';
 import { cuotaTomadaDelCierre } from '@/lib/picks/dominio';
 import { etiquetaLado } from '@/i18n/lados';
+import type { Desenlace } from '@/lib/apuestas/handicap';
 import { N_MINIMO } from '@/lib/clv';
 import { porcentaje, porcentajeSinSigno, decimal, entero } from './formato';
 import { Medidor, CosteDeLaMuestra } from './Medidor';
@@ -403,25 +404,34 @@ function Veredicto({
   );
 }
 
-function Insignia({
-  desenlace,
-  textos: t,
-}: {
-  desenlace: 'ganada' | 'perdida' | 'anulada';
-  textos: TextosRegistro;
-}) {
+function Insignia({ desenlace, textos: t }: { desenlace: Desenlace; textos: TextosRegistro }) {
+  /*
+   * Las medias se enseñan con su propio tono, más apagado: media ganada no es
+   * ganada, y darles el mismo verde las convertiría en victorias a la vista.
+   */
   const estilo =
     desenlace === 'ganada'
       ? 'bg-positivo/15 text-positivo'
-      : desenlace === 'perdida'
-        ? 'bg-negativo/15 text-negativo'
-        : 'bg-borde text-tenue';
+      : desenlace === 'media_ganada'
+        ? 'bg-positivo/10 text-positivo/80'
+        : desenlace === 'perdida'
+          ? 'bg-negativo/15 text-negativo'
+          : desenlace === 'media_perdida'
+            ? 'bg-negativo/10 text-negativo/80'
+            : 'bg-borde text-tenue';
+
+  const etiqueta =
+    desenlace === 'media_ganada'
+      ? `½ ${t.tabla.ganada}`
+      : desenlace === 'media_perdida'
+        ? `½ ${t.tabla.perdida}`
+        : t.tabla[desenlace];
 
   return (
     <span
       className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold ${estilo}`}
     >
-      {t.tabla[desenlace]}
+      {etiqueta}
     </span>
   );
 }
