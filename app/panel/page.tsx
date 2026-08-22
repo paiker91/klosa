@@ -3,7 +3,14 @@ import Link from 'next/link';
 import { COOKIE_SESION, configuracionPanel, tokenValido } from '@/lib/sesion';
 import { TheOddsApi } from '@/lib/cuotas/the-odds-api';
 import { DEPORTES, NOMBRE_DEPORTE, EMPATE, esFutbol, type Deporte } from '@/lib/cuotas/dominio';
-import { FormularioEntrada, FormularioPick, type OpcionEvento } from './Formularios';
+import {
+  FormularioEntrada,
+  FormularioPick,
+  SelectorCompeticion,
+  type OpcionEvento,
+} from './Formularios';
+import { Simbolo } from '@/components/Marca';
+import { urlRegistro } from '@/i18n/config';
 import { salir } from './acciones';
 
 /** Nunca se cachea: enseña partidos abiertos y depende de la sesión. */
@@ -59,19 +66,25 @@ export default async function Panel({
 }) {
   const { config, faltan } = configuracionPanel();
 
-  const marco = (contenido: React.ReactNode) => (
-    <main className="mx-auto max-w-lg px-5 py-10">
-      <h1 className="text-2xl font-semibold">Panel de picks</h1>
+  const marco = (contenido: React.ReactNode, subtitulo?: string) => (
+    <main className="mx-auto w-full max-w-lg px-4 py-10 sm:px-6">
+      <div className="flex items-center gap-2.5">
+        <Simbolo className="h-8 w-8" />
+        <div>
+          <h1 className="text-xl font-semibold tracking-tight">Panel de picks</h1>
+          {subtitulo && <p className="text-xs text-apagado">{subtitulo}</p>}
+        </div>
+      </div>
       {contenido}
     </main>
   );
 
   if (!config) {
     return marco(
-      <div className="mt-6 rounded border border-negativo bg-superficie p-4 text-sm">
+      <div className="tarjeta mt-6 border-negativo/50 p-5 text-sm">
         <p className="font-semibold text-negativo">El panel no está configurado.</p>
         <p className="mt-2 text-tenue">Faltan estas variables de entorno en Vercel:</p>
-        <ul className="mt-2 font-mono text-xs text-tenue">
+        <ul className="cifra mt-2 text-xs text-tenue">
           {faltan.map((f) => (
             <li key={f}>{f}</li>
           ))}
@@ -83,10 +96,11 @@ export default async function Panel({
   const tarro = await cookies();
   if (!tokenValido(config.secreto, tarro.get(COOKIE_SESION)?.value)) {
     return marco(
-      <>
-        <p className="mt-2 text-sm text-tenue">Zona privada.</p>
+      <div className="tarjeta mt-6 p-5 sm:p-6">
+        <p className="text-sm text-tenue">Zona privada.</p>
         <FormularioEntrada />
-      </>,
+      </div>,
+      'Zona privada',
     );
   }
 
@@ -96,46 +110,36 @@ export default async function Panel({
 
   return marco(
     <>
-      <p className="mt-2 text-sm text-tenue">
+      <p className="mt-5 text-sm leading-relaxed text-tenue">
         El pick se publica en{' '}
-        <a
-          href={`https://github.com/${config.repo}`}
-          className="text-acento hover:underline"
-        >
+        <a href={`https://github.com/${config.repo}`} className="text-acento hover:underline">
           {config.repo}
         </a>{' '}
         al instante. El cierre lo captura el robot cada dos horas.
       </p>
 
-      {/* Trece competiciones no caben en una fila: se envuelven. */}
-      <nav aria-label="Competición" className="mt-6 flex flex-wrap gap-2">
-        {DEPORTES.map((d) => (
-          <Link
-            key={d}
-            href={`/panel?deporte=${d}`}
-            aria-current={d === deporte ? 'page' : undefined}
-            className={`flex min-h-11 items-center justify-center rounded-xl border px-3 text-sm ${
-              d === deporte ? 'border-acento text-tinta' : 'border-borde text-tenue'
-            }`}
-          >
-            {NOMBRE_DEPORTE[d]}
-          </Link>
-        ))}
-      </nav>
+      <div className="tarjeta mt-5 p-5 sm:p-6">
+        <SelectorCompeticion deporte={deporte} />
 
-      {error ? (
-        <p className="mt-6 rounded border border-borde bg-superficie p-4 text-sm text-tenue">
-          {error}
-        </p>
-      ) : (
-        <FormularioPick deporte={deporte} opciones={opciones} />
-      )}
+        {error ? (
+          <p className="mt-5 rounded-xl border border-aviso/30 bg-aviso/10 p-4 text-sm leading-relaxed text-aviso">
+            {error}
+          </p>
+        ) : (
+          <FormularioPick deporte={deporte} opciones={opciones} />
+        )}
+      </div>
 
-      <form action={salir} className="mt-10 border-t border-borde pt-4">
-        <button type="submit" className="text-sm text-tenue hover:underline">
-          Cerrar sesión
-        </button>
-      </form>
+      <div className="mt-8 flex items-center justify-between border-t border-borde pt-4">
+        <Link href={urlRegistro('pt')} className="text-sm text-tenue hover:text-tinta">
+          Ver el registro público
+        </Link>
+        <form action={salir}>
+          <button type="submit" className="text-sm text-apagado hover:text-tinta">
+            Cerrar sesión
+          </button>
+        </form>
+      </div>
     </>,
   );
 }

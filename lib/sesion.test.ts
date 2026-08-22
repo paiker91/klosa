@@ -1,5 +1,15 @@
 import { describe, it, expect } from 'vitest';
-import { crearToken, tokenValido, iguales, COOKIE_SESION } from './sesion';
+import {
+  crearToken,
+  tokenValido,
+  iguales,
+  COOKIE_SESION,
+  SIN_INTENTOS,
+  INTENTOS_LIBRES,
+  ESPERA_MAXIMA_MS,
+  trasFallo,
+  segundosDeBloqueo,
+} from './sesion';
 
 const SECRETO = 'secreto-de-prueba';
 
@@ -44,5 +54,36 @@ describe('sesión del panel', () => {
 
   it('la cookie tiene nombre estable', () => {
     expect(COOKIE_SESION).toBe('klosa_panel');
+  });
+});
+
+describe('freno a la fuerza bruta', () => {
+  const AHORA = 1_000_000;
+
+  it('los primeros intentos no bloquean: quien teclea mal no se queda fuera', () => {
+    let estado = SIN_INTENTOS;
+    for (let i = 0; i < INTENTOS_LIBRES - 1; i++) estado = trasFallo(estado, AHORA);
+    expect(segundosDeBloqueo(estado, AHORA)).toBe(0);
+  });
+
+  it('al quinto fallo bloquea un minuto', () => {
+    let estado = SIN_INTENTOS;
+    for (let i = 0; i < INTENTOS_LIBRES; i++) estado = trasFallo(estado, AHORA);
+    expect(segundosDeBloqueo(estado, AHORA)).toBe(60);
+  });
+
+  it('cada fallo posterior dobla la espera, con techo', () => {
+    let estado = SIN_INTENTOS;
+    for (let i = 0; i < INTENTOS_LIBRES + 2; i++) estado = trasFallo(estado, AHORA);
+    expect(segundosDeBloqueo(estado, AHORA)).toBe(240);
+
+    for (let i = 0; i < 20; i++) estado = trasFallo(estado, AHORA);
+    expect(segundosDeBloqueo(estado, AHORA)).toBe(ESPERA_MAXIMA_MS / 1000);
+  });
+
+  it('el bloqueo se agota solo con el tiempo', () => {
+    let estado = SIN_INTENTOS;
+    for (let i = 0; i < INTENTOS_LIBRES; i++) estado = trasFallo(estado, AHORA);
+    expect(segundosDeBloqueo(estado, AHORA + 61_000)).toBe(0);
   });
 });

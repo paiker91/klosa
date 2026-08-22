@@ -77,3 +77,50 @@ export function configuracionPanel(): { config: ConfiguracionPanel | null; falta
     faltan: [],
   };
 }
+
+// ---------------------------------------------------------------------------
+// Freno a la fuerza bruta
+// ---------------------------------------------------------------------------
+
+/**
+ * La entrada del panel es una sola contraseña, y ahora hay un enlace público
+ * hacia ella. Sin freno, probar contraseñas sale gratis.
+ *
+ * El contador es global y no por IP a propósito: el panel tiene un solo
+ * usuario, así que un contador global es más estricto que uno por dirección,
+ * que se esquiva rotando IPs. La contrapartida es que alguien puede dejarme
+ * fuera un rato fallando adrede; por eso el bloqueo es corto, se dobla solo
+ * hasta un techo y desaparece con un acierto.
+ */
+export const INTENTOS_LIBRES = 5;
+export const ESPERA_INICIAL_MS = 60_000;
+export const ESPERA_MAXIMA_MS = 15 * 60_000;
+
+export interface Intentos {
+  fallos: number;
+  /** Instante hasta el que no se admite ni un intento más. */
+  bloqueadoHasta: number;
+}
+
+export const SIN_INTENTOS: Intentos = { fallos: 0, bloqueadoHasta: 0 };
+
+/** Segundos que faltan para poder volver a probar. 0 si se puede ya. */
+export function segundosDeBloqueo(intentos: Intentos, ahora: number): number {
+  return Math.max(0, Math.ceil((intentos.bloqueadoHasta - ahora) / 1000));
+}
+
+export function trasFallo(intentos: Intentos, ahora: number): Intentos {
+  const fallos = intentos.fallos + 1;
+  if (fallos < INTENTOS_LIBRES) return { fallos, bloqueadoHasta: intentos.bloqueadoHasta };
+
+  /*
+   * El primer bloqueo es de un minuto y se dobla en cada fallo posterior. Un
+   * minuto no molesta a quien se equivoca tecleando, y basta para que probar
+   * el diccionario deje de ser viable.
+   */
+  const espera = Math.min(
+    ESPERA_MAXIMA_MS,
+    ESPERA_INICIAL_MS * 2 ** (fallos - INTENTOS_LIBRES),
+  );
+  return { fallos, bloqueadoHasta: ahora + espera };
+}

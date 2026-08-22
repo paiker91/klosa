@@ -7,7 +7,25 @@ import { TheOddsApi } from '@/lib/cuotas/the-odds-api';
 import { DEPORTES, type Deporte } from '@/lib/cuotas/dominio';
 import { crearPick } from '@/lib/picks/dominio';
 import { anadirLinea } from '@/lib/github';
-import { COOKIE_SESION, configuracionPanel, crearToken, iguales, tokenValido } from '@/lib/sesion';
+import {
+  COOKIE_SESION,
+  configuracionPanel,
+  crearToken,
+  iguales,
+  tokenValido,
+  segundosDeBloqueo,
+  trasFallo,
+  SIN_INTENTOS,
+  type Intentos,
+} from '@/lib/sesion';
+
+/*
+ * Contador en memoria del proceso. No sobrevive a un despliegue ni se comparte
+ * entre instancias, así que no es una defensa perfecta — pero no hay base de
+ * datos en v1 y sí encarece muchísimo probar contraseñas a mano o con un
+ * script simple, que es contra lo que hay que protegerse aquí.
+ */
+let intentos: Intentos = SIN_INTENTOS;
 
 export interface Resultado {
   ok: boolean;
@@ -27,10 +45,26 @@ export async function entrar(_previo: Resultado | null, datos: FormData): Promis
   const { config } = configuracionPanel();
   if (!config) return { ok: false, mensaje: 'El panel no está configurado.' };
 
+  const ahora = Date.now();
+  const espera = segundosDeBloqueo(intentos, ahora);
+  if (espera > 0) {
+    return { ok: false, mensaje: `Demasiados intentos. Prueba otra vez en ${espera} s.` };
+  }
+
   const intento = String(datos.get('password') ?? '');
   if (!iguales(intento, config.password)) {
-    return { ok: false, mensaje: 'Contraseña incorrecta.' };
+    intentos = trasFallo(intentos, ahora);
+    const nuevaEspera = segundosDeBloqueo(intentos, ahora);
+    return {
+      ok: false,
+      mensaje:
+        nuevaEspera > 0
+          ? `Contraseña incorrecta. Demasiados intentos: espera ${nuevaEspera} s.`
+          : 'Contraseña incorrecta.',
+    };
   }
+
+  intentos = SIN_INTENTOS;
 
   const tarro = await cookies();
   tarro.set(COOKIE_SESION, crearToken(config.secreto), {

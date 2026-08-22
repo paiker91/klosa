@@ -1,9 +1,13 @@
 'use client';
 
 import { useActionState, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useFormStatus } from 'react-dom';
 import { anotarPick, entrar, type Resultado } from './acciones';
-import type { Deporte } from '@/lib/cuotas/dominio';
+import { DEPORTES, NOMBRE_DEPORTE, type Deporte } from '@/lib/cuotas/dominio';
+
+const CAMPO =
+  'w-full rounded-xl border border-borde bg-fondo/60 px-3.5 py-3 text-tinta transition-colors hover:border-borde-fuerte focus:border-acento';
 
 function Boton({ children }: { children: string }) {
   const { pending } = useFormStatus();
@@ -11,7 +15,7 @@ function Boton({ children }: { children: string }) {
     <button
       type="submit"
       disabled={pending}
-      className="w-full rounded bg-acento px-4 py-3.5 font-semibold text-fondo disabled:opacity-60"
+      className="min-h-12 w-full rounded-xl bg-acento px-4 font-semibold text-fondo transition-opacity hover:opacity-90 disabled:opacity-60"
     >
       {pending ? '…' : children}
     </button>
@@ -23,8 +27,10 @@ function Aviso({ resultado }: { resultado: Resultado | null }) {
   return (
     <p
       role="alert"
-      className={`rounded border-l-4 bg-superficie p-3 text-sm ${
-        resultado.ok ? 'border-positivo text-positivo' : 'border-negativo text-negativo'
+      className={`rounded-xl border p-3.5 text-sm leading-relaxed ${
+        resultado.ok
+          ? 'border-positivo/30 bg-positivo/10 text-positivo'
+          : 'border-negativo/30 bg-negativo/10 text-negativo'
       }`}
     >
       {resultado.mensaje}
@@ -35,10 +41,10 @@ function Aviso({ resultado }: { resultado: Resultado | null }) {
 export function FormularioEntrada() {
   const [estado, accion] = useActionState(entrar, null);
   return (
-    <form action={accion} className="mt-8 flex flex-col gap-4">
+    <form action={accion} className="mt-6 flex flex-col gap-4">
       <Aviso resultado={estado} />
       <div>
-        <label htmlFor="password" className="mb-1.5 block text-sm font-medium">
+        <label htmlFor="password" className="mb-2 block text-sm font-medium">
           Contraseña
         </label>
         <input
@@ -47,11 +53,47 @@ export function FormularioEntrada() {
           type="password"
           required
           autoComplete="current-password"
-          className="w-full rounded border border-borde bg-superficie px-3 py-3 text-lg"
+          className={`${CAMPO} text-lg`}
         />
       </div>
       <Boton>Entrar</Boton>
     </form>
+  );
+}
+
+/**
+ * Selector de competición.
+ *
+ * Antes eran pastillas, y con trece competiciones ocupaban media pantalla en
+ * el móvil — que es desde donde se anota un pick de camino a cualquier sitio.
+ * Un desplegable nativo es un toque y lo resuelve el sistema operativo.
+ */
+export function SelectorCompeticion({ deporte }: { deporte: Deporte }) {
+  const router = useRouter();
+  const [cambiando, setCambiando] = useState(false);
+
+  return (
+    <div>
+      <label htmlFor="competicion" className="mb-2 block text-sm font-medium">
+        Competición
+      </label>
+      <select
+        id="competicion"
+        value={deporte}
+        disabled={cambiando}
+        onChange={(e) => {
+          setCambiando(true);
+          router.push(`/panel?deporte=${e.target.value}`);
+        }}
+        className={`${CAMPO} min-h-12 disabled:opacity-60`}
+      >
+        {DEPORTES.map((d) => (
+          <option key={d} value={d}>
+            {NOMBRE_DEPORTE[d]}
+          </option>
+        ))}
+      </select>
+    </div>
   );
 }
 
@@ -73,22 +115,20 @@ export function FormularioPick({
   const [cuota, setCuota] = useState(opciones[0]?.cuota ?? '');
 
   return (
-    <form action={accion} className="mt-6 flex flex-col gap-4">
+    <form action={accion} className="mt-5 flex flex-col gap-5">
       <Aviso resultado={estado} />
       <input type="hidden" name="deporte" value={deporte} />
 
       <div>
-        <label htmlFor="seleccion" className="mb-1.5 block text-sm font-medium">
+        <label htmlFor="seleccion" className="mb-2 block text-sm font-medium">
           Partido y lado que apuestas
         </label>
         <select
           id="seleccion"
           name="seleccion"
           required
-          onChange={(e) =>
-            setCuota(opciones.find((o) => o.valor === e.target.value)?.cuota ?? '')
-          }
-          className="w-full rounded border border-borde bg-superficie px-3 py-3"
+          onChange={(e) => setCuota(opciones.find((o) => o.valor === e.target.value)?.cuota ?? '')}
+          className={`${CAMPO} min-h-12`}
         >
           {opciones.map((o) => (
             <option key={o.valor} value={o.valor}>
@@ -99,7 +139,7 @@ export function FormularioPick({
       </div>
 
       <div>
-        <label htmlFor="cuota" className="mb-1.5 block text-sm font-medium">
+        <label htmlFor="cuota" className="mb-2 block text-sm font-medium">
           Cuota
         </label>
         <input
@@ -111,16 +151,16 @@ export function FormularioPick({
           autoComplete="off"
           value={cuota}
           onChange={(e) => setCuota(e.target.value)}
-          className="w-full rounded border border-borde bg-superficie px-3 py-3 font-mono text-lg tabular-nums"
+          className={`${CAMPO} cifra text-lg`}
         />
-        <p className="mt-1 text-xs text-tenue">
-          Se rellena con la mediana del mercado. Cámbiala si cogiste otra —
-          el pick guardará las dos, para que se pueda auditar.
+        <p className="mt-1.5 text-xs leading-relaxed text-apagado">
+          Se rellena con la mediana del mercado. Cámbiala si cogiste otra — el pick guardará las
+          dos, para que se pueda auditar.
         </p>
       </div>
 
       <div>
-        <label htmlFor="stake" className="mb-1.5 block text-sm font-medium">
+        <label htmlFor="stake" className="mb-2 block text-sm font-medium">
           Stake <span className="font-normal text-tenue">(unidades, opcional)</span>
         </label>
         <input
@@ -129,24 +169,19 @@ export function FormularioPick({
           inputMode="decimal"
           placeholder="1"
           autoComplete="off"
-          className="w-full rounded border border-borde bg-superficie px-3 py-3 font-mono text-lg tabular-nums"
+          className={`${CAMPO} cifra text-lg`}
         />
-        <p className="mt-1 text-xs text-tenue">
-          Queda registrado y sellado, pero el CLV no se pondera por stake: mide
-          la ventaja por apuesta, no por unidad arriesgada.
+        <p className="mt-1.5 text-xs leading-relaxed text-apagado">
+          Queda registrado y sellado, pero el CLV no se pondera por stake: mide la ventaja por
+          apuesta, no por unidad arriesgada.
         </p>
       </div>
 
       <div>
-        <label htmlFor="nota" className="mb-1.5 block text-sm font-medium">
+        <label htmlFor="nota" className="mb-2 block text-sm font-medium">
           Nota <span className="font-normal text-tenue">(opcional, queda pública)</span>
         </label>
-        <input
-          id="nota"
-          name="nota"
-          autoComplete="off"
-          className="w-full rounded border border-borde bg-superficie px-3 py-3"
-        />
+        <input id="nota" name="nota" autoComplete="off" className={CAMPO} />
       </div>
 
       <Boton>Anotar y publicar</Boton>

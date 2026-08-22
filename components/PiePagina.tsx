@@ -59,6 +59,17 @@ export function PiePagina({
                   {t.pie.registro}
                 </a>
               </li>
+              {/*
+                La puerta del panel. Va aquí y no escondida: sin un enlace hay
+                que saberse la URL de memoria, y una herramienta a la que no se
+                puede entrar desde el propio sitio no existe. La página es
+                noindex y la entrada tiene freno a la fuerza bruta.
+              */}
+              <li>
+                <Link href="/panel" className={enlace} rel="nofollow">
+                  {t.pie.panel}
+                </Link>
+              </li>
             </ul>
           </nav>
         </div>
