@@ -13,7 +13,15 @@
  */
 import { TheOddsApi } from '../lib/cuotas/the-odds-api';
 import { ErrorCuotaAgotada } from '../lib/cuotas/dominio';
-import { estadoDelRegistro, anadirCierre } from '../lib/picks/registro';
+import {
+  estadoDelRegistro,
+  anadirCierre,
+  anadirResultado,
+  leerResultados,
+  resolverMoneyline,
+} from '../lib/picks/registro';
+import type { Pick } from '../lib/picks/dominio';
+import type { Deporte } from '../lib/cuotas/dominio';
 import { analizarApuesta } from '../lib/clv';
 
 const claveApi = process.env.THE_ODDS_API_KEY;
@@ -104,4 +112,71 @@ console.log(`\n${capturados} cierre(s) capturados. Cuota restante: ${api.cuotaRe
 if (capturados > 0) {
   console.log('\nConsolide el registro:');
   console.log('  git add picks/cierres.jsonl && git commit -m "cierres" && git push');
+}
+
+// ---------------------------------------------------------------------------
+// Resultados: quién ganó el partido
+// ---------------------------------------------------------------------------
+
+/*
+ * El desenlace se captura aparte del cierre y a otro ritmo: un partido puede
+ * tener línea de cierre mucho antes de tener marcador final. Van en ficheros
+ * distintos por lo mismo de siempre — cada uno solo crece, y el pick original
+ * no se toca nunca.
+ */
+const conResultado = new Set(leerResultados().map((r) => r.pickId));
+const sinResolver = estado.auditorias
+  .filter((a) => a.valido && !conResultado.has(a.pick.id))
+  .map((a) => a.pick)
+  .filter((p) => new Date(p.comienzo) <= new Date());
+
+if (sinResolver.length > 0) {
+  console.log(`\n${sinResolver.length} pick(s) sin resultado. Consultando marcadores...`);
+  let resueltos = 0;
+  const porDeporte = new Map<Deporte, Pick[]>();
+  for (const p of sinResolver) {
+    porDeporte.set(p.deporte, [...(porDeporte.get(p.deporte) ?? []), p]);
+  }
+
+  for (const [deporte, picks] of porDeporte) {
+    try {
+      const marcadores = new Map(
+        (await api.resultados(deporte, 3)).map((r) => [r.eventoId, r]),
+      );
+      for (const pick of picks) {
+        const m = marcadores.get(pick.eventoId);
+        if (!m || !m.terminado) continue;
+
+        // Solo moneyline por ahora: hándicap y totales necesitan la línea.
+        if (pick.mercado !== 'moneyline') {
+          console.log(`  ${pick.id}  ${pick.mercado} aún no se resuelve automáticamente`);
+          continue;
+        }
+
+        const desenlace = resolverMoneyline(pick.lado, m.marcador);
+        if (desenlace === null) {
+          console.log(`  ${pick.id}  marcador no concluyente, se deja sin resolver`);
+          continue;
+        }
+
+        const marcador = m.marcador.map((x) => `${x.equipo} ${x.puntos}`).join(' — ');
+        anadirResultado({
+          pickId: pick.id,
+          desenlace,
+          marcador,
+          capturadoEn: m.actualizadoEn.toISOString(),
+          proveedor: api.nombre,
+        });
+        resueltos++;
+        console.log(`  ${pick.id}  ${desenlace.toUpperCase()}  ${marcador}`);
+      }
+    } catch (fallo) {
+      if (fallo instanceof ErrorCuotaAgotada) {
+        console.error('\nCuota agotada al pedir marcadores. Se retoma en la próxima pasada.');
+        break;
+      }
+      console.error(`  ${deporte}: ${fallo instanceof Error ? fallo.message : String(fallo)}`);
+    }
+  }
+  console.log(`\n${resueltos} resultado(s) capturados.`);
 }

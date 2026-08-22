@@ -97,12 +97,23 @@ export interface ReferenciaEvento {
   comienzo: Date;
 }
 
+/** Marcador final de un partido, para resolver si la apuesta ganó. */
+export interface ResultadoEvento {
+  eventoId: string;
+  terminado: boolean;
+  /** Puntos por equipo, con el nombre tal y como lo da el proveedor. */
+  marcador: { equipo: string; puntos: number }[];
+  actualizadoEn: Date;
+}
+
 export interface ProveedorDeCuotas {
   readonly nombre: string;
   capacidades(): Capacidades;
   buscarEventos(criterio: CriterioBusqueda): Promise<Evento[]>;
   /** `null` cuando el proveedor no tiene ese cierre, que no es lo mismo que fallar. */
   cuotasDeCierre(evento: ReferenciaEvento, mercado: Mercado): Promise<CuotasDeCierre | null>;
+  /** Marcadores de los partidos terminados de un deporte en los últimos días. */
+  resultados(deporte: Deporte, diasAtras: number): Promise<ResultadoEvento[]>;
 }
 
 // ---------------------------------------------------------------------------

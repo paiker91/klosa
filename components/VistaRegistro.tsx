@@ -1,6 +1,7 @@
 import type { Locale } from '@/i18n/config';
 import type { TextosRegistro } from '@/i18n/textos-registro';
 import type { RegistroPublico } from '@/lib/picks/remoto';
+import { N_MINIMO } from '@/lib/clv';
 import { porcentaje, porcentajeSinSigno, decimal, entero } from './formato';
 
 /**
@@ -43,7 +44,7 @@ export function VistaRegistro({
     );
   }
 
-  const { resumen, conteos, entradas, urls } = registro;
+  const { resumen, resultados, conteos, entradas, urls } = registro;
   const insuficiente = resumen.veredicto === 'muestra_insuficiente';
 
   const claveVeredicto =
@@ -57,6 +58,12 @@ export function VistaRegistro({
       : claveVeredicto === 'contra'
         ? 'border-negativo text-negativo'
         : 'border-borde text-tinta';
+
+  const flojoResultados = resultados.veredicto === 'muestra_insuficiente';
+  const claveResultados =
+    resultados.veredicto === 'significativo' && resultados.signo === 'contra'
+      ? 'contra'
+      : resultados.veredicto;
 
   const fecha = (iso: string) =>
     new Date(iso).toLocaleDateString(locale === 'pt' ? 'pt-BR' : locale === 'es' ? 'es-ES' : 'en-US', {
@@ -107,6 +114,63 @@ export function VistaRegistro({
               {t.etiquetas.pendientes}: {conteos.pendientes}
             </p>
           )}
+
+
+          {/*
+            Yield, cuota media y acierto. Van DESPUÉS del CLV y con su propia
+            cuenta de apuestas necesarias: enseñados así, el registro demuestra
+            sobre sus propios datos por qué el CLV es la métrica y el yield no.
+          */}
+          <section className="mt-10">
+            <h2 className="text-xl font-semibold">{t.resultados.titulo}</h2>
+            <p className="mt-2 text-sm text-tenue">{t.resultados.entradilla}</p>
+
+            {resultados.n === 0 ? (
+              <p className="mt-4 rounded border border-borde bg-superficie p-5 text-sm text-tenue">
+                {t.resultados.vacio}
+              </p>
+            ) : (
+              <>
+                <dl className="mt-4 grid grid-cols-2 gap-5 rounded border border-borde bg-superficie p-5 sm:grid-cols-5">
+                  {(
+                    [
+                      [t.resultados.resueltas, entero(resultados.n, locale), false],
+                      [t.resultados.yield, porcentaje(resultados.yield, locale), true],
+                      [t.resultados.cuotaMedia, decimal(resultados.cuotaMedia, locale, 2), false],
+                      [t.resultados.acierto, porcentajeSinSigno(resultados.tasaAcierto, locale), true],
+                      [
+                        t.resultados.beneficio,
+                        decimal(resultados.beneficio, locale, 2),
+                        true,
+                      ],
+                    ] as const
+                  ).map(([etiqueta, valor, atenuable]) => (
+                    <div key={etiqueta}>
+                      <dt className="text-sm text-tenue">{etiqueta}</dt>
+                      <dd
+                        className={`font-mono text-xl tabular-nums ${
+                          atenuable && flojoResultados ? 'text-tenue opacity-60' : ''
+                        }`}
+                      >
+                        {valor}
+                      </dd>
+                    </div>
+                  ))}
+                </dl>
+
+                {/* El veredicto del yield, con la misma vara que el del CLV. */}
+                <p className="mt-3 text-sm text-tenue">{t.veredictos[claveResultados]}</p>
+
+                <p className="mt-3 text-sm text-tenue">
+                  {resultados.apuestasNecesarias === null
+                    ? t.resultados.sinDato
+                    : t.resultados.necesarias
+                        .replace('{n}', entero(resultados.apuestasNecesarias, locale))
+                        .replace('{clv}', entero(N_MINIMO, locale))}
+                </p>
+              </>
+            )}
+          </section>
 
           {registro.porDeporte.length > 0 && (
             <section className="mt-10">
@@ -177,11 +241,12 @@ export function VistaRegistro({
                   <th scope="col" className="py-2 pr-4 font-medium">{t.tabla.lado}</th>
                   <th scope="col" className="py-2 pr-4 text-right font-medium">{t.tabla.tomada}</th>
                   <th scope="col" className="py-2 pr-4 text-right font-medium">{t.tabla.cierre}</th>
-                  <th scope="col" className="py-2 text-right font-medium">{t.tabla.ventaja}</th>
+                  <th scope="col" className="py-2 pr-4 text-right font-medium">{t.tabla.ventaja}</th>
+                  <th scope="col" className="py-2 text-right font-medium">{t.tabla.resultado}</th>
                 </tr>
               </thead>
               <tbody>
-                {entradas.map(({ pick, auditoria, cierre, analisis }) => (
+                {entradas.map(({ pick, auditoria, cierre, resultado, analisis }) => (
                   <tr key={pick.id} className="border-b border-borde/50">
                     <td className="py-2.5 pr-4 whitespace-nowrap font-mono text-xs text-tenue">
                       {fecha(pick.registradoEn)}
@@ -206,7 +271,7 @@ export function VistaRegistro({
                     <td className="py-2.5 pr-4 text-right font-mono tabular-nums text-tenue">
                       {cierre ? decimal(cierre.cuotaLadoTomado, locale, 2) : '—'}
                     </td>
-                    <td className="py-2.5 text-right font-mono tabular-nums">
+                    <td className="py-2.5 pr-4 text-right font-mono tabular-nums">
                       {!auditoria.valido ? (
                         <span className="text-negativo">{t.tabla.invalido}</span>
                       ) : analisis ? (
@@ -215,6 +280,17 @@ export function VistaRegistro({
                         </span>
                       ) : (
                         <span className="text-tenue">{t.tabla.esperando}</span>
+                      )}
+                    </td>
+                    <td className="py-2.5 text-right text-xs">
+                      {resultado === null ? (
+                        <span className="text-tenue">—</span>
+                      ) : resultado.desenlace === 'ganada' ? (
+                        <span className="text-positivo">{t.tabla.ganada}</span>
+                      ) : resultado.desenlace === 'perdida' ? (
+                        <span className="text-negativo">{t.tabla.perdida}</span>
+                      ) : (
+                        <span className="text-tenue">{t.tabla.anulada}</span>
                       )}
                     </td>
                   </tr>

@@ -165,6 +165,10 @@ function proveedorFalso(
       if (comportamiento.falla) throw comportamiento.falla;
       return comportamiento.cierre ?? null;
     },
+    async resultados() {
+      if (comportamiento.falla) throw comportamiento.falla;
+      return [];
+    },
   };
 }
 

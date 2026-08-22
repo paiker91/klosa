@@ -15,6 +15,7 @@ import {
   type Mercado,
   type ProveedorDeCuotas,
   type ReferenciaEvento,
+  type ResultadoEvento,
   ErrorProveedor,
   ErrorCuotaAgotada,
 } from './dominio';
@@ -101,6 +102,15 @@ export class ProveedorConRespaldo implements ProveedorDeCuotas {
       (p) => p.cuotasDeCierre(evento, mercado),
       (r) => r !== null,
     );
+  }
+
+  async resultados(deporte: Deporte, diasAtras: number): Promise<ResultadoEvento[]> {
+    const r = await this.intentar(
+      (c) => c.deportes.includes(deporte),
+      (p) => p.resultados(deporte, diasAtras),
+      (x) => x.length > 0,
+    );
+    return r ?? [];
   }
 
   /** True si todos los proveedores han agotado su cuota: la señal para avisar. */

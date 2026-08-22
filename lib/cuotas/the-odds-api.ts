@@ -26,6 +26,7 @@ import {
   type PrecioDeMercado,
   type ProveedorDeCuotas,
   type ReferenciaEvento,
+  type ResultadoEvento,
   ErrorProveedor,
   ErrorCuotaAgotada,
   validarCuotasDeCierre,
@@ -83,6 +84,13 @@ interface EventoAPI {
 interface HistoricoAPI {
   timestamp: string;
   data: EventoAPI[];
+}
+interface ResultadoAPI2 {
+  id: string;
+  completed?: boolean;
+  commence_time: string;
+  last_update?: string;
+  scores?: { name: string; score: string }[] | null;
 }
 
 export interface OpcionesTheOddsApi {
@@ -196,6 +204,33 @@ export class TheOddsApi implements ProveedorDeCuotas {
       comienzo: new Date(bruto.commence_time),
       ...(mercado.length > 0 ? { mercado } : {}),
     };
+  }
+
+  /**
+   * Marcadores de los partidos terminados.
+   *
+   * Forma verificada contra la API el 2026-08-22:
+   *   { id, completed, home_team, away_team,
+   *     scores: [ { name, score } ], last_update }
+   *
+   * `scores` llega como texto y puede venir a null mientras el partido no ha
+   * terminado; se descarta lo que no sea un número para no resolver una
+   * apuesta con un marcador a medias.
+   */
+  async resultados(deporte: Deporte, diasAtras: number): Promise<ResultadoEvento[]> {
+    const brutos = await this.pedir<ResultadoAPI2[]>(
+      `/sports/${DEPORTE_API[deporte]}/scores/`,
+      { daysFrom: String(Math.max(1, Math.min(3, diasAtras))) },
+    );
+
+    return brutos.map((b) => ({
+      eventoId: b.id,
+      terminado: b.completed === true,
+      marcador: (b.scores ?? [])
+        .map((s) => ({ equipo: s.name, puntos: Number(s.score) }))
+        .filter((s) => Number.isFinite(s.puntos)),
+      actualizadoEn: new Date(b.last_update ?? b.commence_time),
+    }));
   }
 
   async buscarEventos(criterio: CriterioBusqueda): Promise<Evento[]> {

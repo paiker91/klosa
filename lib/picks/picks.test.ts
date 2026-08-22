@@ -3,7 +3,13 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { crearPick, auditar, sellar, esperandoCierre, type Pick } from './dominio';
-import { anadirPick, anadirCierre, leerPicks, estadoDelRegistro } from './registro';
+import {
+  anadirPick,
+  anadirCierre,
+  leerPicks,
+  estadoDelRegistro,
+  resolverMoneyline,
+} from './registro';
 
 const base = (extra: Partial<Omit<Pick, 'id'>> = {}) => ({
   registradoEn: '2026-10-20T12:00:00.000Z',
@@ -224,5 +230,37 @@ describe('el stake forma parte del sello', () => {
 
   it('un pick con stake pasa la auditoría', () => {
     expect(auditar(crearPick(base({ stake: 2.5 }))).valido).toBe(true);
+  });
+});
+
+/*
+ * Resolver mal una apuesta falsearía el registro tanto como editar una cuota.
+ * Ante un marcador dudoso se deja sin resolver en vez de adivinar.
+ */
+describe('resolución del moneyline', () => {
+  const m = (a: number, b: number) => [
+    { equipo: 'Boston Celtics', puntos: a },
+    { equipo: 'Detroit Pistons', puntos: b },
+  ];
+
+  it('gana quien marca más', () => {
+    expect(resolverMoneyline('Boston Celtics', m(10, 9))).toBe('ganada');
+    expect(resolverMoneyline('Boston Celtics', m(9, 10))).toBe('perdida');
+  });
+
+  it('no resuelve un empate', () => {
+    expect(resolverMoneyline('Boston Celtics', m(10, 10))).toBeNull();
+  });
+
+  it('no resuelve un marcador incompleto', () => {
+    expect(resolverMoneyline('Boston Celtics', [{ equipo: 'Boston Celtics', puntos: 10 }])).toBeNull();
+  });
+
+  it('no resuelve si el lado apostado no está en el marcador', () => {
+    expect(resolverMoneyline('Los Angeles Lakers', m(10, 9))).toBeNull();
+  });
+
+  it('tolera diferencias de mayúsculas y espacios', () => {
+    expect(resolverMoneyline('  boston celtics ', m(10, 9))).toBe('ganada');
   });
 });

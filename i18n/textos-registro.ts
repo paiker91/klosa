@@ -23,6 +23,10 @@ export interface TextosRegistro {
   };
   veredictos: Record<Veredicto, string> & { contra: string };
   tabla: {
+    resultado: string;
+    ganada: string;
+    perdida: string;
+    anulada: string;
     fecha: string;
     partido: string;
     lado: string;
@@ -33,6 +37,19 @@ export interface TextosRegistro {
     invalido: string;
   };
   desglose: { titulo: string; aviso: string; grupo: string };
+  resultados: {
+    titulo: string;
+    entradilla: string;
+    resueltas: string;
+    yield: string;
+    cuotaMedia: string;
+    acierto: string;
+    beneficio: string;
+    /** Lleva {n} (apuestas que harían falta) y {clv} (las que necesita el CLV). */
+    necesarias: string;
+    sinDato: string;
+    vacio: string;
+  };
   verificar: { titulo: string; texto: string; enlacePicks: string; enlaceRepo: string };
   aviso: string;
 }
@@ -72,6 +89,10 @@ const pt: TextosRegistro = {
     contra: 'Sinal estatisticamente significativo, mas contra: esses picks perdem valor.',
   },
   tabla: {
+    resultado: 'Resultado',
+    ganada: 'green',
+    perdida: 'red',
+    anulada: 'anulada',
     fecha: 'Anotado em',
     partido: 'Jogo',
     lado: 'Lado',
@@ -86,6 +107,22 @@ const pt: TextosRegistro = {
     aviso:
       'Um esporte pode estar perdendo valor enquanto o número geral parece bom. Mas cuidado: separar os dados também enfraquece cada conclusão, porque cada grupo fica com uma amostra menor.',
     grupo: 'Esporte',
+  },
+  resultados: {
+    titulo: 'Yield, odd média e acerto',
+    entradilla:
+      'Estes são os números que todo mundo pede. Estão aqui, mas com a mesma régua do resto: sem contexto de significância, um yield não diz nada.',
+    resueltas: 'Apostas resolvidas',
+    yield: 'Yield',
+    cuotaMedia: 'Odd média',
+    acierto: 'Acerto',
+    beneficio: 'Lucro (unidades)',
+    necesarias:
+      'Com a variação observada nestes próprios dados, seriam necessárias cerca de {n} apostas para que um yield deste tamanho fosse estatisticamente significativo. O CLV chega lá com {clv}. É por isso que esta ferramenta mede CLV.',
+    sinDato:
+      'Ainda não dá para estimar quantas apostas fariam falta: o yield está perto demais de zero.',
+    vacio:
+      'Nenhuma aposta resolvida ainda. Quando os jogos terminarem, o placar final é capturado por um provedor e aparece aqui.',
   },
   verificar: {
     titulo: 'Como conferir por conta própria',
@@ -133,6 +170,10 @@ const es: TextosRegistro = {
     contra: 'Señal estadísticamente significativa, pero en contra: estos picks pierden valor.',
   },
   tabla: {
+    resultado: 'Resultado',
+    ganada: 'ganada',
+    perdida: 'perdida',
+    anulada: 'anulada',
     fecha: 'Anotado el',
     partido: 'Partido',
     lado: 'Lado',
@@ -147,6 +188,22 @@ const es: TextosRegistro = {
     aviso:
       'Un deporte puede estar perdiendo valor mientras el número global parece bueno. Pero ojo: separar los datos también debilita cada conclusión, porque cada grupo se queda con una muestra menor.',
     grupo: 'Deporte',
+  },
+  resultados: {
+    titulo: 'Yield, cuota media y acierto',
+    entradilla:
+      'Estos son los números que pide todo el mundo. Están aquí, pero con la misma vara que el resto: sin contexto de significancia, un yield no dice nada.',
+    resueltas: 'Apuestas resueltas',
+    yield: 'Yield',
+    cuotaMedia: 'Cuota media',
+    acierto: 'Acierto',
+    beneficio: 'Beneficio (unidades)',
+    necesarias:
+      'Con la variación observada en estos mismos datos, harían falta unas {n} apuestas para que un yield de este tamaño fuera estadísticamente significativo. El CLV llega ahí con {clv}. Por eso esta herramienta mide CLV.',
+    sinDato:
+      'Todavía no se puede estimar cuántas apuestas harían falta: el yield está demasiado cerca de cero.',
+    vacio:
+      'Aún no hay ninguna apuesta resuelta. Cuando terminen los partidos, el marcador final lo captura un proveedor y aparece aquí.',
   },
   verificar: {
     titulo: 'Cómo comprobarlo por tu cuenta',
@@ -194,6 +251,10 @@ const en: TextosRegistro = {
     contra: 'Statistically significant, but against: these picks lose value.',
   },
   tabla: {
+    resultado: 'Result',
+    ganada: 'won',
+    perdida: 'lost',
+    anulada: 'void',
     fecha: 'Logged',
     partido: 'Game',
     lado: 'Side',
@@ -208,6 +269,22 @@ const en: TextosRegistro = {
     aviso:
       'One sport can be losing value while the overall number looks fine. But be careful: splitting the data also weakens every conclusion, because each group is left with a smaller sample.',
     grupo: 'Sport',
+  },
+  resultados: {
+    titulo: 'Yield, average odds and hit rate',
+    entradilla:
+      'These are the numbers everyone asks for. They are here, held to the same standard as the rest: without a significance context, a yield says nothing.',
+    resueltas: 'Settled bets',
+    yield: 'Yield',
+    cuotaMedia: 'Average odds',
+    acierto: 'Hit rate',
+    beneficio: 'Profit (units)',
+    necesarias:
+      'With the variation observed in this very data, it would take around {n} bets for a yield of this size to be statistically significant. CLV gets there with {clv}. That is why this tool measures CLV.',
+    sinDato:
+      'It is not yet possible to estimate how many bets would be needed: the yield is too close to zero.',
+    vacio:
+      'No settled bets yet. Once the games finish, the final score is captured by a provider and shows up here.',
   },
   verificar: {
     titulo: 'How to check for yourself',

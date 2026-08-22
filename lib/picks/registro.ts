@@ -11,7 +11,7 @@
  */
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
-import type { Cierre, Pick } from './dominio';
+import type { Cierre, Pick, ResultadoPick } from './dominio';
 import { auditar, type Auditoria } from './dominio';
 
 /**
@@ -27,6 +27,7 @@ const DIRECTORIO = process.env.KLOSA_PICKS_DIR ?? 'picks';
 
 export const RUTA_PICKS = join(DIRECTORIO, 'picks.jsonl');
 export const RUTA_CIERRES = join(DIRECTORIO, 'cierres.jsonl');
+export const RUTA_RESULTADOS = join(DIRECTORIO, 'resultados.jsonl');
 
 function leerLineas<T>(ruta: string): T[] {
   if (!existsSync(ruta)) return [];
@@ -67,6 +68,36 @@ export function anadirCierre(cierre: Cierre, ruta = RUTA_CIERRES): void {
     throw new Error(`El pick ${cierre.pickId} ya tiene cierre capturado.`);
   }
   anadirLinea(ruta, cierre);
+}
+
+export const leerResultados = (ruta = RUTA_RESULTADOS): ResultadoPick[] =>
+  leerLineas<ResultadoPick>(ruta);
+
+export function anadirResultado(resultado: ResultadoPick, ruta = RUTA_RESULTADOS): void {
+  if (leerResultados(ruta).some((r) => r.pickId === resultado.pickId)) {
+    throw new Error(`El pick ${resultado.pickId} ya tiene resultado.`);
+  }
+  anadirLinea(ruta, resultado);
+}
+
+/**
+ * Resuelve una apuesta de moneyline a partir del marcador.
+ *
+ * Solo se pronuncia si hay exactamente dos equipos con puntos distintos: un
+ * marcador incompleto o empatado se deja sin resolver en vez de adivinar, que
+ * es lo que haría falso el registro.
+ */
+export function resolverMoneyline(
+  lado: string,
+  marcador: { equipo: string; puntos: number }[],
+): 'ganada' | 'perdida' | null {
+  if (marcador.length !== 2) return null;
+  const [a, b] = marcador as [{ equipo: string; puntos: number }, { equipo: string; puntos: number }];
+  if (a.puntos === b.puntos) return null;
+  const ganador = a.puntos > b.puntos ? a.equipo : b.equipo;
+  const normal = (s: string) => s.trim().toLowerCase();
+  if (![a.equipo, b.equipo].some((e) => normal(e) === normal(lado))) return null;
+  return normal(ganador) === normal(lado) ? 'ganada' : 'perdida';
 }
 
 export interface EstadoRegistro {

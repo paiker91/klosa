@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { construirRegistro, leerRegistroPublico, ErrorRegistroNoDisponible } from './remoto';
-import { crearPick, type Cierre, type Pick } from './dominio';
+import { crearPick, type Cierre, type Pick, type ResultadoPick } from './dominio';
 import type { Deporte } from '../cuotas/dominio';
 
 const BASE = Date.UTC(2026, 7, 1, 0, 0, 0);
@@ -191,5 +191,59 @@ describe('registro vacío frente a registro ilegible', () => {
       expect(r.conteos.total).toBe(1);
       expect(r.entradas[0]?.pick.id).toBe(p.id);
     });
+  });
+});
+
+describe('construirRegistro: yield, cuota media y acierto', () => {
+  const resultado = (p: Pick, desenlace: 'ganada' | 'perdida' | 'anulada'): ResultadoPick => ({
+    pickId: p.id,
+    desenlace,
+    marcador: '1-0',
+    capturadoEn: p.comienzo,
+    proveedor: 'prueba',
+  });
+
+  it('sin resultados capturados, el bloque de yield queda a cero y no inventa nada', () => {
+    const p = pick('MLB', 1.92);
+    const r = construirRegistro([p], [cierre(p, 1.9)]);
+    expect(r.resultados.n).toBe(0);
+    expect(r.resultados.veredicto).toBe('muestra_insuficiente');
+    expect(r.resultados.apuestasNecesarias).toBeNull();
+  });
+
+  it('calcula el yield con las apuestas resueltas, tengan cierre o no', () => {
+    // Dos a 2,00: una ganada y una perdida. Beneficio 0, acierto 50 %.
+    const a = pick('MLB', 2);
+    const b = pick('MLB', 2);
+    const r = construirRegistro([a, b], [], [resultado(a, 'ganada'), resultado(b, 'perdida')]);
+    expect(r.resultados.n).toBe(2);
+    expect(r.resultados.beneficio).toBeCloseTo(0, 10);
+    expect(r.resultados.yield).toBeCloseTo(0, 10);
+    expect(r.resultados.tasaAcierto).toBeCloseTo(0.5, 10);
+    expect(r.resultados.cuotaMedia).toBeCloseTo(2, 10);
+    // Sin cierre no hay CLV: los dos bloques son independientes.
+    expect(r.conteos.conCierre).toBe(0);
+  });
+
+  it('un pick que no pasa la auditoría no entra en el yield', () => {
+    const p = pick('NBA', 2);
+    const trucado: Pick = { ...p, cuotaTomada: 9 };
+    const r = construirRegistro([trucado], [], [resultado(trucado, 'ganada')]);
+    expect(r.resultados.n).toBe(0);
+  });
+
+  it('las anuladas se cuentan aparte y no diluyen el yield', () => {
+    const a = pick('NBA', 2);
+    const b = pick('NBA', 2);
+    const r = construirRegistro([a, b], [], [resultado(a, 'ganada'), resultado(b, 'anulada')]);
+    expect(r.resultados.n).toBe(1);
+    expect(r.resultados.anuladas).toBe(1);
+    expect(r.resultados.yield).toBeCloseTo(1, 10);
+  });
+
+  it('cada entrada lleva su resultado para poder enseñarlo en la tabla', () => {
+    const p = pick('MLB', 1.92);
+    const r = construirRegistro([p], [], [resultado(p, 'perdida')]);
+    expect(r.entradas[0]?.resultado?.desenlace).toBe('perdida');
   });
 });

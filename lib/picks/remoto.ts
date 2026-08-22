@@ -8,7 +8,7 @@
  *
  * Sin base de datos y sin estado, como pide la v1.
  */
-import type { Cierre, Pick } from './dominio';
+import type { Cierre, Pick, ResultadoPick } from './dominio';
 import { auditar, type Auditoria } from './dominio';
 import {
   analizarApuesta,
@@ -18,12 +18,14 @@ import {
   type GrupoAgregado,
   type ResumenAgregado,
 } from '../clv';
+import { agregarResultados, type ResumenResultados } from '../resultados';
 
 const REPO = process.env.NEXT_PUBLIC_REPO_PICKS ?? 'paiker91/klosa-picks';
 const BASE = `https://raw.githubusercontent.com/${REPO}/main`;
 
 export const URL_PICKS = `${BASE}/picks.jsonl`;
 export const URL_CIERRES = `${BASE}/cierres.jsonl`;
+export const URL_RESULTADOS = `${BASE}/resultados.jsonl`;
 export const URL_REPO = `https://github.com/${REPO}`;
 
 /** Cada cuánto se vuelve a mirar el repositorio, en segundos. */
@@ -80,12 +82,15 @@ export interface EntradaRegistro {
   pick: Pick;
   auditoria: Auditoria;
   cierre: Cierre | null;
+  resultado: ResultadoPick | null;
   analisis: AnalisisApuesta | null;
 }
 
 export interface RegistroPublico {
   entradas: EntradaRegistro[];
   resumen: ResumenAgregado;
+  /** Yield, acierto y cuota media. Solo de las apuestas ya resueltas. */
+  resultados: ResumenResultados;
   /** Desglose por deporte. Vacío si solo hay uno: repetiría el agregado. */
   porDeporte: GrupoAgregado[];
   conteos: { total: number; validos: number; conCierre: number; pendientes: number };
@@ -93,11 +98,12 @@ export interface RegistroPublico {
 }
 
 export async function leerRegistroPublico(): Promise<RegistroPublico> {
-  const [picks, cierres] = await Promise.all([
+  const [picks, cierres, resultados] = await Promise.all([
     descargarLineas<Pick>(URL_PICKS),
     descargarLineas<Cierre>(URL_CIERRES),
+    descargarLineas<ResultadoPick>(URL_RESULTADOS),
   ]);
-  return construirRegistro(picks, cierres);
+  return construirRegistro(picks, cierres, resultados);
 }
 
 /**
@@ -107,8 +113,13 @@ export async function leerRegistroPublico(): Promise<RegistroPublico> {
  * auditoría con datos sintéticos, sin red y sin depender de que el repositorio
  * público tenga tal o cual contenido.
  */
-export function construirRegistro(picks: Pick[], cierres: Cierre[]): RegistroPublico {
+export function construirRegistro(
+  picks: Pick[],
+  cierres: Cierre[],
+  resultados: ResultadoPick[] = [],
+): RegistroPublico {
   const porPick = new Map(cierres.map((c) => [c.pickId, c]));
+  const porResultado = new Map(resultados.map((r) => [r.pickId, r]));
 
   const entradas: EntradaRegistro[] = picks
     .map((pick) => {
@@ -132,7 +143,7 @@ export function construirRegistro(picks: Pick[], cierres: Cierre[]): RegistroPub
           analisis = null;
         }
       }
-      return { pick, auditoria, cierre, analisis };
+      return { pick, auditoria, cierre, resultado: porResultado.get(pick.id) ?? null, analisis };
     })
     // Más recientes primero.
     .sort((a, b) => b.pick.registradoEn.localeCompare(a.pick.registradoEn));
@@ -151,9 +162,23 @@ export function construirRegistro(picks: Pick[], cierres: Cierre[]): RegistroPub
       .map((e) => ({ grupo: e.pick.deporte, analisis: e.analisis as AnalisisApuesta })),
   );
 
+  /*
+   * El yield solo cuenta apuestas resueltas y con auditoría válida. Es la
+   * métrica que la gente pide, y por eso va SIEMPRE con su contexto de
+   * significancia: sin él sería justo la ilusión que este producto desmonta.
+   */
+  const resueltas = entradas
+    .filter((e) => e.auditoria.valido && e.resultado !== null)
+    .map((e) => ({
+      cuotaTomada: e.pick.cuotaTomada,
+      stake: e.pick.stake,
+      desenlace: (e.resultado as ResultadoPick).desenlace,
+    }));
+
   return {
     entradas,
     resumen: agregar(analizados),
+    resultados: agregarResultados(resueltas),
     porDeporte: porDeporte.length > 1 ? porDeporte : [],
     conteos: {
       total: picks.length,
