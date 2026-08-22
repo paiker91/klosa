@@ -11,6 +11,7 @@ import {
   ventajaSobreCierre,
   analizarApuesta,
   agregar,
+  agregarPorGrupo,
   desviacionMuestral,
   estadisticoT,
   ErrorCuota,
@@ -233,5 +234,69 @@ describe('estadística agregada', () => {
     expect(r.n).toBe(0);
     expect(r.t).toBeNull();
     expect(r.veredicto).toBe('muestra_insuficiente');
+  });
+});
+
+/*
+ * El desglose por grupo es la función que motiva el producto: el caso real que
+ * lo inspira es un tipster cuyo beneficio agregado tapaba un deporte que perdía
+ * de forma significativa.
+ */
+describe('desglose por grupo', () => {
+  const sintetico = (n: number, ventaja: number): AnalisisApuesta[] =>
+    Array.from({ length: n }, (_, i) => ({
+      cuotaTomada: 2,
+      cuotaCierreTomada: 1.9,
+      cuotaCierreContraria: 1.9,
+      justas: { pA: 0.5, pB: 0.5, overround: 1.0526, margen: 0.0526, metodo: 'multiplicativo' },
+      cuotaJustaCierre: 2,
+      clvBruto: 0.05,
+      ventaja: ventaja + (i % 2 === 0 ? 0.01 : -0.01),
+    })) as AnalisisApuesta[];
+
+  const con = (grupos: Array<[string, number, number]>) =>
+    agregarPorGrupo(
+      grupos.flatMap(([g, n, v]) => sintetico(n, v).map((analisis) => ({ grupo: g, analisis }))),
+    );
+
+  it('separa los grupos y los ordena por tamaño de muestra', () => {
+    const r = con([['NBA', 120, 0.03], ['MLB', 300, -0.04]]);
+    expect(r.map((g) => g.clave)).toEqual(['MLB', 'NBA']);
+  });
+
+  /*
+   * El caso del tipster, reproducido: en agregado la señal se diluye, y solo
+   * al separar aparece un deporte que pierde de forma significativa.
+   */
+  it('destapa un grupo que pierde y el agregado escondía', () => {
+    const entradas = [
+      ...sintetico(300, -0.04).map((analisis) => ({ grupo: 'futbol', analisis })),
+      ...sintetico(300, 0.038).map((analisis) => ({ grupo: 'basket', analisis })),
+    ];
+    const global = agregar(entradas.map((e) => e.analisis));
+    const grupos = agregarPorGrupo(entradas);
+
+    // En conjunto casi se cancelan; por separado, los dos son significativos.
+    expect(Math.abs(global.ventajaMedia)).toBeLessThan(0.005);
+    const futbol = grupos.find((g) => g.clave === 'futbol');
+    expect(futbol?.resumen.veredicto).toBe('significativo');
+    expect(futbol?.resumen.signo).toBe('contra');
+  });
+
+  /*
+   * El aviso que hay que dar en la interfaz: partir la muestra debilita cada
+   * conclusión. 150 apuestas concluyen; repartidas en tres, ninguna concluye.
+   */
+  it('partir una muestra concluyente deja subgrupos que no concluyen', () => {
+    const juntas = agregar(sintetico(150, 0.03));
+    expect(juntas.veredicto).toBe('significativo');
+
+    const partidas = con([['a', 50, 0.03], ['b', 50, 0.03], ['c', 50, 0.03]]);
+    for (const g of partidas) expect(g.resumen.veredicto).toBe('muestra_insuficiente');
+  });
+
+  it('agrupa lo que no trae etiqueta bajo un guion', () => {
+    const r = con([['', 10, 0.02]]);
+    expect(r[0]?.clave).toBe('—');
   });
 });

@@ -315,6 +315,41 @@ function interpretar(n: number, t: number | null): {
   return { veredicto: 'significativo', signo: t > 0 ? 'favor' : 'contra' };
 }
 
+export interface GrupoAgregado {
+  clave: string;
+  resumen: ResumenAgregado;
+}
+
+/**
+ * Desglosa el agregado por grupos: deporte, mercado, mes…
+ *
+ * Es la función que motiva el producto entero. El tipster del caso real
+ * acumulaba beneficio aparente mientras un deporte perdía de forma
+ * significativa y otro lo tapaba; sin separarlos, esa pérdida era invisible.
+ *
+ * Cada grupo se evalúa con su propio tamaño de muestra, y ahí está el aviso
+ * que hay que dar: partir los datos hace que cada conclusión sea MÁS débil,
+ * no más precisa. Un conjunto de 150 apuestas concluye algo; repartido en
+ * tres deportes, ninguno de los tres concluye nada.
+ */
+export function agregarPorGrupo(
+  entradas: readonly { grupo: string; analisis: AnalisisApuesta }[],
+): GrupoAgregado[] {
+  const porGrupo = new Map<string, AnalisisApuesta[]>();
+  for (const { grupo, analisis } of entradas) {
+    const clave = grupo.trim() || '—';
+    const lista = porGrupo.get(clave);
+    if (lista) lista.push(analisis);
+    else porGrupo.set(clave, [analisis]);
+  }
+
+  return [...porGrupo.entries()]
+    .map(([clave, lista]) => ({ clave, resumen: agregar(lista) }))
+    // De más a menos apuestas: los grupos con muestra grande primero, que son
+    // los únicos de los que se puede decir algo.
+    .sort((a, b) => b.resumen.n - a.resumen.n);
+}
+
 export function agregar(analisis: readonly AnalisisApuesta[]): ResumenAgregado {
   const n = analisis.length;
   if (n === 0) {

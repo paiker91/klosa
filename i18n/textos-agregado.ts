@@ -26,6 +26,12 @@ export interface TextosAgregado {
     t: string;
   };
   veredictos: Record<Veredicto, string> & { contra: string };
+  desglose: {
+    titulo: string;
+    aviso: string;
+    grupo: string;
+    sinDatos: string;
+  };
   detectado: (separador: string) => string;
   cabeceraOmitida: string;
   errores: (cuantos: number) => string;
@@ -58,6 +64,13 @@ const pt: TextosAgregado = {
     significativo: 'Sinal estatisticamente significativo de vantagem sobre a linha de fechamento.',
     contra:
       'Sinal estatisticamente significativo, mas contra você: essas apostas perdem valor em relação ao fechamento.',
+  },
+  desglose: {
+    titulo: 'Por esporte',
+    aviso:
+      'Separar os dados revela padrões, mas enfraquece cada conclusão: quanto menor o grupo, menos ele prova. Um conjunto de 150 apostas conclui algo; dividido em três esportes, nenhum dos três conclui nada.',
+    grupo: 'Esporte',
+    sinDatos: 'Adicione uma coluna de esporte para ver o desglose.',
   },
   detectado: (s) => `Separador detectado: ${s}.`,
   cabeceraOmitida: 'A primeira linha foi tratada como cabeçalho.',
@@ -92,6 +105,13 @@ const es: TextosAgregado = {
     contra:
       'Señal estadísticamente significativa, pero en contra: estas apuestas pierden valor frente al cierre.',
   },
+  desglose: {
+    titulo: 'Por deporte',
+    aviso:
+      'Separar los datos revela patrones, pero debilita cada conclusión: cuanto más pequeño el grupo, menos prueba. Un conjunto de 150 apuestas concluye algo; repartido en tres deportes, ninguno de los tres concluye nada.',
+    grupo: 'Deporte',
+    sinDatos: 'Añade una columna de deporte para ver el desglose.',
+  },
   detectado: (s) => `Separador detectado: ${s}.`,
   cabeceraOmitida: 'La primera línea se ha tratado como cabecera.',
   errores: (n) => `${n} línea(s) no se han podido leer:`,
@@ -124,6 +144,13 @@ const en: TextosAgregado = {
     significativo: 'Statistically significant signal of an edge over the closing line.',
     contra:
       'Statistically significant, but against you: these bets lose value relative to the close.',
+  },
+  desglose: {
+    titulo: 'By sport',
+    aviso:
+      'Splitting the data reveals patterns but weakens every conclusion: the smaller the group, the less it proves. A set of 150 bets concludes something; split across three sports, none of the three concludes anything.',
+    grupo: 'Sport',
+    sinDatos: 'Add a sport column to see the breakdown.',
   },
   detectado: (s) => `Detected separator: ${s}.`,
   cabeceraOmitida: 'The first line was treated as a header.',

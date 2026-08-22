@@ -1,7 +1,14 @@
 'use client';
 
 import { useId, useState, type FormEvent } from 'react';
-import { analizarApuesta, agregar, type ResumenAgregado, type MetodoDevig } from '@/lib/clv';
+import {
+  analizarApuesta,
+  agregar,
+  agregarPorGrupo,
+  type GrupoAgregado,
+  type ResumenAgregado,
+  type MetodoDevig,
+} from '@/lib/clv';
 import { parsearTabla, type ErrorFila, type Delimitador } from '@/lib/tabla';
 import type { Locale } from '@/i18n/config';
 import type { TextosAgregado } from '@/i18n/textos-agregado';
@@ -16,6 +23,7 @@ const NOMBRE_DELIMITADOR: Record<Locale, Record<Delimitador, string>> = {
 
 interface Analisis {
   resumen: ResumenAgregado;
+  porDeporte: GrupoAgregado[];
   errores: ErrorFila[];
   delimitador: Delimitador;
   cabeceraOmitida: boolean;
@@ -46,12 +54,18 @@ export function ModoAgregado({
     }
 
     const analizadas = [];
+    const conDeporte: { grupo: string; analisis: ReturnType<typeof analizarApuesta> }[] = [];
     const errores = [...parseo.errores];
     for (const fila of parseo.filas) {
       try {
-        analizadas.push(
-          analizarApuesta(fila.cuotaTomada, fila.cierreTomado, fila.cierreContrario, metodo),
+        const analisis = analizarApuesta(
+          fila.cuotaTomada,
+          fila.cierreTomado,
+          fila.cierreContrario,
+          metodo,
         );
+        analizadas.push(analisis);
+        if (fila.deporte) conDeporte.push({ grupo: fila.deporte, analisis });
       } catch (fallo) {
         // Una fila con cuotas imposibles (arbitraje) no debe tumbar el resto.
         errores.push({
@@ -63,8 +77,13 @@ export function ModoAgregado({
     }
 
     setAviso(null);
+    /* Solo tiene sentido desglosar si hay más de un grupo: con uno solo, la
+       tabla repetiría el agregado y sugeriría una precisión que no existe. */
+    const porDeporte = agregarPorGrupo(conDeporte);
+
     setAnalisis({
       resumen: agregar(analizadas),
+      porDeporte: porDeporte.length > 1 ? porDeporte : [],
       errores,
       delimitador: parseo.delimitador,
       cabeceraOmitida: parseo.cabeceraOmitida,
@@ -170,6 +189,66 @@ export function ModoAgregado({
             )}
             {metrica(t.etiquetas.t, resumen.t === null ? '—' : decimal(resumen.t, locale, 2))}
           </dl>
+
+
+          {analisis.porDeporte.length > 0 && (
+            <div>
+              <h3 className="text-lg font-semibold">{t.desglose.titulo}</h3>
+              {/*
+                El aviso va ANTES de la tabla. Separar por deporte es justo lo
+                que destapa un problema que el agregado esconde, pero cada
+                subgrupo tiene su propia muestra y casi siempre es demasiado
+                pequeña. Enseñar la tabla sin decirlo invita a leer patrones en
+                el ruido — que es lo contrario de lo que hace este producto.
+              */}
+              <p className="mt-2 text-xs text-tenue">{t.desglose.aviso}</p>
+              <div className="mt-3 overflow-x-auto">
+                <table className="w-full border-collapse text-sm">
+                  <thead>
+                    <tr className="border-b border-borde text-left text-tenue">
+                      <th scope="col" className="py-2 pr-4 font-medium">{t.desglose.grupo}</th>
+                      <th scope="col" className="py-2 pr-4 text-right font-medium">{t.etiquetas.n}</th>
+                      <th scope="col" className="py-2 pr-4 text-right font-medium">{t.etiquetas.ventajaMedia}</th>
+                      <th scope="col" className="py-2 text-right font-medium">{t.etiquetas.t}</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {analisis.porDeporte.map((g) => {
+                      const flojo = g.resumen.veredicto === 'muestra_insuficiente';
+                      const color =
+                        g.resumen.veredicto !== 'significativo'
+                          ? 'text-tenue'
+                          : g.resumen.signo === 'contra'
+                            ? 'text-negativo'
+                            : 'text-positivo';
+                      return (
+                        <tr key={g.clave} className="border-b border-borde/50">
+                          <td className="py-2.5 pr-4">{g.clave}</td>
+                          <td className="py-2.5 pr-4 text-right font-mono tabular-nums">
+                            {entero(g.resumen.n, locale)}
+                          </td>
+                          <td
+                            className={`py-2.5 pr-4 text-right font-mono tabular-nums ${
+                              flojo ? 'text-tenue opacity-60' : color
+                            }`}
+                          >
+                            {porcentaje(g.resumen.ventajaMedia, locale)}
+                          </td>
+                          <td
+                            className={`py-2.5 text-right font-mono tabular-nums ${
+                              flojo ? 'text-tenue opacity-60' : color
+                            }`}
+                          >
+                            {g.resumen.t === null ? '—' : decimal(g.resumen.t, locale, 2)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
 
           <div className="space-y-1 text-xs text-tenue">
             <p>{t.detectado(NOMBRE_DELIMITADOR[locale][analisis.delimitador])}</p>
