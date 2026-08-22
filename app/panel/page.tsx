@@ -97,8 +97,17 @@ export default async function Panel({
   if (!tokenValido(config.secreto, tarro.get(COOKIE_SESION)?.value)) {
     return marco(
       <div className="tarjeta mt-6 p-5 sm:p-6">
-        <p className="text-sm text-tenue">Zona privada.</p>
+        <p className="text-sm leading-relaxed text-tenue">
+          Zona privada. La contraseña es el valor de{' '}
+          <span className="cifra text-tinta">PANEL_PASSWORD</span> en las variables de entorno del
+          proyecto en Vercel.
+        </p>
         <FormularioEntrada />
+        {/*
+          Decir de dónde sale la contraseña no le regala nada a nadie: quien
+          ataca prueba contraseñas igual. A quien sí ayuda es al único usuario
+          legítimo, que puede estar mirando la pantalla sin recordar cuál puso.
+        */}
       </div>,
       'Zona privada',
     );

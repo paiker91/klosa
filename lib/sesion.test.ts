@@ -3,6 +3,7 @@ import {
   crearToken,
   tokenValido,
   iguales,
+  contrasenaCorrecta,
   COOKIE_SESION,
   SIN_INTENTOS,
   INTENTOS_LIBRES,
@@ -85,5 +86,23 @@ describe('freno a la fuerza bruta', () => {
     let estado = SIN_INTENTOS;
     for (let i = 0; i < INTENTOS_LIBRES; i++) estado = trasFallo(estado, AHORA);
     expect(segundosDeBloqueo(estado, AHORA + 61_000)).toBe(0);
+  });
+});
+
+describe('contraseña pegada desde el panel de Vercel', () => {
+  it('acepta la contraseña aunque la guardada traiga un salto de línea pegado', () => {
+    expect(contrasenaCorrecta('mi-clave', 'mi-clave\n')).toBe(true);
+    expect(contrasenaCorrecta('mi-clave', ' mi-clave ')).toBe(true);
+    expect(contrasenaCorrecta('mi-clave', 'mi-clave\r\n')).toBe(true);
+  });
+
+  it('acepta también si el sobrante lo mete quien teclea', () => {
+    expect(contrasenaCorrecta(' mi-clave ', 'mi-clave')).toBe(true);
+  });
+
+  it('sigue rechazando una contraseña que de verdad es otra', () => {
+    expect(contrasenaCorrecta('mi-clav', 'mi-clave')).toBe(false);
+    expect(contrasenaCorrecta('mi clave', 'mi-clave')).toBe(false);
+    expect(contrasenaCorrecta('', 'mi-clave')).toBe(false);
   });
 });

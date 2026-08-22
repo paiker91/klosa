@@ -23,6 +23,20 @@ export function iguales(a: string, b: string): boolean {
   return timingSafeEqual(ba, bb);
 }
 
+/**
+ * Compara una contraseña ignorando espacios y saltos al principio y al final.
+ *
+ * Es el fallo silencioso clásico de las variables de entorno: se pega el valor
+ * en el panel de Vercel y se cuela un salto de línea o un espacio invisible.
+ * La comparación estricta dice «contraseña incorrecta» y no hay forma humana
+ * de ver por qué, porque el carácter sobrante no se ve en ninguna pantalla.
+ *
+ * El coste es no poder usar espacios al principio o al final de la contraseña,
+ * que no aporta nada, y a cambio desaparece una hora de desconcierto.
+ */
+export const contrasenaCorrecta = (intento: string, guardada: string): boolean =>
+  iguales(intento.trim(), guardada.trim());
+
 const firmar = (secreto: string, dato: string): string =>
   createHmac('sha256', secreto).update(dato).digest('hex');
 

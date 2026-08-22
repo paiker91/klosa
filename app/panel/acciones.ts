@@ -11,7 +11,7 @@ import {
   COOKIE_SESION,
   configuracionPanel,
   crearToken,
-  iguales,
+  contrasenaCorrecta,
   tokenValido,
   segundosDeBloqueo,
   trasFallo,
@@ -52,7 +52,7 @@ export async function entrar(_previo: Resultado | null, datos: FormData): Promis
   }
 
   const intento = String(datos.get('password') ?? '');
-  if (!iguales(intento, config.password)) {
+  if (!contrasenaCorrecta(intento, config.password)) {
     intentos = trasFallo(intentos, ahora);
     const nuevaEspera = segundosDeBloqueo(intentos, ahora);
     return {
