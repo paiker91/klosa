@@ -7,6 +7,7 @@ import { TheOddsApi } from '@/lib/cuotas/the-odds-api';
 import { DEPORTES, type Deporte } from '@/lib/cuotas/dominio';
 import { crearPick } from '@/lib/picks/dominio';
 import { anadirLinea } from '@/lib/github';
+import { COOKIE_VISIBLE } from '@/lib/panel-visible';
 import {
   COOKIE_SESION,
   configuracionPanel,
@@ -67,13 +68,28 @@ export async function entrar(_previo: Resultado | null, datos: FormData): Promis
   intentos = SIN_INTENTOS;
 
   const tarro = await cookies();
+  const duracion = 30 * 24 * 3600;
   tarro.set(COOKIE_SESION, crearToken(config.secreto), {
     httpOnly: true,
     secure: true,
     sameSite: 'lax',
     path: '/panel',
-    maxAge: 30 * 24 * 3600,
+    maxAge: duracion,
   });
+
+  /*
+   * Pista para que el botón de publicar aparezca en el registro. No es una
+   * credencial: no lleva firma, la lee el navegador y quien se la ponga a mano
+   * solo consigue ver un enlace que desemboca en esta misma contraseña.
+   */
+  tarro.set(COOKIE_VISIBLE, '1', {
+    httpOnly: false,
+    secure: true,
+    sameSite: 'lax',
+    path: '/',
+    maxAge: duracion,
+  });
+
   revalidatePath('/panel');
   return { ok: true, mensaje: '' };
 }
@@ -81,6 +97,7 @@ export async function entrar(_previo: Resultado | null, datos: FormData): Promis
 export async function salir(): Promise<void> {
   const tarro = await cookies();
   tarro.delete({ name: COOKIE_SESION, path: '/panel' });
+  tarro.delete({ name: COOKIE_VISIBLE, path: '/' });
   revalidatePath('/panel');
 }
 

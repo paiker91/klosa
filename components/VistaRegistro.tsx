@@ -9,6 +9,7 @@ import { porcentaje, porcentajeSinSigno, decimal, entero } from './formato';
 import { Medidor, CosteDeLaMuestra } from './Medidor';
 import { Dispersion } from './Dispersion';
 import { TablaGrupos } from './TablaGrupos';
+import { AccesoPanel } from './AccesoPanel';
 
 /*
  * Sin datos no se escribe un cero. Un 0,00 % se lee como una medición que dio
@@ -42,7 +43,7 @@ export function VistaRegistro({
   if (registro === null) {
     return (
       <>
-        <Titulo t={t} />
+        <Titulo t={t} publicar={tm.nav.publicar} />
         <section role="alert" className="tarjeta mt-8 border-negativo/50 p-6">
           <h2 className="text-lg font-semibold text-negativo">{t.noDisponible.titulo}</h2>
           <p className="mt-2 text-tenue">{t.noDisponible.texto}</p>
@@ -85,7 +86,7 @@ export function VistaRegistro({
 
   return (
     <>
-      <Titulo t={t} />
+      <Titulo t={t} publicar={tm.nav.publicar} />
 
       {conteos.total === 0 ? (
         <section className="tarjeta mt-10 p-6">
@@ -365,11 +366,15 @@ export function VistaRegistro({
   );
 }
 
-function Titulo({ t }: { t: TextosRegistro }) {
+function Titulo({ t, publicar }: { t: TextosRegistro; publicar: string }) {
   return (
-    <section className="max-w-3xl">
-      <h1 className="text-4xl font-semibold tracking-tight text-balance sm:text-5xl">{t.h1}</h1>
-      <p className="mt-4 leading-relaxed text-tenue">{t.entradilla}</p>
+    <section className="flex flex-wrap items-start justify-between gap-4">
+      <div className="max-w-3xl">
+        <h1 className="text-4xl font-semibold tracking-tight text-balance sm:text-5xl">{t.h1}</h1>
+        <p className="mt-4 leading-relaxed text-tenue">{t.entradilla}</p>
+      </div>
+      {/* Solo lo ve quien ya entró al panel; publicar sigue pidiendo contraseña. */}
+      <AccesoPanel etiqueta={publicar} />
     </section>
   );
 }

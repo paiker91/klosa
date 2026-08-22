@@ -7,7 +7,7 @@
 import type { Locale } from './config';
 
 export interface TextosMarco {
-  nav: { calculadora: string; registro: string; menu: string; idioma: string };
+  nav: { calculadora: string; registro: string; menu: string; idioma: string; publicar: string };
   marca: { nombre: string; reclamo: string };
   pie: {
     descripcion: string;
@@ -57,6 +57,7 @@ const pt: TextosMarco = {
     registro: 'Registro',
     menu: 'Menu',
     idioma: 'Idioma',
+    publicar: 'Publicar pick',
   },
   marca: {
     nombre: 'Klosa',
@@ -106,6 +107,7 @@ const es: TextosMarco = {
     registro: 'Registro',
     menu: 'Menú',
     idioma: 'Idioma',
+    publicar: 'Publicar pick',
   },
   marca: {
     nombre: 'Klosa',
@@ -155,6 +157,7 @@ const en: TextosMarco = {
     registro: 'Record',
     menu: 'Menu',
     idioma: 'Language',
+    publicar: 'Publish pick',
   },
   marca: {
     nombre: 'Klosa',
