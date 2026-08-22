@@ -15,11 +15,34 @@ export function VistaRegistro({
   locale,
   textos: t,
   registro,
+  urlRepo,
 }: {
   locale: Locale;
   textos: TextosRegistro;
-  registro: RegistroPublico;
+  /** `null` cuando no se pudo leer, que NO es lo mismo que estar vacío. */
+  registro: RegistroPublico | null;
+  urlRepo: string;
 }) {
+  if (registro === null) {
+    return (
+      <>
+        <h1 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">{t.h1}</h1>
+        <section role="alert" className="mt-8 rounded border border-negativo bg-superficie p-6">
+          <h2 className="text-lg font-semibold text-negativo">{t.noDisponible.titulo}</h2>
+          <p className="mt-2 text-tenue">{t.noDisponible.texto}</p>
+          <p className="mt-4">
+            <a
+              href={urlRepo}
+              className="rounded border border-acento px-3 py-2 text-sm text-acento hover:bg-fondo"
+            >
+              {t.verificar.enlaceRepo}
+            </a>
+          </p>
+        </section>
+      </>
+    );
+  }
+
   const { resumen, conteos, entradas, urls } = registro;
   const insuficiente = resumen.veredicto === 'muestra_insuficiente';
 
@@ -165,6 +188,16 @@ export function VistaRegistro({
                     </td>
                     <td className="py-2.5 pr-4">
                       {pick.visitante} @ {pick.local}
+                      {/*
+                        La procedencia de la cuota se enseña siempre. Un 2,20 sin
+                        decir si fue un precio real de una casa o una mediana
+                        calculada no se puede auditar, y auditar es el punto.
+                      */}
+                      {(pick.casa || pick.nota) && (
+                        <span className="block text-xs text-tenue">
+                          {[pick.casa, pick.nota].filter(Boolean).join(' · ')}
+                        </span>
+                      )}
                     </td>
                     <td className="py-2.5 pr-4">{pick.lado}</td>
                     <td className="py-2.5 pr-4 text-right font-mono tabular-nums">

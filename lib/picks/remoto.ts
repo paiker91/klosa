@@ -29,10 +29,38 @@ export const URL_REPO = `https://github.com/${REPO}`;
 /** Cada cuánto se vuelve a mirar el repositorio, en segundos. */
 export const REVALIDAR = 300;
 
+/** No se pudo leer el registro. Distinto de que el registro esté vacío. */
+export class ErrorRegistroNoDisponible extends Error {
+  constructor(
+    readonly url: string,
+    readonly causa: unknown,
+  ) {
+    super(`No se pudo leer el registro desde ${url}`);
+    this.name = 'ErrorRegistroNoDisponible';
+  }
+}
+
+/**
+ * Descarga un fichero del registro.
+ *
+ * Distingue tres cosas que es tentador confundir:
+ *   - 404 → el fichero aún no existe. Registro vacío, estado normal.
+ *   - otro fallo → NO se pudo leer. No es lo mismo que estar vacío, y decir
+ *     "todavía no hay ningún pick" cuando en realidad GitHub no respondió
+ *     sería mentir en una página cuyo argumento entero es la verificabilidad.
+ *   - 200 → datos.
+ */
 async function descargarLineas<T>(url: string): Promise<T[]> {
-  const res = await fetch(url, { next: { revalidate: REVALIDAR } });
-  // 404 es el estado normal antes del primer pick, no un error.
-  if (!res.ok) return [];
+  let res: Response;
+  try {
+    res = await fetch(url, { next: { revalidate: REVALIDAR } });
+  } catch (causa) {
+    throw new ErrorRegistroNoDisponible(url, causa);
+  }
+
+  if (res.status === 404) return [];
+  if (!res.ok) throw new ErrorRegistroNoDisponible(url, `HTTP ${res.status}`);
+
   return (await res.text())
     .split('\n')
     .map((l) => l.trim())

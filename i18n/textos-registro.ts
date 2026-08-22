@@ -13,6 +13,7 @@ export interface TextosRegistro {
   h1: string;
   entradilla: string;
   vacio: { titulo: string; texto: string };
+  noDisponible: { titulo: string; texto: string };
   etiquetas: {
     n: string;
     ventajaMedia: string;
@@ -49,6 +50,11 @@ const pt: TextosRegistro = {
     titulo: 'Ainda não há nenhum pick',
     texto:
       'O registro está vazio. Quando houver picks, cada um aparecerá aqui com sua linha de fechamento e seu CLV — inclusive os ruins.',
+  },
+  noDisponible: {
+    titulo: 'Não foi possível ler o registro',
+    texto:
+      'Os dados não puderam ser baixados do GitHub agora. Isso NÃO quer dizer que o registro esteja vazio — quer dizer que não deu para lê-lo. Você pode conferir direto no repositório.',
   },
   etiquetas: {
     n: 'Picks com fechamento',
@@ -106,6 +112,11 @@ const es: TextosRegistro = {
     texto:
       'El registro está vacío. Cuando haya picks, cada uno aparecerá aquí con su línea de cierre y su CLV — también los malos.',
   },
+  noDisponible: {
+    titulo: 'No se ha podido leer el registro',
+    texto:
+      'Los datos no se han podido descargar de GitHub ahora mismo. Eso NO significa que el registro esté vacío: significa que no se ha podido leer. Puedes comprobarlo directamente en el repositorio.',
+  },
   etiquetas: {
     n: 'Picks con cierre',
     ventajaMedia: 'Ventaja media',
@@ -161,6 +172,11 @@ const en: TextosRegistro = {
     titulo: 'No picks yet',
     texto:
       'The record is empty. Once there are picks, each one will appear here with its closing line and its CLV — including the bad ones.',
+  },
+  noDisponible: {
+    titulo: 'Could not read the record',
+    texto:
+      'The data could not be downloaded from GitHub right now. That does NOT mean the record is empty — it means it could not be read. You can check it directly in the repository.',
   },
   etiquetas: {
     n: 'Picks with a close',

@@ -17,7 +17,7 @@ import { TEXTOS } from '@/i18n/textos';
 import { TEXTOS_REGISTRO } from '@/i18n/textos-registro';
 import { CalculadoraCLV } from '@/components/CalculadoraCLV';
 import { VistaRegistro } from '@/components/VistaRegistro';
-import { leerRegistroPublico } from '@/lib/picks/remoto';
+import { leerRegistroPublico, URL_REPO, type RegistroPublico } from '@/lib/picks/remoto';
 
 const SITIO = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://klosa-five.vercel.app';
 
@@ -35,6 +35,21 @@ export function generateStaticParams() {
   return LOCALES.flatMap((locale) =>
     (['calculadora', 'registro'] as const).map((p) => ({ locale, slug: RUTAS[p][locale] })),
   );
+}
+
+/**
+ * Devuelve `null` si el registro no se pudo leer, en vez de tumbar la página.
+ *
+ * La distinción importa: la vista enseña un aviso claro de "no se pudo leer",
+ * que no es lo mismo que "no hay picks". Confundirlos convertiría una caída
+ * momentánea de GitHub en una afirmación falsa sobre el registro.
+ */
+async function registroONull(): Promise<RegistroPublico | null> {
+  try {
+    return await leerRegistroPublico();
+  } catch {
+    return null;
+  }
 }
 
 function resolver(locale: string, slug: string): { idioma: Locale; pagina: Pagina } {
@@ -132,7 +147,12 @@ export default async function Pagina({
           </div>
         </>
       ) : (
-        <VistaRegistro locale={idioma} textos={tr} registro={await leerRegistroPublico()} />
+        <VistaRegistro
+          locale={idioma}
+          textos={tr}
+          registro={await registroONull()}
+          urlRepo={URL_REPO}
+        />
       )}
 
       {/*

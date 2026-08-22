@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { construirRegistro } from './remoto';
+import { construirRegistro, leerRegistroPublico, ErrorRegistroNoDisponible } from './remoto';
 import { crearPick, type Cierre, type Pick } from './dominio';
 import type { Deporte } from '../cuotas/dominio';
 
@@ -140,5 +140,55 @@ describe('desglose por deporte en el registro', () => {
     expect(r.resumen.n).toBe(120);
     expect(r.resumen.veredicto).not.toBe('muestra_insuficiente');
     for (const g of r.porDeporte) expect(g.resumen.veredicto).toBe('muestra_insuficiente');
+  });
+});
+
+/*
+ * La distinción entre "vacío" y "no se pudo leer" es la razón de ser de este
+ * bloque. Confundirlas convertiría una caída momentánea de GitHub en una
+ * afirmación falsa sobre el registro, en una página cuyo argumento es
+ * precisamente que se puede verificar.
+ */
+describe('registro vacío frente a registro ilegible', () => {
+  const conFetch = async (respuesta: (url: string | URL) => Promise<Response>) => {
+    const original = globalThis.fetch;
+    globalThis.fetch = respuesta as typeof fetch;
+    try {
+      return await leerRegistroPublico();
+    } finally {
+      globalThis.fetch = original;
+    }
+  };
+
+  it('404 significa registro vacío: el fichero aún no existe', async () => {
+    const r = await conFetch(async () => new Response('', { status: 404 }));
+    expect(r.conteos.total).toBe(0);
+    expect(r.entradas).toEqual([]);
+  });
+
+  it('un 500 NO es un registro vacío: es un fallo y hay que decirlo', async () => {
+    await expect(conFetch(async () => new Response('', { status: 500 }))).rejects.toThrow(
+      ErrorRegistroNoDisponible,
+    );
+  });
+
+  it('si la red falla, tampoco se finge que el registro está vacío', async () => {
+    await expect(
+      conFetch(async () => {
+        throw new Error('sin red');
+      }),
+    ).rejects.toThrow(ErrorRegistroNoDisponible);
+  });
+
+  it('lee líneas correctas y descarta las corruptas sin tumbar el resto', async () => {
+    const p = pick('NBA', 2.1);
+    await conFetch(async (url: string | URL) => {
+      const esPicks = url.toString().includes('picks.jsonl');
+      const cuerpo = esPicks ? `${JSON.stringify(p)}\nesto no es json\n` : '';
+      return new Response(cuerpo, { status: 200 });
+    }).then((r) => {
+      expect(r.conteos.total).toBe(1);
+      expect(r.entradas[0]?.pick.id).toBe(p.id);
+    });
   });
 });
