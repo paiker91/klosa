@@ -89,6 +89,8 @@ interface ResultadoAPI2 {
   id: string;
   completed?: boolean;
   commence_time: string;
+  home_team: string;
+  away_team: string;
   last_update?: string;
   scores?: { name: string; score: string }[] | null;
 }
@@ -226,6 +228,9 @@ export class TheOddsApi implements ProveedorDeCuotas {
     return brutos.map((b) => ({
       eventoId: b.id,
       terminado: b.completed === true,
+      local: b.home_team,
+      visitante: b.away_team,
+      comienzo: new Date(b.commence_time),
       marcador: (b.scores ?? [])
         .map((s) => ({ equipo: s.name, puntos: Number(s.score) }))
         .filter((s) => Number.isFinite(s.puntos)),
@@ -309,7 +314,17 @@ export class TheOddsApi implements ProveedorDeCuotas {
     );
 
     const enCierre = instantanea.data.find((e) => e.id === evento.id);
-    const casa = enCierre?.bookmakers?.find((c) => this.extraer(c, mercado) !== null);
+    if (!enCierre) return null;
+
+    const consenso = this.consenso(enCierre, mercado, evento.id, instantanea.timestamp);
+    if (consenso !== null) return consenso;
+
+    /*
+     * Respaldo: una sola casa. Solo se llega aquí si el mercado no está lo
+     * bastante poblado como para que una mediana signifique algo — por ejemplo
+     * un hándicap donde cada casa cuelga una línea distinta.
+     */
+    const casa = enCierre.bookmakers?.find((c) => this.extraer(c, mercado) !== null);
     if (!casa) return null;
 
     const par = this.extraer(casa, mercado);
@@ -322,6 +337,64 @@ export class TheOddsApi implements ProveedorDeCuotas {
       ladoB: { etiqueta: this.etiquetar(par.b, mercado), cuota: par.b.price },
       capturadoEn: new Date(casa.last_update),
       casa: casa.title,
+      casas: 1,
+    });
+  }
+
+  /**
+   * Cierre de consenso: la mediana de las casas que cuelgan el MISMO par de
+   * lados.
+   *
+   * Antes se cogía la primera casa que tuviera el mercado. Eso metía un sesgo
+   * silencioso: los picks se registran a la mediana de treinta casas, así que
+   * medir su cierre contra una casa cualquiera comparaba dos cosas distintas y
+   * el ruido se colaba en el CLV como si fuera habilidad (o su falta).
+   *
+   * Se agrupa por PAR de etiquetas y no por lado suelto a propósito. En
+   * hándicaps y totales cada casa puede colgar una línea diferente, y mezclar
+   * un «Más 5,5» con un «Más 6,5» produciría una mediana de dos mercados que
+   * no existen juntos en ninguna parte.
+   */
+  private consenso(
+    evento: EventoAPI,
+    mercado: Mercado,
+    eventoId: string,
+    instante: string,
+  ): CuotasDeCierre | null {
+    const grupos = new Map<string, { a: string; b: string; precios: [number[], number[]] }>();
+
+    for (const casa of evento.bookmakers ?? []) {
+      const par = this.extraer(casa, mercado);
+      if (par === null) continue;
+      const a = this.etiquetar(par.a, mercado);
+      const b = this.etiquetar(par.b, mercado);
+      const clave = `${a} ${b}`;
+      const grupo = grupos.get(clave) ?? { a, b, precios: [[], []] };
+      grupo.precios[0].push(par.a.price);
+      grupo.precios[1].push(par.b.price);
+      grupos.set(clave, grupo);
+    }
+
+    let mejor: { a: string; b: string; precios: [number[], number[]] } | null = null;
+    for (const g of grupos.values()) {
+      if (mejor === null || g.precios[0].length > mejor.precios[0].length) mejor = g;
+    }
+
+    // Con menos de tres casas la mediana no representa a ningún mercado.
+    if (mejor === null || mejor.precios[0].length < 3) return null;
+
+    const redondear = (x: number) => Math.round(x * 100) / 100;
+
+    return validarCuotasDeCierre(NOMBRE, {
+      eventoId,
+      mercado,
+      ladoA: { etiqueta: mejor.a, cuota: redondear(TheOddsApi.mediana(mejor.precios[0])) },
+      ladoB: { etiqueta: mejor.b, cuota: redondear(TheOddsApi.mediana(mejor.precios[1])) },
+      /* El instante de la instantánea, no el `last_update` de una casa: el dato
+         es de todas ellas, así que la fecha honesta es la del corte. */
+      capturadoEn: new Date(instante),
+      casa: `mediana de ${mejor.precios[0].length} casas`,
+      casas: mejor.precios[0].length,
     });
   }
 }

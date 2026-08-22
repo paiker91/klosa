@@ -1,0 +1,269 @@
+'use client';
+
+import { useEffect, useId, useMemo, useState } from 'react';
+import { analizarApuesta, ErrorCuota, type AnalisisApuesta } from '@/lib/clv';
+import { DEPORTES, type Deporte } from '@/lib/cuotas/dominio';
+import type { Locale } from '@/i18n/config';
+import type { Textos } from '@/i18n/textos';
+import { decimal } from './formato';
+import { ResultadoCLV } from './ResultadoCLV';
+
+interface Partido {
+  id: string;
+  local: string;
+  visitante: string;
+  comienzo: string;
+  terminado: boolean;
+}
+
+interface Cierre {
+  ladoA: { etiqueta: string; cuota: number };
+  ladoB: { etiqueta: string; cuota: number };
+  casas: number;
+  capturadoEn: string;
+}
+
+type Carga<T> =
+  | { estado: 'vacio' }
+  | { estado: 'cargando' }
+  | { estado: 'ok'; datos: T }
+  | { estado: 'fallo'; motivo: 'sinCierre' | 'sinCuota' | 'fallo' };
+
+/**
+ * Modo automático: la línea de cierre la ponemos nosotros.
+ *
+ * Es la diferencia entre una calculadora y una herramienta. Pedirle al usuario
+ * las dos cuotas de cierre presupone que las apuntó en su momento, y casi
+ * nadie lo hace: cuando quiere calcular su CLV, el dato que le falta es justo
+ * ese. Aquí solo tiene que decir qué apostó.
+ */
+export function ModoBuscar({ locale, textos: t }: { locale: Locale; textos: Textos }) {
+  const [deporte, setDeporte] = useState<Deporte | ''>('');
+  const [partidos, setPartidos] = useState<Carga<Partido[]>>({ estado: 'vacio' });
+  const [seleccion, setSeleccion] = useState('');
+  const [tomada, setTomada] = useState('');
+  const [cierre, setCierre] = useState<Carga<Cierre>>({ estado: 'vacio' });
+
+  const id = useId();
+
+  useEffect(() => {
+    if (deporte === '') return;
+    let vigente = true;
+    setPartidos({ estado: 'cargando' });
+    setSeleccion('');
+    setCierre({ estado: 'vacio' });
+
+    fetch(`/api/partidos?deporte=${deporte}`)
+      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
+      .then((d: { partidos: Partido[] }) => {
+        if (vigente) setPartidos({ estado: 'ok', datos: d.partidos });
+      })
+      .catch(() => {
+        if (vigente) setPartidos({ estado: 'fallo', motivo: 'fallo' });
+      });
+
+    // Si el usuario cambia de deporte antes de que llegue la respuesta, la
+    // anterior ya no vale: sin esto, la lista vieja pisaría a la nueva.
+    return () => {
+      vigente = false;
+    };
+  }, [deporte]);
+
+  const [eventoId, lado] = seleccion === '' ? ['', ''] : seleccion.split('|');
+
+  useEffect(() => {
+    if (deporte === '' || !eventoId) return;
+    let vigente = true;
+    setCierre({ estado: 'cargando' });
+
+    fetch(`/api/cierre?deporte=${deporte}&evento=${eventoId}`)
+      .then(async (r) => {
+        if (r.ok) return { ok: true as const, datos: (await r.json()) as Cierre };
+        if (r.status === 404) return { ok: false as const, motivo: 'sinCierre' as const };
+        if (r.status === 429) return { ok: false as const, motivo: 'sinCuota' as const };
+        return { ok: false as const, motivo: 'fallo' as const };
+      })
+      .then((r) => {
+        if (!vigente) return;
+        setCierre(r.ok ? { estado: 'ok', datos: r.datos } : { estado: 'fallo', motivo: r.motivo });
+      })
+      .catch(() => {
+        if (vigente) setCierre({ estado: 'fallo', motivo: 'fallo' });
+      });
+
+    return () => {
+      vigente = false;
+    };
+  }, [deporte, eventoId]);
+
+  /*
+   * El de-vig necesita los DOS lados, así que se ordenan según cuál apostó el
+   * usuario. Si su lado no aparece en el cierre, no se calcula nada: inventar
+   * cuál era sería exactamente el tipo de dato falso que este producto
+   * existe para denunciar.
+   */
+  const analisis = useMemo((): AnalisisApuesta | { error: string } | null => {
+    if (cierre.estado !== 'ok' || tomada.trim() === '' || !lado) return null;
+    const { ladoA, ladoB } = cierre.datos;
+    const mio = ladoA.etiqueta === lado ? ladoA : ladoB.etiqueta === lado ? ladoB : null;
+    const otro = mio === ladoA ? ladoB : ladoA;
+    if (mio === null) return { error: t.buscar.sinCierre };
+
+    try {
+      return analizarApuesta(tomada, mio.cuota, otro.cuota);
+    } catch (fallo) {
+      return { error: fallo instanceof ErrorCuota ? fallo.message : String(fallo) };
+    }
+  }, [cierre, tomada, lado, t.buscar.sinCierre]);
+
+  const fechaCorta = (iso: string) =>
+    new Date(iso).toLocaleString(
+      locale === 'pt' ? 'pt-BR' : locale === 'es' ? 'es-ES' : 'en-US',
+      { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' },
+    );
+
+  const claseCampo =
+    'mt-2 min-h-11 w-full rounded-xl border border-borde bg-fondo/60 px-3 text-sm text-tinta transition-colors hover:border-borde-fuerte focus:border-acento';
+
+  return (
+    <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:items-start">
+      <form onSubmit={(e) => e.preventDefault()} className="tarjeta space-y-5 p-5 sm:p-6">
+        <p className="text-sm leading-relaxed text-tenue">{t.buscar.intro}</p>
+
+        <div>
+          <label htmlFor={`${id}-deporte`} className="block text-sm font-medium text-tinta">
+            {t.buscar.deporte}
+          </label>
+          <select
+            id={`${id}-deporte`}
+            value={deporte}
+            onChange={(e) => setDeporte(e.target.value as Deporte | '')}
+            className={claseCampo}
+          >
+            <option value="">{t.buscar.elegir}</option>
+            {DEPORTES.map((d) => (
+              <option key={d} value={d}>
+                {d}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label htmlFor={`${id}-partido`} className="block text-sm font-medium text-tinta">
+            {t.buscar.partido} · {t.buscar.lado}
+          </label>
+          <select
+            id={`${id}-partido`}
+            value={seleccion}
+            disabled={partidos.estado !== 'ok' || partidos.datos.length === 0}
+            onChange={(e) => setSeleccion(e.target.value)}
+            className={`${claseCampo} disabled:opacity-50`}
+          >
+            <option value="">
+              {partidos.estado === 'cargando' ? t.buscar.cargando : t.buscar.elegir}
+            </option>
+            {partidos.estado === 'ok' &&
+              partidos.datos.map((p) => (
+                /* Una opción por lado: elegir partido y lado en un solo gesto. */
+                <optgroup
+                  key={p.id}
+                  label={`${p.visitante} @ ${p.local} — ${fechaCorta(p.comienzo)}`}
+                >
+                  {[p.visitante, p.local].map((l) => (
+                    <option key={l} value={`${p.id}|${l}`}>
+                      {l}
+                    </option>
+                  ))}
+                </optgroup>
+              ))}
+          </select>
+          {partidos.estado === 'ok' && partidos.datos.length === 0 && (
+            <p className="mt-2 text-xs text-aviso">{t.buscar.sinPartidos}</p>
+          )}
+          {partidos.estado === 'fallo' && <p className="mt-2 text-xs text-negativo">{t.buscar.fallo}</p>}
+        </div>
+
+        <div>
+          <label htmlFor={`${id}-tomada`} className="block text-sm font-medium text-tinta">
+            {t.campos.cuotaTomada}
+          </label>
+          <input
+            id={`${id}-tomada`}
+            type="text"
+            inputMode="decimal"
+            autoComplete="off"
+            placeholder="—"
+            value={tomada}
+            onChange={(e) => setTomada(e.target.value)}
+            aria-describedby={`${id}-tomada-ayuda`}
+            className="cifra mt-2 w-full rounded-xl border border-borde bg-fondo/60 px-3.5 py-3 text-lg text-tinta transition-colors placeholder:text-apagado hover:border-borde-fuerte focus:border-acento"
+          />
+          <p id={`${id}-tomada-ayuda`} className="mt-1.5 text-xs leading-relaxed text-apagado">
+            {t.campos.cuotaTomadaAyuda}
+          </p>
+        </div>
+
+        {/* La cobertura y la definición de cierre, siempre visibles y no en un desplegable. */}
+        <p className="rounded-xl border border-borde bg-fondo/40 p-3.5 text-xs leading-relaxed text-apagado">
+          {t.buscar.cobertura}
+        </p>
+      </form>
+
+      <div aria-live="polite" className="space-y-4 lg:sticky lg:top-24">
+        {cierre.estado === 'ok' && (
+          <div className="tarjeta p-4">
+            <p className="etiqueta-dato">{t.buscar.fechamento}</p>
+            <div className="mt-2 flex flex-wrap gap-x-6 gap-y-1">
+              {[cierre.datos.ladoA, cierre.datos.ladoB].map((l) => (
+                <span key={l.etiqueta} className="text-sm">
+                  <span className={l.etiqueta === lado ? 'text-tinta' : 'text-tenue'}>
+                    {l.etiqueta}
+                  </span>{' '}
+                  <span className="cifra text-tinta">{decimal(l.cuota, locale, 2)}</span>
+                </span>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-apagado">
+              {t.buscar.fuente
+                .replace('{n}', String(cierre.datos.casas))
+                .replace('{fecha}', fechaCorta(cierre.datos.capturadoEn))}
+            </p>
+          </div>
+        )}
+
+        {cierre.estado === 'fallo' && (
+          <div role="alert" className="tarjeta border-negativo/60 p-5">
+            <p className="text-sm leading-relaxed text-tenue">{t.buscar[cierre.motivo]}</p>
+          </div>
+        )}
+
+        {analisis === null ? (
+          <div className="tarjeta flex min-h-[15rem] items-center justify-center p-8 text-center">
+            <p className="max-w-xs text-sm leading-relaxed text-apagado">
+              {cierre.estado === 'cargando' ? t.buscar.cargando : t.buscar.incompleto}
+            </p>
+          </div>
+        ) : 'error' in analisis ? (
+          <div role="alert" className="tarjeta border-negativo/60 p-5">
+            <p className="text-sm font-semibold text-negativo">{t.errores.titulo}</p>
+            <p className="mt-1.5 text-sm text-tenue">{analisis.error}</p>
+          </div>
+        ) : (
+          <ResultadoCLV
+            analisis={analisis}
+            locale={locale}
+            textos={t}
+            procedencia={
+              cierre.estado === 'ok'
+                ? t.buscar.fuente
+                    .replace('{n}', String(cierre.datos.casas))
+                    .replace('{fecha}', fechaCorta(cierre.datos.capturadoEn))
+                : undefined
+            }
+          />
+        )}
+      </div>
+    </div>
+  );
+}

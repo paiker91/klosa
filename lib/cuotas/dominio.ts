@@ -64,8 +64,19 @@ export interface CuotasDeCierre {
   ladoB: LadoCuota;
   /** Momento del último dato antes del comienzo, no el momento de la consulta. */
   capturadoEn: Date;
-  /** Casa de apuestas de la que salen estas cuotas. */
+  /**
+   * De dónde salen estas cuotas: el nombre de una casa, o «mediana de N casas»
+   * cuando son el consenso del mercado.
+   */
   casa: string;
+  /**
+   * Casas detrás del dato. 1 si es una sola.
+   *
+   * Importa porque los picks se registran a la mediana del mercado: comparar
+   * una mediana de treinta casas contra el cierre de una sola casa elegida al
+   * azar mete un sesgo que no tiene nada que ver con la habilidad de nadie.
+   */
+  casas: number;
 }
 
 export interface CriterioBusqueda {
@@ -101,6 +112,9 @@ export interface ReferenciaEvento {
 export interface ResultadoEvento {
   eventoId: string;
   terminado: boolean;
+  local: string;
+  visitante: string;
+  comienzo: Date;
   /** Puntos por equipo, con el nombre tal y como lo da el proveedor. */
   marcador: { equipo: string; puntos: number }[];
   actualizadoEn: Date;

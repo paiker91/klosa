@@ -7,9 +7,17 @@ import { TEXTOS_AGREGADO } from '@/i18n/textos-agregado';
 import type { TextosMarco } from '@/i18n/textos-marco';
 import { ModoSimple } from './ModoSimple';
 import { ModoAgregado } from './ModoAgregado';
+import { ModoBuscar } from './ModoBuscar';
 
-type Modo = 'simple' | 'agregado';
-const MODOS: readonly Modo[] = ['simple', 'agregado'];
+type Modo = 'buscar' | 'simple' | 'agregado';
+
+/*
+ * «Buscar» va primero porque es la única de las tres que resuelve el problema
+ * de verdad: quien quiere saber su CLV casi nunca apuntó la cuota de cierre en
+ * su momento, y ese es justo el dato que le falta. Las otras dos siguen ahí
+ * porque solo cubrimos tres competiciones y el fútbol no está entre ellas.
+ */
+const MODOS: readonly Modo[] = ['buscar', 'simple', 'agregado'];
 
 export function CalculadoraCLV({
   locale,
@@ -20,8 +28,12 @@ export function CalculadoraCLV({
   textos: Textos;
   marco: TextosMarco;
 }) {
-  const [modo, setModo] = useState<Modo>('simple');
-  const refs = useRef<Record<Modo, HTMLButtonElement | null>>({ simple: null, agregado: null });
+  const [modo, setModo] = useState<Modo>('buscar');
+  const refs = useRef<Record<Modo, HTMLButtonElement | null>>({
+    buscar: null,
+    simple: null,
+    agregado: null,
+  });
   const ta = TEXTOS_AGREGADO[locale];
   const id = useId();
 
@@ -77,18 +89,17 @@ export function CalculadoraCLV({
       <div
         role="tablist"
         aria-label={t.h1}
-        className="flex max-w-md gap-1 rounded-xl border border-borde bg-superficie p-1"
+        className="flex max-w-xl gap-1 rounded-xl border border-borde bg-superficie p-1"
       >
+        {pestana('buscar', t.buscar.pestana)}
         {pestana('simple', ta.pestanaSimple)}
         {pestana('agregado', ta.pestanaAgregado)}
       </div>
 
       <div role="tabpanel" id={`${id}-panel`} aria-labelledby={`${id}-${modo}`} className="pt-6">
-        {modo === 'simple' ? (
-          <ModoSimple locale={locale} textos={t} />
-        ) : (
-          <ModoAgregado locale={locale} textos={ta} marco={marco} />
-        )}
+        {modo === 'buscar' && <ModoBuscar locale={locale} textos={t} />}
+        {modo === 'simple' && <ModoSimple locale={locale} textos={t} />}
+        {modo === 'agregado' && <ModoAgregado locale={locale} textos={ta} marco={marco} />}
       </div>
     </div>
   );

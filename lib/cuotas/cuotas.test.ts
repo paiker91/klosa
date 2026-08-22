@@ -41,6 +41,7 @@ const cierreValido: CuotasDeCierre = {
   ladoB: { etiqueta: 'Detroit Pistons', cuota: 1.83 },
   capturadoEn: new Date('2026-08-21T17:46:26Z'),
   casa: 'FanDuel',
+  casas: 1,
 };
 
 describe('validación de frontera', () => {
@@ -254,5 +255,98 @@ describe('etiquetado por mercado', () => {
     const cierre = await conMercado(mlbTotales[0], 'totales');
     expect(cierre?.ladoA.etiqueta).toBe('Over 5.5');
     expect(cierre?.ladoB.etiqueta).toBe('Under 5.5');
+  });
+});
+
+describe('cierre de consenso', () => {
+  const casa = (titulo: string, a: number, b: number, punto?: number) => ({
+    key: titulo.toLowerCase(),
+    title: titulo,
+    last_update: '2026-04-09T23:10:00Z',
+    markets: [
+      {
+        key: punto === undefined ? 'h2h' : 'totals',
+        last_update: '2026-04-09T23:10:00Z',
+        outcomes:
+          punto === undefined
+            ? [
+                { name: 'Chicago Bulls', price: a },
+                { name: 'Washington Wizards', price: b },
+              ]
+            : [
+                { name: 'Over', price: a, point: punto },
+                { name: 'Under', price: b, point: punto },
+              ],
+      },
+    ],
+  });
+
+  const instantanea = (casas: unknown[]) => ({
+    timestamp: '2026-04-09T23:11:00Z',
+    data: [
+      {
+        id: 'evt',
+        sport_key: 'basketball_nba',
+        commence_time: '2026-04-09T23:12:28Z',
+        home_team: 'Washington Wizards',
+        away_team: 'Chicago Bulls',
+        bookmakers: casas,
+      },
+    ],
+  });
+
+  const pedir = async (casas: unknown[], mercado: 'moneyline' | 'totales' = 'moneyline') =>
+    new TheOddsApi({
+      claveApi: 'x',
+      buscar: fetchFalso([{ contiene: '/historical/', cuerpo: instantanea(casas) }]),
+    }).cuotasDeCierre(
+      { id: 'evt', deporte: 'NBA', comienzo: new Date('2026-04-09T23:12:28Z') },
+      mercado,
+    );
+
+  it('devuelve la mediana de las casas, no la primera que aparezca', async () => {
+    const cierre = await pedir([
+      casa('A', 1.9, 2.0),
+      casa('B', 2.0, 1.9),
+      casa('C', 2.1, 1.8),
+      casa('D', 5.0, 1.2), // Atípica: la mediana la absorbe, una media no.
+    ]);
+
+    expect(cierre?.casas).toBe(4);
+    expect(cierre?.casa).toBe('mediana de 4 casas');
+    expect(cierre?.ladoA.cuota).toBeCloseTo(2.05, 2);
+    expect(cierre?.ladoB.cuota).toBeCloseTo(1.85, 2);
+  });
+
+  it('la fecha es la del corte, no el last_update de una casa cualquiera', async () => {
+    const cierre = await pedir([casa('A', 1.9, 2.0), casa('B', 2.0, 1.9), casa('C', 2.1, 1.8)]);
+    expect(cierre?.capturadoEn.toISOString()).toBe('2026-04-09T23:11:00.000Z');
+  });
+
+  it('con menos de tres casas no inventa un consenso: cae a una sola casa', async () => {
+    const cierre = await pedir([casa('A', 1.9, 2.0), casa('B', 2.0, 1.9)]);
+    expect(cierre?.casas).toBe(1);
+    expect(cierre?.casa).toBe('A');
+  });
+
+  it('no mezcla líneas distintas de un total en la misma mediana', async () => {
+    /*
+     * Tres casas en 5,5 y dos en 6,5. Son mercados distintos: promediarlos
+     * daría una cuota de una línea que no existe en ninguna casa.
+     */
+    const cierre = await pedir(
+      [
+        casa('A', 1.9, 1.95, 5.5),
+        casa('B', 1.92, 1.93, 5.5),
+        casa('C', 1.94, 1.91, 5.5),
+        casa('D', 2.4, 1.6, 6.5),
+        casa('E', 2.45, 1.58, 6.5),
+      ],
+      'totales',
+    );
+
+    expect(cierre?.casas).toBe(3);
+    expect(cierre?.ladoA.etiqueta).toBe('Over 5.5');
+    expect(cierre?.ladoA.cuota).toBeCloseTo(1.92, 2);
   });
 });

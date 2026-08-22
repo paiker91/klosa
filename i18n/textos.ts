@@ -36,6 +36,25 @@ export interface Textos {
     margen: string;
     supuesto: string;
   };
+  /** Modo automático: nosotros ponemos la línea de cierre. */
+  buscar: {
+    pestana: string;
+    intro: string;
+    cobertura: string;
+    deporte: string;
+    partido: string;
+    lado: string;
+    elegir: string;
+    cargando: string;
+    sinPartidos: string;
+    sinCierre: string;
+    sinCuota: string;
+    fallo: string;
+    /** Lleva {n} (casas) y {fecha}. */
+    fuente: string;
+    fechamento: string;
+    incompleto: string;
+  };
   errores: { titulo: string };
   contenido: Array<{ titulo: string; parrafos: string[] }>;
 }
@@ -78,6 +97,27 @@ const pt: Textos = {
     margen: 'Margem da casa detectada',
     supuesto:
       'O cálculo assume que a linha de fechamento, sem a margem, é a melhor estimativa disponível da probabilidade real. É a premissa padrão do setor, mas é uma premissa.',
+  },
+  buscar: {
+    pestana: 'A gente busca',
+    intro:
+      'Escolha o jogo e o lado, diga a odd que você pegou e nós buscamos a linha de fechamento. Você não precisa anotar nada nem procurar em lugar nenhum.',
+    cobertura:
+      'NBA, Euroliga e MLB, jogos dos últimos 3 dias, moneyline. O fechamento é a mediana das casas, não a melhor odd: a melhor de trinta casas bate o fechamento quase sempre e daria vantagem de mentira.',
+    deporte: 'Esporte',
+    partido: 'Jogo',
+    lado: 'Seu lado',
+    elegir: 'Escolha…',
+    cargando: 'Buscando…',
+    sinPartidos: 'Nenhum jogo desse esporte começou nos últimos 3 dias.',
+    sinCierre:
+      'Não achamos o fechamento desse jogo. Pode ser que ele tenha começado agora mesmo. Dá para usar a aba manual.',
+    sinCuota:
+      'A cota de consultas do provedor está reservada para o registro público. Tente mais tarde ou use a aba manual.',
+    fallo: 'Não deu para falar com o provedor de odds agora. A aba manual continua funcionando.',
+    fuente: 'mediana de {n} casas · {fecha}',
+    fechamento: 'Fechamento encontrado',
+    incompleto: 'Escolha um jogo e digite a odd que você pegou.',
   },
   errores: { titulo: 'Não foi possível calcular' },
   contenido: [
@@ -151,6 +191,27 @@ const es: Textos = {
     supuesto:
       'El cálculo asume que la línea de cierre, sin el margen, es la mejor estimación disponible de la probabilidad real. Es el supuesto estándar del sector, pero es un supuesto.',
   },
+  buscar: {
+    pestana: 'Lo buscamos',
+    intro:
+      'Elige el partido y el lado, di la cuota que cogiste y nosotros buscamos la línea de cierre. No tienes que apuntar nada ni buscarla en ningún sitio.',
+    cobertura:
+      'NBA, Euroliga y MLB, partidos de los últimos 3 días, moneyline. El cierre es la mediana de las casas, no la mejor cuota: la mejor de treinta casas bate al cierre casi siempre y daría una ventaja de mentira.',
+    deporte: 'Deporte',
+    partido: 'Partido',
+    lado: 'Tu lado',
+    elegir: 'Elige…',
+    cargando: 'Buscando…',
+    sinPartidos: 'No hay partidos de ese deporte empezados en los últimos 3 días.',
+    sinCierre:
+      'No encontramos el cierre de ese partido. Puede que acabe de empezar. Puedes usar la pestaña manual.',
+    sinCuota:
+      'La cuota de consultas del proveedor está reservada para el registro público. Prueba más tarde o usa la pestaña manual.',
+    fallo: 'No se ha podido hablar con el proveedor de cuotas ahora mismo. La pestaña manual sigue funcionando.',
+    fuente: 'mediana de {n} casas · {fecha}',
+    fechamento: 'Cierre encontrado',
+    incompleto: 'Elige un partido y escribe la cuota que cogiste.',
+  },
   errores: { titulo: 'No se ha podido calcular' },
   contenido: [
     {
@@ -222,6 +283,27 @@ const en: Textos = {
     margen: 'Detected bookmaker margin',
     supuesto:
       'The calculation assumes the closing line, once the margin is removed, is the best available estimate of the true probability. That is the standard assumption in the field, but it is an assumption.',
+  },
+  buscar: {
+    pestana: 'We look it up',
+    intro:
+      'Pick the game and the side, tell us the odds you took and we fetch the closing line. You do not have to record anything or look it up anywhere.',
+    cobertura:
+      'NBA, Euroleague and MLB, games from the last 3 days, moneyline. The close is the median across bookmakers, not the best price: the best of thirty books beats the close almost always and would hand you a fake edge.',
+    deporte: 'Sport',
+    partido: 'Game',
+    lado: 'Your side',
+    elegir: 'Choose…',
+    cargando: 'Looking up…',
+    sinPartidos: 'No games of that sport have started in the last 3 days.',
+    sinCierre:
+      'We could not find the close for that game. It may have just started. You can use the manual tab.',
+    sinCuota:
+      'The provider request quota is reserved for the public record. Try later or use the manual tab.',
+    fallo: 'We could not reach the odds provider right now. The manual tab still works.',
+    fuente: 'median of {n} books · {fecha}',
+    fechamento: 'Closing line found',
+    incompleto: 'Pick a game and type the odds you took.',
   },
   errores: { titulo: 'Could not calculate' },
   contenido: [
