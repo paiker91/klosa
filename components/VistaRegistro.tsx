@@ -158,8 +158,8 @@ export function VistaRegistro({
                   ))}
                 </dl>
 
-                {/* El veredicto del yield, con la misma vara que el del CLV. */}
-                <p className="mt-3 text-sm text-tenue">{t.veredictos[claveResultados]}</p>
+                {/* Veredicto propio: el del CLV habla de 100 picks y aquí engañaría. */}
+                <p className="mt-3 text-sm text-tenue">{t.resultados.veredictos[claveResultados]}</p>
 
                 <p className="mt-3 text-sm text-tenue">
                   {resultados.apuestasNecesarias === null

@@ -47,6 +47,12 @@ export interface TextosRegistro {
     beneficio: string;
     /** Lleva {n} (apuestas que harían falta) y {clv} (las que necesita el CLV). */
     necesarias: string;
+    /**
+     * Veredicto propio, no el del CLV. El del CLV habla de 100 picks, y
+     * aplicado al yield insinuaría que con 100 apuestas resueltas ya diría
+     * algo — exactamente lo contrario de lo que este bloque demuestra.
+     */
+    veredictos: Record<Veredicto, string> & { contra: string };
     sinDato: string;
     vacio: string;
   };
@@ -119,6 +125,16 @@ const pt: TextosRegistro = {
     beneficio: 'Lucro (unidades)',
     necesarias:
       'Com a variação observada nestes próprios dados, seriam necessárias cerca de {n} apostas para que um yield deste tamanho fosse estatisticamente significativo. O CLV chega lá com {clv}. É por isso que esta ferramenta mede CLV.',
+    veredictos: {
+      muestra_insuficiente:
+        'Amostra pequena demais para o yield. E mesmo com muitos mais picks ele continuaria dizendo pouco: é a métrica mais barulhenta que existe neste mercado.',
+      no_distinguible:
+        'Este yield não se distingue de zero. Não é lucro comprovado nem prejuízo comprovado: é ruído até que a amostra diga o contrário.',
+      significativo:
+        'Yield estatisticamente significativo. Raro, e ainda assim não é promessa de nada: veja também o CLV.',
+      contra:
+        'Estatisticamente significativo, mas negativo: com esta amostra, estes picks perdem dinheiro.',
+    },
     sinDato:
       'Ainda não dá para estimar quantas apostas fariam falta: o yield está perto demais de zero.',
     vacio:
@@ -200,6 +216,16 @@ const es: TextosRegistro = {
     beneficio: 'Beneficio (unidades)',
     necesarias:
       'Con la variación observada en estos mismos datos, harían falta unas {n} apuestas para que un yield de este tamaño fuera estadísticamente significativo. El CLV llega ahí con {clv}. Por eso esta herramienta mide CLV.',
+    veredictos: {
+      muestra_insuficiente:
+        'Muestra demasiado pequeña para el yield. Y con muchos más picks seguiría diciendo poco: es la métrica más ruidosa que existe en este mercado.',
+      no_distinguible:
+        'Este yield no se distingue de cero. No es beneficio demostrado ni pérdida demostrada: es ruido hasta que la muestra diga otra cosa.',
+      significativo:
+        'Yield estadísticamente significativo. Es raro, y aun así no promete nada: mira también el CLV.',
+      contra:
+        'Estadísticamente significativo, pero negativo: con esta muestra, estos picks pierden dinero.',
+    },
     sinDato:
       'Todavía no se puede estimar cuántas apuestas harían falta: el yield está demasiado cerca de cero.',
     vacio:
@@ -281,6 +307,16 @@ const en: TextosRegistro = {
     beneficio: 'Profit (units)',
     necesarias:
       'With the variation observed in this very data, it would take around {n} bets for a yield of this size to be statistically significant. CLV gets there with {clv}. That is why this tool measures CLV.',
+    veredictos: {
+      muestra_insuficiente:
+        'Sample far too small for a yield. And with many more picks it would still say little: it is the noisiest metric in this market.',
+      no_distinguible:
+        'This yield is not distinguishable from zero. It is neither proven profit nor proven loss: it is noise until the sample says otherwise.',
+      significativo:
+        'Statistically significant yield. That is rare, and it still promises nothing: look at the CLV too.',
+      contra:
+        'Statistically significant, but negative: on this sample, these picks lose money.',
+    },
     sinDato:
       'It is not yet possible to estimate how many bets would be needed: the yield is too close to zero.',
     vacio:
