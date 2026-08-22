@@ -31,6 +31,7 @@ export interface TextosRegistro {
     esperando: string;
     invalido: string;
   };
+  desglose: { titulo: string; aviso: string; grupo: string };
   verificar: { titulo: string; texto: string; enlacePicks: string; enlaceRepo: string };
   aviso: string;
 }
@@ -73,6 +74,12 @@ const pt: TextosRegistro = {
     ventaja: 'Vantagem',
     esperando: 'aguardando',
     invalido: 'não passa na auditoria',
+  },
+  desglose: {
+    titulo: 'Por esporte',
+    aviso:
+      'Um esporte pode estar perdendo valor enquanto o número geral parece bom. Mas cuidado: separar os dados também enfraquece cada conclusão, porque cada grupo fica com uma amostra menor.',
+    grupo: 'Esporte',
   },
   verificar: {
     titulo: 'Como conferir por conta própria',
@@ -124,6 +131,12 @@ const es: TextosRegistro = {
     esperando: 'esperando',
     invalido: 'no pasa la auditoría',
   },
+  desglose: {
+    titulo: 'Por deporte',
+    aviso:
+      'Un deporte puede estar perdiendo valor mientras el número global parece bueno. Pero ojo: separar los datos también debilita cada conclusión, porque cada grupo se queda con una muestra menor.',
+    grupo: 'Deporte',
+  },
   verificar: {
     titulo: 'Cómo comprobarlo por tu cuenta',
     texto:
@@ -173,6 +186,12 @@ const en: TextosRegistro = {
     ventaja: 'Edge',
     esperando: 'awaiting',
     invalido: 'fails audit',
+  },
+  desglose: {
+    titulo: 'By sport',
+    aviso:
+      'One sport can be losing value while the overall number looks fine. But be careful: splitting the data also weakens every conclusion, because each group is left with a smaller sample.',
+    grupo: 'Sport',
   },
   verificar: {
     titulo: 'How to check for yourself',

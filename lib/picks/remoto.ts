@@ -10,7 +10,14 @@
  */
 import type { Cierre, Pick } from './dominio';
 import { auditar, type Auditoria } from './dominio';
-import { analizarApuesta, agregar, type AnalisisApuesta, type ResumenAgregado } from '../clv';
+import {
+  analizarApuesta,
+  agregar,
+  agregarPorGrupo,
+  type AnalisisApuesta,
+  type GrupoAgregado,
+  type ResumenAgregado,
+} from '../clv';
 
 const REPO = process.env.NEXT_PUBLIC_REPO_PICKS ?? 'paiker91/klosa-picks';
 const BASE = `https://raw.githubusercontent.com/${REPO}/main`;
@@ -51,6 +58,8 @@ export interface EntradaRegistro {
 export interface RegistroPublico {
   entradas: EntradaRegistro[];
   resumen: ResumenAgregado;
+  /** Desglose por deporte. Vacío si solo hay uno: repetiría el agregado. */
+  porDeporte: GrupoAgregado[];
   conteos: { total: number; validos: number; conCierre: number; pendientes: number };
   urls: { picks: string; cierres: string; repo: string };
 }
@@ -60,7 +69,17 @@ export async function leerRegistroPublico(): Promise<RegistroPublico> {
     descargarLineas<Pick>(URL_PICKS),
     descargarLineas<Cierre>(URL_CIERRES),
   ]);
+  return construirRegistro(picks, cierres);
+}
 
+/**
+ * Monta el registro a partir de los datos ya descargados.
+ *
+ * Separado de la descarga a propósito: así se puede probar el desglose y la
+ * auditoría con datos sintéticos, sin red y sin depender de que el repositorio
+ * público tenga tal o cual contenido.
+ */
+export function construirRegistro(picks: Pick[], cierres: Cierre[]): RegistroPublico {
   const porPick = new Map(cierres.map((c) => [c.pickId, c]));
 
   const entradas: EntradaRegistro[] = picks
@@ -92,9 +111,22 @@ export async function leerRegistroPublico(): Promise<RegistroPublico> {
 
   const analizados = entradas.map((e) => e.analisis).filter((a): a is AnalisisApuesta => a !== null);
 
+  /*
+   * El desglose es lo que destapa un deporte que pierde mientras el agregado
+   * lo tapa — el caso real que motiva el proyecto. Pero con un solo deporte la
+   * tabla repetiría el agregado y sugeriría una precisión que no existe, así
+   * que en ese caso no se enseña.
+   */
+  const porDeporte = agregarPorGrupo(
+    entradas
+      .filter((e) => e.analisis !== null)
+      .map((e) => ({ grupo: e.pick.deporte, analisis: e.analisis as AnalisisApuesta })),
+  );
+
   return {
     entradas,
     resumen: agregar(analizados),
+    porDeporte: porDeporte.length > 1 ? porDeporte : [],
     conteos: {
       total: picks.length,
       validos: entradas.filter((e) => e.auditoria.valido).length,

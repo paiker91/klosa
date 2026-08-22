@@ -85,6 +85,65 @@ export function VistaRegistro({
             </p>
           )}
 
+          {registro.porDeporte.length > 0 && (
+            <section className="mt-10">
+              <h2 className="text-xl font-semibold">{t.desglose.titulo}</h2>
+              {/*
+                El aviso va ANTES de la tabla. El desglose es lo que destapa un
+                deporte que pierde mientras el agregado lo tapa, pero también
+                fabrica patrones falsos: cuantos más grupos, más probable que
+                alguno parezca significativo por puro azar.
+              */}
+              <p className="mt-2 text-sm text-tenue">{t.desglose.aviso}</p>
+              <div className="mt-4 overflow-x-auto">
+                <table className="w-full border-collapse text-sm">
+                  <thead>
+                    <tr className="border-b border-borde text-left text-tenue">
+                      <th scope="col" className="py-2 pr-4 font-medium">
+                        {t.desglose.grupo}
+                      </th>
+                      <th scope="col" className="py-2 pr-4 text-right font-medium">
+                        {t.etiquetas.n}
+                      </th>
+                      <th scope="col" className="py-2 pr-4 text-right font-medium">
+                        {t.etiquetas.ventajaMedia}
+                      </th>
+                      <th scope="col" className="py-2 text-right font-medium">
+                        {t.etiquetas.t}
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {registro.porDeporte.map((g) => {
+                      const flojo = g.resumen.veredicto === 'muestra_insuficiente';
+                      const color =
+                        g.resumen.veredicto !== 'significativo'
+                          ? 'text-tinta'
+                          : g.resumen.signo === 'contra'
+                            ? 'text-negativo'
+                            : 'text-positivo';
+                      const tono = flojo ? 'text-tenue opacity-60' : color;
+                      return (
+                        <tr key={g.clave} className="border-b border-borde/50">
+                          <td className="py-2.5 pr-4">{g.clave}</td>
+                          <td className="py-2.5 pr-4 text-right font-mono tabular-nums">
+                            {entero(g.resumen.n, locale)}
+                          </td>
+                          <td className={`py-2.5 pr-4 text-right font-mono tabular-nums ${tono}`}>
+                            {porcentaje(g.resumen.ventajaMedia, locale)}
+                          </td>
+                          <td className={`py-2.5 text-right font-mono tabular-nums ${tono}`}>
+                            {g.resumen.t === null ? '—' : decimal(g.resumen.t, locale, 2)}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </section>
+          )}
+
           <div className="mt-8 overflow-x-auto">
             <table className="w-full border-collapse text-sm">
               <caption className="sr-only">{t.h1}</caption>
