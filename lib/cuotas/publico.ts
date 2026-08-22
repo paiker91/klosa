@@ -15,7 +15,7 @@
  *      siempre; la primera consulta lo paga y las demás son gratis.
  */
 import { TheOddsApi } from './the-odds-api';
-import { ErrorProveedor, type Deporte } from './dominio';
+import { EMPATE, esFutbol, ErrorProveedor, type Deporte } from './dominio';
 
 /**
  * Peticiones que NO se gastan en la web.
@@ -147,4 +147,44 @@ export async function cierreDe(
     casas: cierre.casas,
     capturadoEn: cierre.capturadoEn.toISOString(),
   };
+}
+
+export interface ProximoPartido {
+  id: string;
+  local: string;
+  visitante: string;
+  comienzo: string;
+  /** Lados con su precio de mercado, si lo hay. Rellena la cuota al elegir. */
+  lados: { lado: string; mediana: number | null }[];
+}
+
+/**
+ * Partidos abiertos, con el precio de mercado de cada lado.
+ *
+ * Los precios vienen en la misma respuesta, así que no cuestan una petición
+ * extra, y se dan como mediana de las casas y nunca como la mejor: la mejor de
+ * treinta casas bate al cierre casi siempre y regalaría ventaja por aritmética.
+ */
+export async function proximosPartidos(deporte: Deporte): Promise<ProximoPartido[]> {
+  const ahora = Date.now();
+  const eventos = await cliente(clave()).buscarEventos({ deporte });
+
+  return eventos
+    .filter((e) => e.comienzo.getTime() > ahora)
+    .sort((a, b) => a.comienzo.getTime() - b.comienzo.getTime())
+    .map((e) => {
+      const lados = esFutbol(deporte)
+        ? [e.visitante, EMPATE, e.local]
+        : [e.visitante, e.local];
+      return {
+        id: e.id,
+        local: e.local,
+        visitante: e.visitante,
+        comienzo: e.comienzo.toISOString(),
+        lados: lados.map((lado) => ({
+          lado,
+          mediana: e.mercado?.find((m) => m.lado === lado)?.mediana ?? null,
+        })),
+      };
+    });
 }

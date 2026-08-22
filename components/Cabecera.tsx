@@ -12,9 +12,13 @@ import type { TextosMarco } from '@/i18n/textos-marco';
 import { Marca } from './Marca';
 
 /**
- * Cabecera fija. Sin JavaScript: son dos secciones y tres idiomas, así que un
+ * Cabecera fija. Sin JavaScript: son tres destinos y tres idiomas, así que un
  * menú desplegable sería complejidad sin ninguna ganancia — y en móvil un
  * desplegable esconde justo lo que hay que enseñar.
+ *
+ * En móvil va en dos filas. Con la marca, tres enlaces y el selector de idioma
+ * en una sola línea no se cabe en 375 px: o se desborda, o se encoge todo
+ * hasta que nada se puede pulsar. Dos filas cuestan 40 px y lo dejan usable.
  */
 export function Cabecera({
   locale,
@@ -25,26 +29,23 @@ export function Cabecera({
   pagina: Pagina;
   textos: TextosMarco;
 }) {
-  const enlace = (destino: Pagina, href: string, etiqueta: string) => {
-    const activo = pagina === destino;
-    return (
-      <Link
-        href={href}
-        aria-current={activo ? 'page' : undefined}
-        className={`flex min-h-9 items-center rounded-lg px-3 text-sm font-medium transition-colors ${
-          activo
-            ? 'bg-superficie-alta text-tinta shadow-[inset_0_0_0_1px_var(--color-borde)]'
-            : 'text-tenue hover:text-tinta'
-        }`}
-      >
-        {etiqueta}
-      </Link>
-    );
-  };
+  const enlace = (activo: boolean, href: string, etiqueta: string) => (
+    <Link
+      href={href}
+      aria-current={activo ? 'page' : undefined}
+      className={`flex min-h-9 items-center rounded-lg px-3 text-sm font-medium transition-colors ${
+        activo
+          ? 'bg-superficie-alta text-tinta shadow-[inset_0_0_0_1px_var(--color-borde)]'
+          : 'text-tenue hover:text-tinta'
+      }`}
+    >
+      {etiqueta}
+    </Link>
+  );
 
   return (
     <header className="sticky top-0 z-30 border-b border-borde/80 bg-fondo/80 backdrop-blur-md">
-      <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4 sm:px-6">
+      <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2.5 sm:h-16 sm:flex-nowrap sm:py-0 sm:px-6">
         <Link
           href={urlCalculadora(locale)}
           className="shrink-0 rounded-lg text-tinta"
@@ -53,11 +54,6 @@ export function Cabecera({
           <Marca nombre={t.marca.nombre} reclamo={t.marca.reclamo} />
         </Link>
 
-        <nav aria-label={t.nav.menu} className="ml-2 flex items-center gap-1">
-          {enlace('calculadora', urlCalculadora(locale), t.nav.calculadora)}
-          {enlace('registro', urlRegistro(locale), t.nav.registro)}
-        </nav>
-
         {/*
           Los objetivos llegan a 36 px de alto y 40 de ancho. El selector de
           idioma anterior eran tres siglas de 17 px: en un móvil es imposible
@@ -65,7 +61,7 @@ export function Cabecera({
         */}
         <nav
           aria-label={t.nav.idioma}
-          className="ml-auto flex items-center gap-0.5 rounded-lg border border-borde bg-superficie p-0.5"
+          className="ml-auto flex shrink-0 items-center gap-0.5 rounded-lg border border-borde bg-superficie p-0.5 sm:order-last"
         >
           {LOCALES.map((l) =>
             l === locale ? (
@@ -87,6 +83,21 @@ export function Cabecera({
               </Link>
             ),
           )}
+        </nav>
+
+        <nav
+          aria-label={t.nav.menu}
+          className="-mx-1 flex w-full items-center gap-1 overflow-x-auto sm:mx-0 sm:ml-2 sm:w-auto sm:overflow-visible"
+        >
+          {enlace(pagina === 'calculadora', urlCalculadora(locale), t.nav.calculadora)}
+          {enlace(pagina === 'registro', urlRegistro(locale), t.nav.registro)}
+          {/*
+            La cuenta siempre apunta a /mis-picks. Si no hay sesión, esa página
+            redirige a la de entrar: así el enlace es el mismo para todo el
+            mundo y la cabecera no depende de quién la pide, que es lo que
+            permite seguir cacheando las páginas públicas.
+          */}
+          {enlace(false, `/${locale}/mis-picks`, t.nav.cuenta)}
         </nav>
       </div>
     </header>
