@@ -73,6 +73,8 @@ interface Pendiente {
   mercado: Mercado;
   lado: string;
   cuotaTomada: number;
+  /** Casa donde se cogió. Si la hay, el cierre se busca en ESA casa. */
+  casa: string | null;
 }
 
 const estado = estadoDelRegistro();
@@ -85,6 +87,7 @@ const pendientes: Pendiente[] = estado.pendientesDeCierre.map((p) => ({
   mercado: p.mercado,
   lado: p.lado,
   cuotaTomada: p.cuotaTomada,
+  casa: p.casa,
 }));
 
 console.log(
@@ -109,7 +112,7 @@ if (supabase === null) {
    */
   const { data, error } = await supabase
     .from('picks')
-    .select('id, deporte, evento_id, comienzo, mercado, lado, cuota_tomada, cierres(pick_id)')
+    .select('id, deporte, evento_id, comienzo, mercado, lado, cuota_tomada, casa, cierres(pick_id)')
     .lte('comienzo', new Date().toISOString())
     .order('comienzo', { ascending: true })
     .limit(500);
@@ -133,6 +136,7 @@ if (supabase === null) {
         mercado: p.mercado as Mercado,
         lado: p.lado as string,
         cuotaTomada: Number(p.cuota_tomada),
+        casa: (p.casa as string | null) ?? null,
       });
     }
   }
@@ -201,19 +205,36 @@ for (const [clave, delGrupo] of grupos) {
     }
 
     /*
-     * Emparejamiento estricto por etiqueta, nunca por posición: en fútbol son
-     * tres lados y las casas no los devuelven en un orden fijo.
+     * La misma casa contra sí misma, si el pick declara dónde se cogió.
+     *
+     * Comparar el precio de una casa contra la mediana del mercado mezcla dos
+     * cosas: cuánto se movió la línea y lo cara que es esa casa. Una casa con
+     * margen ancho sale siempre en negativo, y eso no dice nada de quien
+     * apuesta. Enfrentando la casa consigo misma queda solo lo que se quería
+     * medir.
+     *
+     * Si esa casa ya no cuelga el mercado en el corte, se usa la mediana y se
+     * anota que se hizo así: mezclarlas sin decirlo daría números que parecen
+     * comparables y no lo son.
      */
-    const indice = cierre.lados.findIndex((l) => normal(l.etiqueta) === normal(p.lado));
+    const suCasa = p.casa
+      ? cierre.porCasa.find((c) => normal(c.casa) === normal(p.casa as string))
+      : undefined;
+    const usados = suCasa ? suCasa.lados : cierre.lados;
+    const fuente: 'casa' | 'consenso' = suCasa ? 'casa' : 'consenso';
+
+    // Emparejamiento estricto por etiqueta, nunca por posición: en fútbol son
+    // tres lados y las casas no los devuelven en un orden fijo.
+    const indice = usados.findIndex((l) => normal(l.etiqueta) === normal(p.lado));
     if (indice === -1) {
       sinEmparejar.push(
-        `${p.id}: "${p.lado}" no está entre ${cierre.lados.map((l) => `"${l.etiqueta}"`).join(', ')}`,
+        `${p.id}: "${p.lado}" no está entre ${usados.map((l) => `"${l.etiqueta}"`).join(', ')}`,
       );
       continue;
     }
 
-    const cuotas = cierre.lados.map((l) => l.cuota);
-    const lados = cierre.lados.map((l) => l.etiqueta);
+    const cuotas = usados.map((l) => l.cuota);
+    const lados = usados.map((l) => l.etiqueta);
 
     if (p.origen === 'registro') {
       anadirCierre({
@@ -222,7 +243,8 @@ for (const [clave, delGrupo] of grupos) {
         lados,
         cuotas,
         indiceTomado: indice,
-        casa: cierre.casa,
+        casa: suCasa ? suCasa.casa : cierre.casa,
+        fuente,
         proveedor: api.nombre,
       });
     } else if (supabase) {
@@ -232,7 +254,8 @@ for (const [clave, delGrupo] of grupos) {
         lados,
         cuotas,
         indice_tomado: indice,
-        casa: cierre.casa,
+        casa: suCasa ? suCasa.casa : cierre.casa,
+        fuente,
         proveedor: api.nombre,
       });
       if (error) {
@@ -246,7 +269,8 @@ for (const [clave, delGrupo] of grupos) {
     const signo = analisis.ventaja >= 0 ? '+' : '';
     console.log(
       `  ${p.origen === 'registro' ? '📄' : '👤'} ${p.lado} @ ${p.cuotaTomada} → ` +
-        `cierre ${cuotas[indice]} · ventaja ${signo}${(analisis.ventaja * 100).toFixed(2)} %`,
+        `cierre ${cuotas[indice]} (${fuente === 'casa' ? suCasa?.casa : 'consenso'}) · ` +
+        `ventaja ${signo}${(analisis.ventaja * 100).toFixed(2)} %`,
     );
   }
 }

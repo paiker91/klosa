@@ -155,10 +155,12 @@ export async function anotarPick(_previo: Resultado | null, datos: FormData): Pr
       cuotaTomada: parsearCuota(String(datos.get('cuota') ?? '')),
       stake: parsearStake(String(datos.get('stake') ?? '')),
       /*
-       * Con precio de mercado no hay una casa concreta: la cuota es la mediana
-       * de treinta. Inventarse una sería falsear la procedencia.
+       * La casa donde se cogió. Con ella, el cierre se busca en esa misma casa
+       * y el CLV mide el movimiento de su línea. Vacía significa precio de
+       * mercado, y entonces se compara contra la mediana — que es honesto,
+       * pero sale negativo por el margen hagas lo que hagas.
        */
-      casa: null,
+      casa: String(datos.get('casa') ?? '').trim() || null,
       nota: [referencia, String(datos.get('nota') ?? '').trim()].filter(Boolean).join(' · ') || null,
     });
 

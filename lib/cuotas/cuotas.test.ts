@@ -44,6 +44,7 @@ const cierreValido: CuotasDeCierre = {
   capturadoEn: new Date('2026-08-21T17:46:26Z'),
   casa: 'FanDuel',
   casas: 1,
+  porCasa: [],
 };
 
 describe('validación de frontera', () => {
@@ -363,5 +364,78 @@ describe('cierre de consenso', () => {
     expect(cierre?.casas).toBe(3);
     expect(cierre?.lados[0]?.etiqueta).toBe('Over 5.5');
     expect(cierre?.lados[0]?.cuota).toBeCloseTo(1.92, 2);
+  });
+});
+
+describe('líneas por casa dentro del mismo corte', () => {
+  const casa = (titulo: string, a: number, b: number) => ({
+    key: titulo.toLowerCase(),
+    title: titulo,
+    last_update: '2026-04-09T23:10:00Z',
+    markets: [
+      {
+        key: 'h2h',
+        last_update: '2026-04-09T23:10:00Z',
+        outcomes: [
+          { name: 'Chicago Bulls', price: a },
+          { name: 'Washington Wizards', price: b },
+        ],
+      },
+    ],
+  });
+
+  const pedir = async (casas: unknown[]) =>
+    new TheOddsApi({
+      claveApi: 'x',
+      buscar: fetchFalso([
+        {
+          contiene: '/historical/',
+          cuerpo: {
+            timestamp: '2026-04-09T23:11:00Z',
+            data: [
+              {
+                id: 'evt',
+                sport_key: 'basketball_nba',
+                commence_time: '2026-04-09T23:12:28Z',
+                home_team: 'Washington Wizards',
+                away_team: 'Chicago Bulls',
+                bookmakers: casas,
+              },
+            ],
+          },
+        },
+      ]),
+    }).cuotasDeCierre(
+      { id: 'evt', deporte: 'NBA', comienzo: new Date('2026-04-09T23:12:28Z') },
+      'moneyline',
+    );
+
+  it('guarda la línea de cada casa además de la mediana', async () => {
+    const cierre = await pedir([
+      casa('Bet365', 1.9, 2.0),
+      casa('Pinnacle', 2.05, 1.87),
+      casa('Betfair', 2.0, 1.9),
+    ]);
+
+    expect(cierre?.casa).toBe('mediana de 3 casas');
+    expect(cierre?.porCasa).toHaveLength(3);
+
+    /*
+     * Lo que hace falta para medir contra la misma casa: poder recuperar SU
+     * línea, no la del mercado. Aquí Pinnacle cerró el lado de Chicago más
+     * alto que la mediana, y eso tiene que verse tal cual.
+     */
+    const pinnacle = cierre?.porCasa.find((c) => c.casa === 'Pinnacle');
+    expect(pinnacle?.lados[0]?.cuota).toBe(2.05);
+    expect(pinnacle?.lados[0]?.etiqueta).toBe('Chicago Bulls');
+  });
+
+  it('cada casa trae todos los lados de su propio mercado', async () => {
+    const cierre = await pedir([casa('A', 1.9, 2.0), casa('B', 2.0, 1.9), casa('C', 2.1, 1.8)]);
+    for (const c of cierre?.porCasa ?? []) {
+      expect(c.lados).toHaveLength(2);
+      // Y suman por encima del 100 %: es una casa real, con su margen.
+      expect(c.lados.reduce((s, l) => s + 1 / l.cuota, 0)).toBeGreaterThan(1);
+    }
   });
 });

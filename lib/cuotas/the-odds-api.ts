@@ -221,6 +221,22 @@ export class TheOddsApi implements ProveedorDeCuotas {
       }
     }
 
+    /*
+     * Lo que ofrece cada casa, tal cual. Se conserva porque un pick tiene que
+     * poder registrar un precio real: la mediana no la ofrece nadie.
+     */
+    const porCasa = (bruto.bookmakers ?? [])
+      .map((c) => {
+        const m = c.markets.find((x) => x.key === 'h2h');
+        return {
+          casa: c.title,
+          lados: (m?.outcomes ?? [])
+            .filter((o) => lados.includes(o.name))
+            .map((o) => ({ lado: o.name, cuota: o.price })),
+        };
+      })
+      .filter((c) => c.lados.length === lados.length);
+
     return {
       id: bruto.id,
       deporte,
@@ -228,6 +244,7 @@ export class TheOddsApi implements ProveedorDeCuotas {
       visitante: bruto.away_team,
       comienzo: new Date(bruto.commence_time),
       ...(mercado.length > 0 ? { mercado } : {}),
+      ...(porCasa.length > 0 ? { porCasa } : {}),
     };
   }
 
@@ -380,6 +397,15 @@ export class TheOddsApi implements ProveedorDeCuotas {
               capturadoEn: new Date(casa.last_update),
               casa: casa.title,
               casas: 1,
+              porCasa: [
+                {
+                  casa: casa.title,
+                  lados: salidas.map((o) => ({
+                    etiqueta: this.etiquetar(o, mercado),
+                    cuota: o.price,
+                  })),
+                },
+              ],
             },
             vias,
           ),
@@ -421,12 +447,17 @@ export class TheOddsApi implements ProveedorDeCuotas {
     vias: 2 | 3,
   ): CuotasDeCierre | null {
     const grupos = new Map<string, Map<string, number[]>>();
+    const porCasa: { casa: string; lados: { etiqueta: string; cuota: number }[] }[] = [];
 
     for (const casa of evento.bookmakers ?? []) {
       const salidas = this.extraer(casa, mercado, vias);
       if (salidas === null) continue;
 
       const etiquetas = salidas.map((o) => this.etiquetar(o, mercado));
+      porCasa.push({
+        casa: casa.title,
+        lados: salidas.map((o, i) => ({ etiqueta: etiquetas[i] as string, cuota: o.price })),
+      });
       const clave = [...etiquetas].sort().join(' | ');
       const grupo = grupos.get(clave) ?? new Map<string, number[]>();
       etiquetas.forEach((e, i) => {
@@ -466,6 +497,7 @@ export class TheOddsApi implements ProveedorDeCuotas {
         capturadoEn: new Date(instante),
         casa: `mediana de ${casas} casas`,
         casas,
+        porCasa,
       },
       vias,
     );

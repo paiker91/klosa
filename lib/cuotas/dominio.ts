@@ -121,6 +121,15 @@ export interface Evento {
   comienzo: Date;
   /** Precio de mercado por lado, si el proveedor lo trae en la misma respuesta. */
   mercado?: PrecioDeMercado[];
+  /**
+   * Lo que ofrece cada casa por separado, del mismo momento.
+   *
+   * Hace falta para poder registrar un precio que exista de verdad. La mediana
+   * del mercado no la ofrece nadie: sirve de referencia, pero apostarla es
+   * imposible, y medir el CLV contra ella condena a cualquiera a salir en
+   * negativo por el margen.
+   */
+  porCasa?: { casa: string; lados: { lado: string; cuota: number }[] }[];
 }
 
 export interface LadoCuota {
@@ -150,14 +159,20 @@ export interface CuotasDeCierre {
    * cuando son el consenso del mercado.
    */
   casa: string;
-  /**
-   * Casas detrás del dato. 1 si es una sola.
-   *
-   * Importa porque los picks se registran a la mediana del mercado: comparar
-   * una mediana de treinta casas contra el cierre de una sola casa elegida al
-   * azar mete un sesgo que no tiene nada que ver con la habilidad de nadie.
-   */
+  /** Casas detrás del dato. 1 si es una sola. */
   casas: number;
+  /**
+   * Las líneas de cada casa por separado, del mismo corte.
+   *
+   * Existe porque comparar la cuota que se cogió en una casa contra la mediana
+   * del mercado mezcla dos cosas distintas: el movimiento de la línea y lo
+   * cara que sea esa casa en particular. Una casa con margen ancho da CLV
+   * negativo siempre, y eso no dice nada de quien apuesta. Enfrentando la
+   * casa consigo misma, lo que queda es lo único que se quería medir.
+   *
+   * No cuesta ninguna petición extra: viene en la misma instantánea.
+   */
+  porCasa: { casa: string; lados: LadoCuota[] }[];
 }
 
 export interface CriterioBusqueda {

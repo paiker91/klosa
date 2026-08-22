@@ -140,6 +140,7 @@ describe('ficheros de solo-añadir', () => {
       cuotas: [2.0, 1.9],
       indiceTomado: 0,
       casa: 'FanDuel',
+      fuente: 'casa' as const,
       proveedor: 'the-odds-api',
     };
     anadirCierre(cierre, rutaCierres);
@@ -204,6 +205,7 @@ describe('estado del registro', () => {
         cuotas: [2.0, 1.9],
         indiceTomado: 0,
         casa: 'FanDuel',
+        fuente: 'casa' as const,
         proveedor: 'the-odds-api',
       },
       rutaCierres,
@@ -295,5 +297,51 @@ describe('resolución con empate: fútbol', () => {
 
   it('un lado que no es del partido sigue sin resolverse', () => {
     expect(resolverMoneyline('Palmeiras', m(2, 0), true)).toBeNull();
+  });
+});
+
+describe('sello versionado', () => {
+  const conCasa = {
+    registradoEn: '2026-08-22T10:00:00.000Z',
+    deporte: 'NBA' as const,
+    eventoId: 'evt',
+    local: 'Local',
+    visitante: 'Visitante',
+    comienzo: '2026-08-22T18:00:00.000Z',
+    mercado: 'moneyline' as const,
+    lado: 'Visitante',
+    cuotaTomada: 2.1,
+    stake: null,
+    casa: 'Bet365',
+    nota: null,
+  };
+
+  it('los picks antiguos, sin versión, se siguen auditando con la v1', () => {
+    /*
+     * Este es el punto entero de versionar: los quince picks ya publicados no
+     * llevan `casa` en el sello. Si la v2 se aplicara a ellos, todos pasarían
+     * a "sello roto" y el registro público quedaría desacreditado de golpe.
+     */
+    const v1: Pick = { ...conCasa, casa: null, id: sellar({ ...conCasa, casa: null }, 1) };
+    expect(auditar(v1).valido).toBe(true);
+    expect(auditar(v1).motivos).not.toContain('sello_roto');
+  });
+
+  it('un pick nuevo se sella con la v2 e incluye la casa', () => {
+    const p = crearPick(conCasa);
+    expect(p.version).toBe(2);
+    expect(auditar(p).valido).toBe(true);
+  });
+
+  it('cambiar la casa de un pick v2 rompe el sello', () => {
+    const p = crearPick(conCasa);
+    const trucado: Pick = { ...p, casa: 'Otra Casa' };
+    expect(auditar(trucado).motivos).toContain('sello_roto');
+  });
+
+  it('la casa NO afecta al sello de un pick v1: por eso hizo falta la v2', () => {
+    const v1: Pick = { ...conCasa, version: undefined, id: sellar({ ...conCasa, version: undefined }, 1) };
+    const cambiado: Pick = { ...v1, casa: 'Otra Casa' };
+    expect(auditar(cambiado).motivos).not.toContain('sello_roto');
   });
 });

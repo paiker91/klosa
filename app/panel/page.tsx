@@ -20,6 +20,8 @@ const esDeporte = (v: string | undefined): v is Deporte => DEPORTES.includes(v a
 
 async function opcionesDe(claveApi: string, deporte: Deporte): Promise<{
   opciones: OpcionEvento[];
+  /** Precio de cada casa por lado, para poder registrar uno que exista. */
+  casas: Record<string, { casa: string; cuota: number }[]>;
   error: string | null;
 }> {
   try {
@@ -30,8 +32,30 @@ async function opcionesDe(claveApi: string, deporte: Deporte): Promise<{
     if (eventos.length === 0) {
       return {
         opciones: [],
+        casas: {},
         error: `No hay partidos abiertos de ${NOMBRE_DEPORTE[deporte]} ahora mismo.`,
       };
+    }
+
+    /*
+     * Precios por casa, ordenados de mejor a peor.
+     *
+     * La mediana sigue saliendo como referencia, pero no es un precio que
+     * nadie pueda apostar: registrarla condena el CLV a salir negativo por el
+     * margen. Lo que se registra tiene que ser el precio de una casa concreta,
+     * porque el cierre se va a buscar en ESA casa.
+     */
+    const casas: Record<string, { casa: string; cuota: number }[]> = {};
+    for (const e of eventos) {
+      for (const c of e.porCasa ?? []) {
+        for (const l of c.lados) {
+          const clave = `${e.id}|${l.lado}`;
+          casas[clave] = [...(casas[clave] ?? []), { casa: c.casa, cuota: l.cuota }];
+        }
+      }
+    }
+    for (const clave of Object.keys(casas)) {
+      (casas[clave] as { casa: string; cuota: number }[]).sort((a, b) => b.cuota - a.cuota);
     }
 
     // Una opción por lado: elegir partido y lado en un solo gesto.
@@ -48,10 +72,11 @@ async function opcionesDe(claveApi: string, deporte: Deporte): Promise<{
         };
       });
     });
-    return { opciones, error: null };
+    return { opciones, casas, error: null };
   } catch (fallo) {
     return {
       opciones: [],
+      casas: {},
       error: `No se pudieron cargar los partidos: ${
         fallo instanceof Error ? fallo.message : String(fallo)
       }`,
@@ -115,7 +140,7 @@ export default async function Panel({
 
   const { deporte: pedido } = await searchParams;
   const deporte: Deporte = esDeporte(pedido) ? pedido : 'Brasileirao';
-  const { opciones, error } = await opcionesDe(config.claveOdds, deporte);
+  const { opciones, casas, error } = await opcionesDe(config.claveOdds, deporte);
 
   return marco(
     <>
@@ -135,7 +160,7 @@ export default async function Panel({
             {error}
           </p>
         ) : (
-          <FormularioPick deporte={deporte} opciones={opciones} />
+          <FormularioPick deporte={deporte} opciones={opciones} casas={casas} />
         )}
       </div>
 

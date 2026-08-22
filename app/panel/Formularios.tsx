@@ -107,12 +107,31 @@ export interface OpcionEvento {
 export function FormularioPick({
   deporte,
   opciones,
+  casas,
 }: {
   deporte: Deporte;
   opciones: OpcionEvento[];
+  casas: Record<string, { casa: string; cuota: number }[]>;
 }) {
   const [estado, accion] = useActionState(anotarPick, null);
+  const [seleccion, setSeleccion] = useState(opciones[0]?.valor ?? '');
   const [cuota, setCuota] = useState(opciones[0]?.cuota ?? '');
+  const [casa, setCasa] = useState('');
+
+  /*
+   * Las casas que ofrecen ESTE lado, de mejor precio a peor. Elegir una es lo
+   * que hace medible el CLV: el cierre se buscará en esa misma casa, así que
+   * lo que salga será el movimiento de su línea y no lo cara que sea.
+   */
+  const clave = (() => {
+    try {
+      const { id, lado } = JSON.parse(seleccion || '{}') as { id?: string; lado?: string };
+      return id && lado ? `${id}|${lado}` : '';
+    } catch {
+      return '';
+    }
+  })();
+  const disponibles = casas[clave] ?? [];
 
   return (
     <form action={accion} className="mt-5 flex flex-col gap-5">
@@ -127,7 +146,12 @@ export function FormularioPick({
           id="seleccion"
           name="seleccion"
           required
-          onChange={(e) => setCuota(opciones.find((o) => o.valor === e.target.value)?.cuota ?? '')}
+          value={seleccion}
+          onChange={(e) => {
+            setSeleccion(e.target.value);
+            setCasa('');
+            setCuota(opciones.find((o) => o.valor === e.target.value)?.cuota ?? '');
+          }}
           className={`${CAMPO} min-h-12`}
         >
           {opciones.map((o) => (
@@ -136,6 +160,34 @@ export function FormularioPick({
             </option>
           ))}
         </select>
+      </div>
+
+      <div>
+        <label htmlFor="casa" className="mb-2 block text-sm font-medium">
+          Casa <span className="font-normal text-tenue">(el cierre se mide contra ella)</span>
+        </label>
+        <select
+          id="casa"
+          name="casa"
+          value={casa}
+          onChange={(e) => {
+            setCasa(e.target.value);
+            const encontrada = disponibles.find((c) => c.casa === e.target.value);
+            if (encontrada) setCuota(encontrada.cuota.toFixed(2).replace('.', ','));
+          }}
+          className={`${CAMPO} min-h-12`}
+        >
+          <option value="">Sin casa (mediana del mercado)</option>
+          {disponibles.map((c) => (
+            <option key={c.casa} value={c.casa}>
+              {c.casa} · {c.cuota.toFixed(2)}
+            </option>
+          ))}
+        </select>
+        <p className="mt-1.5 text-xs leading-relaxed text-apagado">
+          Sin casa, el cierre se compara contra la mediana del mercado y el CLV sale negativo por
+          el margen, hagas lo que hagas. Elige donde apostaste de verdad.
+        </p>
       </div>
 
       <div>
@@ -154,8 +206,8 @@ export function FormularioPick({
           className={`${CAMPO} cifra text-lg`}
         />
         <p className="mt-1.5 text-xs leading-relaxed text-apagado">
-          Se rellena con la mediana del mercado. Cámbiala si cogiste otra — el pick guardará las
-          dos, para que se pueda auditar.
+          Se rellena con el precio de la casa elegida. Cámbiala si cogiste otra — el pick guarda
+          las dos, la tuya y la referencia del mercado, para que se pueda auditar.
         </p>
       </div>
 
