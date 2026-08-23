@@ -333,7 +333,17 @@ export class TheOddsApi implements ProveedorDeCuotas {
   private extraer(casa: CasaAPI, mercado: Mercado, vias: 2 | 3): ResultadoAPI[] | null {
     const m = casa.markets.find((x) => x.key === MERCADO_API[mercado]);
     if (!m || m.outcomes.length !== vias) return null;
-    return m.outcomes.every((o) => typeof o?.price === 'number') ? m.outcomes : null;
+    /*
+     * Se descartan las casas con precios imposibles. Una cuota de 1 aparece de
+     * verdad en el histórico —es un mercado suspendido o ya resuelto— y colarla
+     * en la mediana la arrastra hacia abajo con un número que no era un precio.
+     * Descartar la casa entera y no solo ese lado es deliberado: media casa no
+     * es un mercado del que se pueda sacar margen.
+     */
+    const sanos = m.outcomes.every(
+      (o) => typeof o?.price === 'number' && o.price > 1 && o.price <= 1000,
+    );
+    return sanos ? m.outcomes : null;
   }
 
   /**
@@ -397,7 +407,20 @@ export class TheOddsApi implements ProveedorDeCuotas {
     const salida = new Map<string, CuotasDeCierre>();
 
     for (const bruto of instantanea.data) {
-      const consenso = this.consenso(bruto, mercado, bruto.id, instantanea.timestamp, vias);
+      /*
+       * Cada evento va en su propio try. Un partido con datos imposibles se
+       * descarta y no se lleva por delante a los demás de la misma
+       * instantánea: antes, con una petición por evento, ese fallo solo
+       * afectaba a su pick; ahora que comparten llamada, propagarlo costaría
+       * los cierres de todo el grupo. Ya pasó con una casa que colgaba una
+       * cuota de 1.
+       */
+      let consenso: CuotasDeCierre | null = null;
+      try {
+        consenso = this.consenso(bruto, mercado, bruto.id, instantanea.timestamp, vias);
+      } catch {
+        continue;
+      }
       if (consenso !== null) {
         salida.set(bruto.id, consenso);
         continue;

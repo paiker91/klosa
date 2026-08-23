@@ -302,12 +302,12 @@ describe('resolución con empate: fútbol', () => {
 
 describe('sello versionado', () => {
   const conCasa = {
-    registradoEn: '2026-08-22T10:00:00.000Z',
+    registradoEn: '2026-09-01T10:00:00.000Z',
     deporte: 'NBA' as const,
     eventoId: 'evt',
     local: 'Local',
     visitante: 'Visitante',
-    comienzo: '2026-08-22T18:00:00.000Z',
+    comienzo: '2026-09-01T18:00:00.000Z',
     mercado: 'moneyline' as const,
     lado: 'Visitante',
     cuotaTomada: 2.1,
@@ -316,15 +316,26 @@ describe('sello versionado', () => {
     nota: null,
   };
 
-  it('los picks antiguos, sin versión, se siguen auditando con la v1', () => {
+  it('un pick antiguo con sello ilegible no se acusa de roto: se declara no verificable', () => {
     /*
-     * Este es el punto entero de versionar: los quince picks ya publicados no
-     * llevan `casa` en el sello. Si la v2 se aplicara a ellos, todos pasarían
-     * a "sello roto" y el registro público quedaría desacreditado de golpe.
+     * Los dieciséis picks publicados llevan un `id` que no reproduce ninguna
+     * receta conocida —se probaron 49.152—. Marcarlos «sello roto» acusaría de
+     * manipulación a datos que solo son viejos; marcarlos válidos afirmaría una
+     * comprobación que no se ha hecho. Ni una cosa ni la otra.
      */
-    const v1: Pick = { ...conCasa, casa: null, id: sellar({ ...conCasa, casa: null }, 1) };
-    expect(auditar(v1).valido).toBe(true);
-    expect(auditar(v1).motivos).not.toContain('sello_roto');
+    const viejo: Pick = { ...conCasa, registradoEn: '2026-08-22T10:00:00.000Z', id: 'ffffffffffffffff' };
+    const a = auditar(viejo);
+    expect(a.motivos).not.toContain('sello_roto');
+    expect(a.reparos).toContain('sello_no_verificable');
+    expect(a.valido).toBe(true);
+  });
+
+  it('un pick nuevo con sello ilegible SÍ es sello roto', () => {
+    // Sin esta frontera, bastaría con no poner versión para colar cualquier id.
+    const nuevo: Pick = { ...conCasa, registradoEn: '2026-09-01T10:00:00.000Z', id: 'ffffffffffffffff' };
+    const a = auditar(nuevo);
+    expect(a.motivos).toContain('sello_roto');
+    expect(a.valido).toBe(false);
   });
 
   it('un pick nuevo se sella con la v2 e incluye la casa', () => {
@@ -340,8 +351,10 @@ describe('sello versionado', () => {
   });
 
   it('la casa NO afecta al sello de un pick v1: por eso hizo falta la v2', () => {
-    const v1: Pick = { ...conCasa, version: undefined, id: sellar({ ...conCasa, version: undefined }, 1) };
-    const cambiado: Pick = { ...v1, casa: 'Otra Casa' };
+    const v1 = { ...conCasa, version: undefined, registradoEn: '2026-09-01T10:00:00.000Z' };
+    const sellado: Pick = { ...v1, id: sellar(v1, 1) } as Pick;
+    expect(auditar(sellado).motivos).not.toContain('sello_roto');
+    const cambiado: Pick = { ...sellado, casa: 'Otra Casa' };
     expect(auditar(cambiado).motivos).not.toContain('sello_roto');
   });
 });

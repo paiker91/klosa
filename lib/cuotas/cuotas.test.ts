@@ -439,3 +439,63 @@ describe('líneas por casa dentro del mismo corte', () => {
     }
   });
 });
+
+describe('datos imposibles en una instantánea compartida', () => {
+  const casa = (titulo: string, a: number, b: number) => ({
+    key: titulo.toLowerCase(),
+    title: titulo,
+    last_update: '2026-04-09T23:10:00Z',
+    markets: [
+      {
+        key: 'h2h',
+        last_update: '2026-04-09T23:10:00Z',
+        outcomes: [
+          { name: 'Chicago Bulls', price: a },
+          { name: 'Washington Wizards', price: b },
+        ],
+      },
+    ],
+  });
+
+  const evento = (id: string, casas: unknown[]) => ({
+    id,
+    sport_key: 'basketball_nba',
+    commence_time: '2026-04-09T23:12:28Z',
+    home_team: 'Washington Wizards',
+    away_team: 'Chicago Bulls',
+    bookmakers: casas,
+  });
+
+  const pedir = (eventos: unknown[]) =>
+    new TheOddsApi({
+      claveApi: 'x',
+      buscar: fetchFalso([
+        { contiene: '/historical/', cuerpo: { timestamp: '2026-04-09T23:11:00Z', data: eventos } },
+      ]),
+    }).cierresDelMomento('NBA', new Date('2026-04-09T23:12:28Z'), 'moneyline');
+
+  it('una casa con cuota 1 no entra en la mediana', async () => {
+    /*
+     * Una cuota de 1 aparece de verdad en el histórico: es un mercado
+     * suspendido. Si se colara, arrastraría la mediana con un número que nunca
+     * fue un precio.
+     */
+    const m = await pedir([
+      evento('a', [casa('A', 1.9, 2.0), casa('B', 2.0, 1.9), casa('C', 2.1, 1.8), casa('Rota', 1, 1)]),
+    ]);
+    expect(m.get('a')?.casas).toBe(3);
+    expect(m.get('a')?.lados[0]?.cuota).toBeCloseTo(2.0, 2);
+  });
+
+  it('un evento imposible no se lleva por delante a los demás del mismo corte', async () => {
+    // Este es el fallo que apareció en producción: un partido con datos rotos
+    // abortaba la instantánea entera y dejaba sin cierre a todos los picks del
+    // grupo, no solo al suyo.
+    const m = await pedir([
+      evento('roto', [casa('A', 1, 1), casa('B', 1, 1), casa('C', 1, 1)]),
+      evento('bueno', [casa('A', 1.9, 2.0), casa('B', 2.0, 1.9), casa('C', 2.1, 1.8)]),
+    ]);
+    expect(m.has('roto')).toBe(false);
+    expect(m.get('bueno')?.casas).toBe(3);
+  });
+});

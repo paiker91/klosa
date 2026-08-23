@@ -306,6 +306,12 @@ export function VistaRegistro({
                             .join(' · ')}
                         </span>
                       )}
+                      {/* Un sello que no se puede recalcular se declara, no se esconde. */}
+                      {auditoria.reparos.includes('sello_no_verificable') && (
+                        <span className="mt-0.5 block text-xs text-aviso">
+                          {t.tabla.selloIlegible}
+                        </span>
+                      )}
                     </td>
                     <td className="px-3 py-3.5 text-tenue">{etiquetaLado(pick.lado, locale)}</td>
                     <td className="cifra px-3 py-3.5 text-right">

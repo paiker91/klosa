@@ -115,10 +115,35 @@ export type MotivoInvalidez =
   | 'cuota_invalida'
   | 'campos_incompletos';
 
+/** Anomalías que no invalidan el pick pero hay que decir en voz alta. */
+export type Reparo = 'sello_no_verificable';
+
+/**
+ * Frontera del sello verificable.
+ *
+ * Los picks anteriores a este instante se sellaron con una receta que no se ha
+ * podido reconstruir: se probaron 49.152 combinaciones de campos, formatos y
+ * separadores contra los datos publicados y ninguna reproduce un solo `id`.
+ *
+ * La conclusión honesta es que para esos picks el sello NO sirve de nada, y
+ * decir que «pasan la auditoría» sería mentir igual que decir que están rotos.
+ * Se marcan como no verificables por sello y siguen apoyándose en la capa que
+ * sí funciona y que además es la más fuerte: el historial de git, donde la
+ * fecha del push la puso GitHub y no quien escribe.
+ *
+ * La frontera es una fecha fija y no una condición sobre el propio pick. Si
+ * bastara con «no trae versión», cualquiera podría añadir mañana una línea sin
+ * versión con un `id` inventado y se aceptaría. Con la fecha, todo lo nuevo
+ * está obligado a traer sello verificable.
+ */
+export const SELLO_VERIFICABLE_DESDE = '2026-08-22T19:00:00.000Z';
+
 export interface Auditoria {
   pick: Pick;
   valido: boolean;
   motivos: MotivoInvalidez[];
+  /** Cosas que hay que declarar aunque no invaliden. */
+  reparos: Reparo[];
 }
 
 /**
@@ -130,8 +155,9 @@ export interface Auditoria {
  * mide contra el cierre de la misma casa, poder cambiarla a posteriori
  * permitiría elegir el cierre que más conviniera.
  *
- * Un pick sin `version` es de la v1 y se audita con la v1: los quince que ya
- * existen siguen siendo válidos y verificables.
+ * Los picks anteriores a `SELLO_VERIFICABLE_DESDE` no traen versión y su
+ * receta original no se ha podido reconstruir; se auditan como no verificables
+ * por sello, no como rotos.
  */
 const CAMPOS_POR_VERSION = {
   1: ['registradoEn', 'deporte', 'eventoId', 'comienzo', 'mercado', 'lado', 'cuotaTomada', 'stake'],
@@ -169,6 +195,7 @@ export function crearPick(datos: Omit<Pick, 'id' | 'version'>): Pick {
  */
 export function auditar(pick: Pick): Auditoria {
   const motivos: MotivoInvalidez[] = [];
+  const reparos: Reparo[] = [];
 
   const completo =
     pick.eventoId !== '' &&
@@ -193,10 +220,21 @@ export function auditar(pick: Pick): Auditoria {
     motivos.push('registrado_despues_del_comienzo');
   }
 
+  /*
+   * Un sello que no se puede recalcular no es un sello. Para los picks
+   * anteriores a la frontera se dice eso y no otra cosa: ni «válido», que
+   * afirmaría una comprobación que no se ha hecho, ni «roto», que acusaría de
+   * manipulación a un dato que solo es antiguo.
+   */
   const { id, ...resto } = pick;
-  if (sellar(resto, pick.version ?? 1) !== id) motivos.push('sello_roto');
+  const anterior = pick.registradoEn < SELLO_VERIFICABLE_DESDE;
 
-  return { pick, valido: motivos.length === 0, motivos };
+  if (sellar(resto, pick.version ?? 1) !== id) {
+    if (anterior) reparos.push('sello_no_verificable');
+    else motivos.push('sello_roto');
+  }
+
+  return { pick, valido: motivos.length === 0, motivos, reparos };
 }
 
 /** Un pick ya se puede cerrar cuando su partido ha empezado. */

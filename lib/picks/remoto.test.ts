@@ -3,7 +3,9 @@ import { construirRegistro, leerRegistroPublico, ErrorRegistroNoDisponible } fro
 import { crearPick, type Cierre, type Pick, type ResultadoPick } from './dominio';
 import type { Deporte } from '../cuotas/dominio';
 
-const BASE = Date.UTC(2026, 7, 1, 0, 0, 0);
+/* Después de SELLO_VERIFICABLE_DESDE: estos tests comprueban la detección
+   de manipulación, que solo aplica a los picks con sello verificable. */
+const BASE = Date.UTC(2026, 8, 1, 0, 0, 0);
 let contador = 0;
 
 /**

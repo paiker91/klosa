@@ -35,6 +35,8 @@ export interface TextosRegistro {
     ventaja: string;
     esperando: string;
     invalido: string;
+    /** El sello no se puede recalcular. No es lo mismo que estar roto. */
+    selloIlegible: string;
   };
   desglose: { titulo: string; aviso: string; grupo: string };
   resultados: {
@@ -107,6 +109,7 @@ const pt: TextosRegistro = {
     ventaja: 'Vantagem',
     esperando: 'aguardando',
     invalido: 'não passa na auditoria',
+    selloIlegible: 'selo antigo, não verificável',
   },
   desglose: {
     titulo: 'Por esporte',
@@ -198,6 +201,7 @@ const es: TextosRegistro = {
     ventaja: 'Ventaja',
     esperando: 'esperando',
     invalido: 'no pasa la auditoría',
+    selloIlegible: 'sello antiguo, no verificable',
   },
   desglose: {
     titulo: 'Por deporte',
@@ -289,6 +293,7 @@ const en: TextosRegistro = {
     ventaja: 'Edge',
     esperando: 'awaiting',
     invalido: 'fails audit',
+    selloIlegible: 'old seal, not verifiable',
   },
   desglose: {
     titulo: 'By sport',
