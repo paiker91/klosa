@@ -161,9 +161,16 @@ export function FormularioPick({
    * que hace medible el CLV: el cierre se buscará en esa misma casa, así que
    * lo que salga será el movimiento de su línea y no lo cara que sea.
    */
+  /*
+   * Si la selección guardada no está entre las opciones actuales, se cae a la
+   * primera. Es una red por si algo vuelve a dejar el estado desincronizado:
+   * un desplegable que apunta a un partido que ya no está en la lista deja sin
+   * casas y sin explicación.
+   */
+  const vigente = opciones.some((o) => o.valor === seleccion) ? seleccion : (opciones[0]?.valor ?? '');
   const clave = (() => {
     try {
-      const { id, lado } = JSON.parse(seleccion || '{}') as { id?: string; lado?: string };
+      const { id, lado } = JSON.parse(vigente || '{}') as { id?: string; lado?: string };
       return id && lado ? `${id}|${lado}` : '';
     } catch {
       return '';
@@ -185,7 +192,7 @@ export function FormularioPick({
           id="seleccion"
           name="seleccion"
           required
-          value={seleccion}
+          value={vigente}
           onChange={(e) => {
             setSeleccion(e.target.value);
             setCasa('');
@@ -224,8 +231,10 @@ export function FormularioPick({
           ))}
         </select>
         <p className="mt-1.5 text-xs leading-relaxed text-apagado">
-          Sin casa, el cierre se compara contra la mediana del mercado y el CLV sale negativo por
-          el margen, hagas lo que hagas. Elige donde apostaste de verdad.
+          Elegir casa hace la comparación más limpia, pero medido sobre los 16 primeros picks
+          apenas cambia el CLV (−4,82 % contra −4,83 %): el margen de esa casa se paga en los dos
+          extremos y se cancela. Lo que sí mueve la aguja es <strong>qué precio coges</strong>: el
+          mejor de la lista en vez de la mediana valía 2,5 puntos de CLV.
         </p>
       </div>
 

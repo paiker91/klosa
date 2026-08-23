@@ -185,7 +185,19 @@ export default async function Panel({
             {error}
           </p>
         ) : (
-          <FormularioPick deporte={deporte} mercado={mercado} opciones={opciones} casas={casas} />
+          /*
+           * La clave fuerza a montar de nuevo al cambiar de competición o de
+           * mercado. Sin ella React conserva el estado del formulario, el
+           * partido elegido sigue siendo el de la lista anterior, y la lista
+           * de casas sale vacía porque esa clave ya no existe en el mapa nuevo.
+           */
+          <FormularioPick
+            key={`${deporte}-${mercado}`}
+            deporte={deporte}
+            mercado={mercado}
+            opciones={opciones}
+            casas={casas}
+          />
         )}
       </div>
 
