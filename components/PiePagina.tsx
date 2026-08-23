@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { urlCalculadora, urlRegistro, type Locale } from '@/i18n/config';
+import { urlCalculadora, urlPrivacidad, urlRegistro, type Locale } from '@/i18n/config';
 import type { TextosMarco } from '@/i18n/textos-marco';
 import { Marca } from './Marca';
 
@@ -77,6 +77,11 @@ export function PiePagina({
         <div className="mt-10 border-t border-borde pt-6">
           <h2 className="etiqueta-dato">{t.pie.legal}</h2>
           <p className="mt-2 max-w-3xl text-xs leading-relaxed text-apagado">{t.pie.aviso}</p>
+          <p className="mt-3">
+            <Link href={urlPrivacidad(locale)} className={`text-xs ${enlace}`}>
+              {t.pie.privacidad}
+            </Link>
+          </p>
         </div>
       </div>
     </footer>

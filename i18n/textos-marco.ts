@@ -25,6 +25,7 @@ export interface TextosMarco {
     panel: string;
     legal: string;
     aviso: string;
+    privacidad: string;
   };
   /** Medidor de significancia: se usa igual en el CLV y en el yield. */
   medidor: {
@@ -80,6 +81,7 @@ const pt: TextosMarco = {
     registro: 'Registro de picks',
     panel: 'Painel (privado)',
     legal: 'Aviso',
+    privacidad: 'Privacidade',
     aviso:
       'A Klosa não é casa de apostas nem intermediária: não aceitamos apostas nem administramos dinheiro. É software de análise. Nada aqui é promessa de lucro. Aposte com responsabilidade — se o jogo virou problema, procure ajuda.',
   },
@@ -131,6 +133,7 @@ const es: TextosMarco = {
     registro: 'Registro de picks',
     panel: 'Panel (privado)',
     legal: 'Aviso',
+    privacidad: 'Privacidad',
     aviso:
       'Klosa no es casa de apuestas ni intermediaria: no aceptamos apuestas ni gestionamos dinero. Es software de análisis. Nada de lo que hay aquí es una promesa de beneficio. Juega con responsabilidad — si el juego se ha vuelto un problema, busca ayuda.',
   },
@@ -182,6 +185,7 @@ const en: TextosMarco = {
     registro: 'Pick record',
     panel: 'Panel (private)',
     legal: 'Disclaimer',
+    privacidad: 'Privacy',
     aviso:
       'Klosa is not a bookmaker or an intermediary: we do not accept bets or handle money. It is analysis software. Nothing here is a promise of profit. Gamble responsibly — if betting has become a problem, seek help.',
   },

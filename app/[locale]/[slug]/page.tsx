@@ -15,6 +15,8 @@ import {
 import { TEXTOS } from '@/i18n/textos';
 import { TEXTOS_REGISTRO } from '@/i18n/textos-registro';
 import { TEXTOS_MARCO } from '@/i18n/textos-marco';
+import { TEXTOS_PRIVACIDAD } from '@/i18n/textos-privacidad';
+import { VistaPrivacidad } from '@/components/VistaPrivacidad';
 import { CalculadoraCLV } from '@/components/CalculadoraCLV';
 import { VistaRegistro } from '@/components/VistaRegistro';
 import { Cabecera } from '@/components/Cabecera';
@@ -35,7 +37,10 @@ export const revalidate = 300;
 /** Dos páginas por idioma, cada una con su ruta propia. */
 export function generateStaticParams() {
   return LOCALES.flatMap((locale) =>
-    (['calculadora', 'registro'] as const).map((p) => ({ locale, slug: RUTAS[p][locale] })),
+    (['calculadora', 'registro', 'privacidad'] as const).map((p) => ({
+      locale,
+      slug: RUTAS[p][locale],
+    })),
   );
 }
 
@@ -68,7 +73,12 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { locale, slug } = await params;
   const { idioma, pagina } = resolver(locale, slug);
-  const meta = pagina === 'calculadora' ? TEXTOS[idioma].meta : TEXTOS_REGISTRO[idioma].meta;
+  const meta =
+    pagina === 'calculadora'
+      ? TEXTOS[idioma].meta
+      : pagina === 'registro'
+        ? TEXTOS_REGISTRO[idioma].meta
+        : TEXTOS_PRIVACIDAD[idioma].meta;
 
   return {
     /*
@@ -159,7 +169,7 @@ export default async function Pagina({
               ))}
             </div>
           </>
-        ) : (
+        ) : pagina === 'registro' ? (
           <VistaRegistro
             locale={idioma}
             textos={tr}
@@ -167,6 +177,8 @@ export default async function Pagina({
             registro={await registroONull()}
             urlRepo={URL_REPO}
           />
+        ) : (
+          <VistaPrivacidad textos={TEXTOS_PRIVACIDAD[idioma]} />
         )}
       </main>
 

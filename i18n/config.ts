@@ -30,11 +30,12 @@ export const HREFLANG: Record<Locale, string> = {
 };
 
 /** Las dos páginas del sitio, con su ruta en cada idioma. */
-export type Pagina = 'calculadora' | 'registro';
+export type Pagina = 'calculadora' | 'registro' | 'privacidad';
 
 export const RUTAS: Record<Pagina, Record<Locale, string>> = {
   calculadora: { pt: 'calculadora-clv', es: 'calculadora-clv', en: 'clv-calculator' },
   registro: { pt: 'registro', es: 'registro', en: 'record' },
+  privacidad: { pt: 'privacidade', es: 'privacidad', en: 'privacy' },
 };
 
 export const RUTA_CALCULADORA = RUTAS.calculadora;
@@ -44,10 +45,11 @@ export const url = (pagina: Pagina, locale: Locale): string =>
 
 export const urlCalculadora = (locale: Locale): string => url('calculadora', locale);
 export const urlRegistro = (locale: Locale): string => url('registro', locale);
+export const urlPrivacidad = (locale: Locale): string => url('privacidad', locale);
 
 /** Qué página corresponde a un slug en un idioma. `null` si no es ninguna. */
 export function paginaDe(locale: Locale, slug: string): Pagina | null {
-  for (const p of ['calculadora', 'registro'] as const) {
+  for (const p of ['calculadora', 'registro', 'privacidad'] as const) {
     if (RUTAS[p][locale] === slug) return p;
   }
   return null;

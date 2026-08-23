@@ -2,7 +2,7 @@ import type { MetadataRoute } from 'next';
 import { LOCALES, HREFLANG, url as urlDe, type Pagina } from '@/i18n/config';
 
 const SITIO = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://klosa-five.vercel.app';
-const PAGINAS: readonly Pagina[] = ['calculadora', 'registro'];
+const PAGINAS: readonly Pagina[] = ['calculadora', 'registro', 'privacidad'];
 
 /**
  * Una entrada por página e idioma, cada una declarando sus alternativas.
@@ -20,7 +20,7 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: `${SITIO}${urlDe(pagina, locale)}`,
       lastModified: new Date(),
       changeFrequency: pagina === 'registro' ? ('daily' as const) : ('monthly' as const),
-      priority: locale === 'pt' ? 1 : 0.8,
+      priority: pagina === 'privacidad' ? 0.3 : locale === 'pt' ? 1 : 0.8,
       alternates: { languages: alternativas },
     }));
   });
