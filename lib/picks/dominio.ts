@@ -85,8 +85,25 @@ export interface Cierre {
    * `casa` son los cierres antiguos, capturados contra la casa del pick.
    */
   fuente: 'afilada' | 'casa' | 'consenso';
-  /** Margen del mercado de referencia. Cuanto más bajo, mejor el estimador. */
+  /** Margen del mercado que hay en `cuotas`. */
   margen: number;
+  /**
+   * El mercado más afilado del corte, para estimar la probabilidad real.
+   *
+   * Va aparte del cierre de arriba porque responden a preguntas distintas y
+   * mezclarlas era injusto: el CLV bruto compara precios y solo vale contra el
+   * mismo mercado donde se apostó; la ventaja estima valor esperado y necesita
+   * el mejor precio sin comisión que hubiera, venga de donde venga.
+   *
+   * `null` en los cierres antiguos, capturados antes de que existiera.
+   */
+  referencia: {
+    casa: string;
+    lados: string[];
+    cuotas: number[];
+    indiceTomado: number;
+    margen: number;
+  } | null;
   proveedor: string;
 }
 

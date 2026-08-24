@@ -307,6 +307,50 @@ export function analizarApuestaN(
 }
 
 /**
+ * Analiza una apuesta comparando contra DOS mercados distintos, cada uno para
+ * lo que sirve.
+ *
+ *   `cierres`     el mismo mercado donde se apostó. De ahí sale el CLV bruto,
+ *                 que es una comparación de precios y solo significa algo
+ *                 contra uno mismo: si compraste en una casa, lo que mide tu
+ *                 momento de entrada es el cierre de ESA casa. Medirlo contra
+ *                 otra mete dentro la diferencia de nivel entre las dos, que
+ *                 no tiene nada que ver con cuándo entraste.
+ *
+ *   `referencia`  el mercado más afilado del corte. De ahí sale la ventaja,
+ *                 que NO es una comparación de precios sino una estimación de
+ *                 valor esperado: tu cuota contra la probabilidad real. Y el
+ *                 mejor estimador disponible de esa probabilidad es el precio
+ *                 sin comisión del mercado que menos cobra.
+ *
+ * Confundirlos fue un error de este proyecto: se calculó el bruto contra un
+ * exchange cuando la apuesta se había hecho a precio de mercado, y el -1,77 %
+ * que salió era sobre todo la distancia entre un exchange y una casa normal.
+ */
+export function analizarConReferencia(
+  cuotaTomada: number | string,
+  cierres: readonly (number | string)[],
+  indiceTomado: number,
+  referencia: readonly (number | string)[],
+  indiceReferencia: number,
+  metodo: MetodoDevig = 'multiplicativo',
+): AnalisisApuesta {
+  const propio = analizarApuestaN(cuotaTomada, cierres, indiceTomado, metodo);
+  const justo = devigN(referencia.map(parsearCuota), metodo);
+  const p = justo.p[indiceReferencia];
+  if (p === undefined) throw new ErrorCuota('El lado apostado no está en el mercado de referencia.');
+
+  const ventaja = ventajaSobreCierre(propio.cuotaTomada, p);
+  return {
+    ...propio,
+    justas: justo,
+    cuotaJustaCierre: cuotaJusta(p),
+    ventaja,
+    cogioValor: ventaja > 0,
+  };
+}
+
+/**
  * Analiza una apuesta de dos vías. `cuotaCierreTomada` es el cierre del lado
  * que se apostó; `cuotaCierreContraria`, el del otro, necesario para el margen.
  */

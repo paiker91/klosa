@@ -140,8 +140,9 @@ describe('ficheros de solo-añadir', () => {
       cuotas: [2.0, 1.9],
       indiceTomado: 0,
       casa: 'FanDuel',
-      fuente: 'afilada' as const,
-      margen: 0.02,
+      fuente: 'casa' as const,
+      margen: 0.05,
+      referencia: null,
       proveedor: 'the-odds-api',
     };
     anadirCierre(cierre, rutaCierres);
@@ -206,8 +207,9 @@ describe('estado del registro', () => {
         cuotas: [2.0, 1.9],
         indiceTomado: 0,
         casa: 'FanDuel',
-        fuente: 'afilada' as const,
-      margen: 0.02,
+        fuente: 'casa' as const,
+      margen: 0.05,
+      referencia: null,
         proveedor: 'the-odds-api',
       },
       rutaCierres,

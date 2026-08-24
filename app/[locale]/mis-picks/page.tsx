@@ -15,6 +15,7 @@ import { NOMBRE_DEPORTE, type Deporte } from '@/lib/cuotas/dominio';
 import {
   agregar,
   analizarApuestaN,
+  analizarConReferencia,
   claveVeredicto,
   N_MINIMO,
   type AnalisisApuesta,
@@ -37,7 +38,7 @@ interface FilaPick {
   cuota_tomada: number;
   stake: number | null;
   nota: string | null;
-  cierres: { cuotas: number[]; indice_tomado: number }[] | null;
+  cierres: { cuotas: number[]; indice_tomado: number; referencia: { cuotas: number[]; indiceTomado: number } | null }[] | null;
 }
 
 export default async function MisPicks({ params }: { params: Promise<{ locale: string }> }) {
@@ -59,7 +60,7 @@ export default async function MisPicks({ params }: { params: Promise<{ locale: s
    */
   const { data } = await supabase
     .from('picks')
-    .select('id, registrado_en, comienzo, deporte, local, visitante, lado, cuota_tomada, stake, nota, cierres(cuotas, indice_tomado)')
+    .select('id, registrado_en, comienzo, deporte, local, visitante, lado, cuota_tomada, stake, nota, cierres(cuotas, indice_tomado, referencia)')
     .order('registrado_en', { ascending: false });
 
   const picks = (data ?? []) as unknown as FilaPick[];
@@ -69,7 +70,18 @@ export default async function MisPicks({ params }: { params: Promise<{ locale: s
     const cierre = p.cierres?.[0];
     if (!cierre) continue;
     try {
-      analisis.set(p.id, analizarApuestaN(p.cuota_tomada, cierre.cuotas, cierre.indice_tomado));
+      analisis.set(
+        p.id,
+        cierre.referencia
+          ? analizarConReferencia(
+              p.cuota_tomada,
+              cierre.cuotas,
+              cierre.indice_tomado,
+              cierre.referencia.cuotas,
+              cierre.referencia.indiceTomado,
+            )
+          : analizarApuestaN(p.cuota_tomada, cierre.cuotas, cierre.indice_tomado),
+      );
     } catch {
       // Un cierre corrupto no debe tumbar la página entera.
     }

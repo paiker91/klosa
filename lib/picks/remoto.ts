@@ -12,6 +12,7 @@ import type { Cierre, Pick, ResultadoPick } from './dominio';
 import { auditar, type Auditoria } from './dominio';
 import {
   analizarApuestaN,
+  analizarConReferencia,
   agregar,
   agregarPorGrupo,
   type AnalisisApuesta,
@@ -134,7 +135,19 @@ export function construirRegistro(
       let analisis: AnalisisApuesta | null = null;
       if (auditoria.valido && cierre) {
         try {
-          analisis = analizarApuestaN(pick.cuotaTomada, cierre.cuotas, cierre.indiceTomado);
+          /*
+           * El bruto contra el mismo mercado donde se apostó; la ventaja
+           * contra el más afilado del corte. Cada pregunta con su referencia.
+           */
+          analisis = cierre.referencia
+            ? analizarConReferencia(
+                pick.cuotaTomada,
+                cierre.cuotas,
+                cierre.indiceTomado,
+                cierre.referencia.cuotas,
+                cierre.referencia.indiceTomado,
+              )
+            : analizarApuestaN(pick.cuotaTomada, cierre.cuotas, cierre.indiceTomado);
         } catch {
           analisis = null;
         }
