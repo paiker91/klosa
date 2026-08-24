@@ -122,6 +122,12 @@ export function FormularioCuenta({
         <Boton>{crear ? t.entrar.botonCrear : t.entrar.botonEntrar}</Boton>
       </form>
 
+      {crear && (
+        <p className="mt-4 rounded-xl border border-aviso/30 bg-aviso/10 p-3.5 text-xs leading-relaxed text-aviso">
+          {t.entrar.enPruebas}
+        </p>
+      )}
+
       <p className="mt-5 border-t border-borde pt-4 text-xs leading-relaxed text-apagado">
         {t.entrar.privacidad}
       </p>

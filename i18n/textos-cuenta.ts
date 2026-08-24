@@ -21,6 +21,16 @@ export interface TextosCuenta {
     confirmaEmail: string;
     yaTienes: string;
     privacidad: string;
+    /**
+     * Estado real del envio de correo.
+     *
+     * Mientras no haya servidor de correo propio, Supabase manda las
+     * confirmaciones por su servidor compartido con un limite de unos pocos por
+     * hora. Callarlo convierte una limitacion conocida en "esto no funciona":
+     * quien se registra y no recibe nada concluye que el sitio esta roto, y no
+     * vuelve. Decirlo antes cuesta una linea.
+     */
+    enPruebas: string;
   };
   errores: {
     credenciales: string;
@@ -81,6 +91,8 @@ const pt: TextosCuenta = {
     yaTienes: 'Se você já tem conta, use a aba Entrar.',
     privacidad:
       'Guardamos seu e-mail e seus picks. Nada de nome, telefone ou dados de pagamento. Você pode apagar a conta e tudo o que ela contém quando quiser.',
+    enPruebas:
+      'Em testes: o e-mail de confirmação sai por um servidor compartilhado com limite de poucos por hora, então pode demorar ou não chegar. Se acontecer, escreva pelo GitHub e a conta é liberada na mão.',
   },
   errores: {
     credenciales: 'E-mail ou senha incorretos.',
@@ -141,6 +153,8 @@ const es: TextosCuenta = {
     yaTienes: 'Si ya tienes cuenta, usa la pestaña Entrar.',
     privacidad:
       'Guardamos tu email y tus picks. Nada de nombre, teléfono ni datos de pago. Puedes borrar la cuenta y todo lo que contiene cuando quieras.',
+    enPruebas:
+      'En pruebas: el correo de confirmación sale por un servidor compartido con un límite de unos pocos por hora, así que puede tardar o no llegar. Si te pasa, escribe por GitHub y la cuenta se activa a mano.',
   },
   errores: {
     credenciales: 'Email o contraseña incorrectos.',
@@ -200,6 +214,8 @@ const en: TextosCuenta = {
     yaTienes: 'Already have an account? Use the Sign in tab.',
     privacidad:
       'We store your email and your picks. No name, no phone, no payment details. You can delete your account and everything in it whenever you want.',
+    enPruebas:
+      'In testing: the confirmation email goes out through a shared server limited to a few per hour, so it may be slow or never arrive. If that happens, get in touch on GitHub and the account is activated by hand.',
   },
   errores: {
     credenciales: 'Wrong email or password.',
