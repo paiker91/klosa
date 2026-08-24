@@ -26,7 +26,7 @@ export interface TextosPrivacidad {
 }
 
 /** Cuándo se escribió. Si cambia el tratamiento, cambia también esta fecha. */
-export const ACTUALIZADO = '2026-08-22';
+export const ACTUALIZADO = '2026-08-24';
 
 const pt: TextosPrivacidad = {
   meta: {
@@ -63,7 +63,7 @@ const pt: TextosPrivacidad = {
       lista: [
         'Nome, telefone, endereço ou documentos.',
         'Dados de pagamento. Não há cobrança de nada.',
-        'Cookies de rastreamento, publicidade ou análise de audiência. Os únicos cookies são os da sua sessão: sem eles, entrar na conta seria impossível.',
+        'Cookies de rastreamento, publicidade ou análise de audiência. Os únicos cookies são os da sua sessão: sem eles, entrar na conta seria impossível. Contamos visitas, sim, mas sem cookies e sem identificar ninguém — está explicado mais abaixo.',
       ],
     },
     {
@@ -71,6 +71,18 @@ const pt: TextosPrivacidad = {
       parrafos: [
         'Seu e-mail serve para identificar sua conta e nada mais. Não enviamos newsletter nem promoções.',
         'Seus picks servem para calcular seu CLV e mostrá-los a você. São privados: não aparecem no registro público, que é de uma pessoa só, e o banco de dados impede tecnicamente que um usuário publique os seus.',
+      ],
+    },
+    {
+      titulo: 'Contagem de visitas',
+      parrafos: [
+        'Contamos quantas pessoas entram, para saber se isto serve para alguém. É a única medição que existe no site e não usa cookies: nada é guardado no seu navegador e não dá para seguir você de um site para outro.',
+        'O que fica registrado é agregado e não identifica ninguém:',
+      ],
+      lista: [
+        'Qual página foi vista e de onde veio o link.',
+        'País, tipo de aparelho e navegador.',
+        'Nada de endereço de IP guardado, nada de perfil, nada de publicidade.',
       ],
     },
     {
@@ -148,7 +160,7 @@ const es: TextosPrivacidad = {
       lista: [
         'Nombre, teléfono, dirección ni documentos.',
         'Datos de pago. No se cobra nada.',
-        'Cookies de seguimiento, publicidad o analítica. Las únicas cookies son las de tu sesión: sin ellas no se podría entrar.',
+        'Cookies de seguimiento, publicidad o analítica. Las únicas cookies son las de tu sesión: sin ellas no se podría entrar. Sí contamos visitas, pero sin cookies y sin identificar a nadie — está explicado más abajo.',
       ],
     },
     {
@@ -156,6 +168,18 @@ const es: TextosPrivacidad = {
       parrafos: [
         'Tu email identifica tu cuenta y nada más. No mandamos boletines ni promociones.',
         'Tus picks sirven para calcular tu CLV y enseñártelo. Son privados: no salen en el registro público, que es de una sola persona, y la base de datos impide técnicamente que un usuario publique los suyos.',
+      ],
+    },
+    {
+      titulo: 'Recuento de visitas',
+      parrafos: [
+        'Contamos cuánta gente entra, para saber si esto le sirve a alguien. Es la única medición que hay en el sitio y no usa cookies: no se guarda nada en tu navegador y no se te puede seguir de un sitio a otro.',
+        'Lo que queda registrado es agregado y no identifica a nadie:',
+      ],
+      lista: [
+        'Qué página se vio y de dónde venía el enlace.',
+        'País, tipo de aparato y navegador.',
+        'Ninguna dirección IP guardada, ningún perfil, ninguna publicidad.',
       ],
     },
     {
@@ -233,7 +257,7 @@ const en: TextosPrivacidad = {
       lista: [
         'Name, phone, address or identity documents.',
         'Payment details. Nothing is charged.',
-        'Tracking, advertising or analytics cookies. The only cookies are your session ones: without them signing in would be impossible.',
+        'Tracking, advertising or analytics cookies. The only cookies are your session ones: without them signing in would be impossible. We do count visits, but without cookies and without identifying anyone — explained below.',
       ],
     },
     {
@@ -241,6 +265,18 @@ const en: TextosPrivacidad = {
       parrafos: [
         'Your email identifies your account and nothing else. We send no newsletters and no promotions.',
         'Your picks are used to compute your CLV and show it to you. They are private: they never appear in the public record, which belongs to one person, and the database technically prevents a user from publishing theirs.',
+      ],
+    },
+    {
+      titulo: 'Visit counting',
+      parrafos: [
+        'We count how many people come in, to know whether this is useful to anyone. It is the only measurement on the site and it uses no cookies: nothing is stored in your browser and you cannot be followed from one site to another.',
+        'What gets recorded is aggregated and identifies nobody:',
+      ],
+      lista: [
+        'Which page was viewed and where the link came from.',
+        'Country, device type and browser.',
+        'No IP address stored, no profile, no advertising.',
       ],
     },
     {
