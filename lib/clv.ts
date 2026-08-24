@@ -358,6 +358,36 @@ export function claveVeredicto(r: {
   return r.veredicto;
 }
 
+/** Una métrica agregada con su significancia. */
+export interface Metrica {
+  media: number;
+  /** Proporción de apuestas con valor positivo en esta métrica. */
+  tasa: number;
+  desviacion: number;
+  /** media / (desviación / raíz de n). Null si n < 2. */
+  t: number | null;
+  veredicto: Veredicto;
+  /** El veredicto significativo apunta a favor o en contra. Null si no aplica. */
+  signo: 'favor' | 'contra' | null;
+}
+
+/**
+ * Dos preguntas distintas, cada una con su propia significancia.
+ *
+ * `bruto` compara precio contra precio: la cuota tomada contra la de cierre.
+ * El margen está dentro de las dos y se cancela casi entero, así que lo que
+ * queda es si se cogió mejor precio del que acabó dando el mercado. Es la
+ * medida de habilidad.
+ *
+ * `ventaja` compara la cuota tomada contra la probabilidad justa del cierre.
+ * Ahí el margen entra completo y desplaza a TODO el mundo hacia abajo por
+ * igual, apostara bien o mal. Es la medida de valor esperado: dice si la
+ * apuesta ganaba dinero, no si se cogió buen precio.
+ *
+ * Enseñar solo la segunda fue un error de este proyecto: presentaba una
+ * comisión constante de las casas como si fuera un hallazgo sobre el
+ * apostante. Los dos números son verdad y responden a cosas distintas.
+ */
 export interface ResumenAgregado {
   n: number;
   clvMedio: number;
@@ -367,13 +397,14 @@ export interface ResumenAgregado {
   desviacion: number;
   /** media / (desviación / raíz de n). Null si n < 2. */
   t: number | null;
-  /**
-   * Solo el veredicto, sin texto. La redacción vive en la capa de idiomas:
-   * esta librería la consumen tres locales y no puede hablar ninguno.
-   */
   veredicto: Veredicto;
-  /** El veredicto significativo apunta a favor o en contra. Null si no aplica. */
   signo: 'favor' | 'contra' | null;
+  /** ¿Se cogió mejor precio que el de cierre? Sin descontar margen. */
+  bruto: Metrica;
+  /** ¿Tenía valor esperado positivo? Con el margen descontado. */
+  ventaja: Metrica;
+  /** Margen medio de los mercados. Es la distancia entre las dos métricas. */
+  margenMedio: number;
 }
 
 /** Desviación típica muestral (denominador n-1), que es la que corresponde al estadístico t. */
@@ -442,6 +473,29 @@ export function agregarPorGrupo(
     .sort((a, b) => b.resumen.n - a.resumen.n);
 }
 
+const media = (xs: readonly number[]): number => xs.reduce((a, b) => a + b, 0) / xs.length;
+
+const VACIA: Metrica = {
+  media: 0,
+  tasa: 0,
+  desviacion: Number.NaN,
+  t: null,
+  veredicto: 'muestra_insuficiente',
+  signo: null,
+};
+
+function metricaDe(valores: readonly number[]): Metrica {
+  if (valores.length === 0) return VACIA;
+  const t = estadisticoT(valores);
+  return {
+    media: media(valores),
+    tasa: valores.filter((x) => x > 0).length / valores.length,
+    desviacion: desviacionMuestral(valores),
+    t,
+    ...interpretar(valores.length, t),
+  };
+}
+
 export function agregar(analisis: readonly AnalisisApuesta[]): ResumenAgregado {
   const n = analisis.length;
   if (n === 0) {
@@ -454,22 +508,28 @@ export function agregar(analisis: readonly AnalisisApuesta[]): ResumenAgregado {
       t: null,
       veredicto: 'muestra_insuficiente',
       signo: null,
+      bruto: VACIA,
+      ventaja: VACIA,
+      margenMedio: 0,
     };
   }
 
+  const brutos = analisis.map((a) => a.clvBruto);
   const ventajas = analisis.map((a) => a.ventaja);
-  const media = (xs: readonly number[]): number => xs.reduce((a, b) => a + b, 0) / xs.length;
-  const t = estadisticoT(ventajas);
-  const { veredicto, signo } = interpretar(n, t);
+  const bruto = metricaDe(brutos);
+  const ventaja = metricaDe(ventajas);
 
   return {
     n,
-    clvMedio: media(analisis.map((a) => a.clvBruto)),
-    ventajaMedia: media(ventajas),
-    tasaDeAcierto: analisis.filter((a) => a.ventaja > 0).length / n,
-    desviacion: desviacionMuestral(ventajas),
-    t,
-    veredicto,
-    signo,
+    clvMedio: bruto.media,
+    ventajaMedia: ventaja.media,
+    tasaDeAcierto: ventaja.tasa,
+    desviacion: ventaja.desviacion,
+    t: ventaja.t,
+    veredicto: ventaja.veredicto,
+    signo: ventaja.signo,
+    bruto,
+    ventaja,
+    margenMedio: media(analisis.map((a) => a.justas.margen)),
   };
 }

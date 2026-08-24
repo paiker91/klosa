@@ -16,6 +16,7 @@ import {
   estadisticoT,
   claveVeredicto,
   ErrorCuota,
+  T_CRITICO,
   type AnalisisApuesta,
 } from './clv';
 
@@ -334,5 +335,58 @@ describe('cómo se le cuenta el veredicto a una persona', () => {
     expect(claveVeredicto({ n: 200, t: 0.4, veredicto: 'no_distinguible', signo: null })).toBe(
       'no_distinguible',
     );
+  });
+});
+
+describe('las dos métricas y sus significancias por separado', () => {
+  /*
+   * El error que este bloque fija: encabezar el registro con la ventaja hacía
+   * que una comisión constante de las casas —el margen— apareciera como un
+   * hallazgo sobre el apostante. Con precios de mercado la ventaja sale
+   * negativa siempre, apueste bien o mal.
+   */
+  const cogiendoElCierre = (n: number): AnalisisApuesta[] =>
+    Array.from({ length: n }, (_, i) =>
+      // Cuota tomada exactamente igual a la de cierre, alternando el mercado
+      // para que la desviación no sea cero.
+      analizarApuesta(i % 2 === 0 ? 1.9 : 2.1, i % 2 === 0 ? 1.9 : 2.1, i % 2 === 0 ? 2.1 : 1.9),
+    );
+
+  it('coger justo el cierre da CLV bruto cero y ventaja negativa', () => {
+    const r = agregar(cogiendoElCierre(40));
+    expect(r.bruto.media).toBeCloseTo(0, 10);
+    expect(r.ventaja.media).toBeLessThan(0);
+    // Y la distancia entre ambas es el margen del mercado.
+    expect(r.bruto.media - r.ventaja.media).toBeCloseTo(r.margenMedio / (1 + r.margenMedio), 2);
+  });
+
+  it('coger siempre el cierre exacto no da estadístico: no hay variación', () => {
+    // Todas las observaciones valen cero, así que la desviación es cero y el
+    // estadístico no existe. Devolver un número aquí sería inventarlo.
+    expect(agregar(cogiendoElCierre(40)).bruto.t).toBeNull();
+  });
+
+  it('con variación real, cada métrica trae su propio estadístico', () => {
+    /*
+     * Precios alrededor del cierre: unos algo mejores, otros algo peores. El
+     * bruto oscila en torno a cero y no distingue; la ventaja, desplazada por
+     * el margen, sí — y ese desplazamiento no dice nada de quien apuesta.
+     */
+    // Cierre 1,90 / 1,90: un mercado con 5,26 % de margen, como los reales.
+    const mezcla = Array.from({ length: 60 }, (_, i) =>
+      analizarApuesta(i % 2 === 0 ? 1.94 : 1.86, 1.9, 1.9),
+    );
+    const r = agregar(mezcla);
+    expect(r.bruto.t).not.toBeNull();
+    expect(r.ventaja.t).not.toBeNull();
+    expect(Math.abs(r.bruto.t as number)).toBeLessThan(T_CRITICO);
+    expect(r.ventaja.t as number).toBeLessThan(-T_CRITICO);
+  });
+
+  it('batir el cierre sube las dos, pero la ventaja arranca por debajo', () => {
+    const mejores = Array.from({ length: 40 }, () => analizarApuesta(2.0, 1.9, 2.1));
+    const r = agregar(mejores);
+    expect(r.bruto.media).toBeGreaterThan(0);
+    expect(r.bruto.media).toBeGreaterThan(r.ventaja.media);
   });
 });

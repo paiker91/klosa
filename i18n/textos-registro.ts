@@ -16,6 +16,8 @@ export interface TextosRegistro {
   noDisponible: { titulo: string; texto: string };
   etiquetas: {
     n: string;
+    clvBruto: string;
+    margen: string;
     ventajaMedia: string;
     tasaAcierto: string;
     t: string;
@@ -27,7 +29,16 @@ export interface TextosRegistro {
     temprano_contra: string;
   };
   /** Qué significa cada cifra, para quien no vive de esto. */
-  ayudas: { n: string; ventajaMedia: string; tasaAcierto: string; t: string };
+  ayudas: {
+    n: string;
+    clvBruto: string;
+    ventajaMedia: string;
+    tasaAcierto: string;
+    t: string;
+    margen: string;
+  };
+  /** Las dos preguntas, explicadas antes de los números. */
+  dosPreguntas: { titulo: string; bruto: string; ventaja: string; conclusion: string };
   tabla: {
     resultado: string;
     ganada: string;
@@ -93,6 +104,8 @@ const pt: TextosRegistro = {
   },
   etiquetas: {
     n: 'Picks com fechamento',
+    clvBruto: 'Bate o fechamento',
+    margen: 'Margem média',
     ventajaMedia: 'Vantagem média',
     tasaAcierto: 'Batem o fechamento',
     t: 'Estatística t',
@@ -112,11 +125,24 @@ const pt: TextosRegistro = {
   },
   ayudas: {
     n: 'Picks cujo fechamento o provedor já capturou. Só esses entram nas contas.',
+    clvBruto:
+      'Sua odd contra a odd de fechamento, preço contra preço. A margem está nas duas e se cancela: o que sobra é se você pegou preço melhor do que o mercado acabou dando.',
+    margen:
+      'O que as casas cobram, em média, nos mercados em que você apostou. É exatamente a distância entre as duas métricas de cima.',
     ventajaMedia:
       'Quanto melhor (ou pior) foi sua odd em relação ao preço justo do fechamento, já sem a margem da casa. Zero é pagar o preço certo.',
     tasaAcierto:
       'Quantos picks pegaram um preço melhor que o justo. Não é quantos ganharam: é quantos valiam a pena.',
     t: 'Quantos desvios a média está de zero. Acima de 1,96 ou abaixo de -1,96 é difícil de explicar por acaso.',
+  },
+  dosPreguntas: {
+    titulo: 'Duas perguntas que não são a mesma',
+    bruto:
+      'Peguei preço melhor do que o de fechamento? Compara dois preços reais. A margem está nos dois e se cancela, então isto mede timing e escolha de casa.',
+    ventaja:
+      'Essa aposta tinha valor esperado positivo? Compara seu preço com o preço justo. A margem entra inteira, e por isso empurra todo mundo para baixo por igual.',
+    conclusion:
+      'Para ganhar dinheiro não basta bater o fechamento: é preciso batê-lo por mais do que a margem.',
   },
   tabla: {
     resultado: 'Resultado',
@@ -201,6 +227,8 @@ const es: TextosRegistro = {
   },
   etiquetas: {
     n: 'Picks con cierre',
+    clvBruto: 'Bate el cierre',
+    margen: 'Margen medio',
     ventajaMedia: 'Ventaja media',
     tasaAcierto: 'Baten el cierre',
     t: 'Estadístico t',
@@ -220,11 +248,24 @@ const es: TextosRegistro = {
   },
   ayudas: {
     n: 'Picks cuyo cierre ya capturó el proveedor. Solo esos entran en las cuentas.',
+    clvBruto:
+      'Tu cuota contra la de cierre, precio contra precio. El margen está en las dos y se cancela: lo que queda es si cogiste mejor precio del que acabó dando el mercado.',
+    margen:
+      'Lo que cobran las casas, de media, en los mercados donde apostaste. Es exactamente la distancia entre las dos métricas de arriba.',
     ventajaMedia:
       'Cuánto mejor (o peor) fue tu cuota que el precio justo del cierre, ya sin el margen de la casa. Cero es pagar el precio correcto.',
     tasaAcierto:
       'Cuántos picks cogieron un precio mejor que el justo. No es cuántos ganaron: es cuántos valían la pena.',
     t: 'Cuántas desviaciones está la media de cero. Por encima de 1,96 o por debajo de -1,96 es difícil de explicar por azar.',
+  },
+  dosPreguntas: {
+    titulo: 'Dos preguntas que no son la misma',
+    bruto:
+      '¿Cogí mejor precio que el de cierre? Compara dos precios reales. El margen está en los dos y se cancela, así que esto mide el momento y la elección de casa.',
+    ventaja:
+      '¿Esta apuesta tenía valor esperado positivo? Compara tu precio con el precio justo. El margen entra entero, y por eso empuja a todo el mundo hacia abajo por igual.',
+    conclusion:
+      'Para ganar dinero no basta con batir el cierre: hay que batirlo por más que el margen.',
   },
   tabla: {
     resultado: 'Resultado',
@@ -309,6 +350,8 @@ const en: TextosRegistro = {
   },
   etiquetas: {
     n: 'Picks with a close',
+    clvBruto: 'Beats the close',
+    margen: 'Average margin',
     ventajaMedia: 'Mean edge',
     tasaAcierto: 'Beat the close',
     t: 't statistic',
@@ -328,11 +371,24 @@ const en: TextosRegistro = {
   },
   ayudas: {
     n: 'Picks whose closing line the provider has already captured. Only those count.',
+    clvBruto:
+      'Your odds against the closing odds, price versus price. The margin is in both and cancels out: what is left is whether you got a better price than the market ended up giving.',
+    margen:
+      'What the books charge, on average, in the markets you bet. It is exactly the distance between the two metrics above.',
     ventajaMedia:
       'How much better (or worse) your odds were than the fair closing price, with the margin removed. Zero means paying the right price.',
     tasaAcierto:
       'How many picks got a better price than fair. Not how many won: how many were worth taking.',
     t: 'How many deviations the mean is from zero. Above 1.96 or below -1.96 is hard to explain by chance.',
+  },
+  dosPreguntas: {
+    titulo: 'Two questions that are not the same',
+    bruto:
+      'Did I get a better price than the close? It compares two real prices. The margin is in both and cancels, so this measures timing and choice of book.',
+    ventaja:
+      'Did this bet have positive expected value? It compares your price to the fair price. The margin enters in full, which is why it pushes everyone down equally.',
+    conclusion:
+      'To make money it is not enough to beat the close: you have to beat it by more than the margin.',
   },
   tabla: {
     resultado: 'Result',

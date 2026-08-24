@@ -71,7 +71,16 @@ export function VistaRegistro({
    * que ya pasa el umbral. Decir «no prueba nada» junto a un t de -3,36 es una
    * contradicción, y encima en la dirección cómoda.
    */
-  const clave = claveVeredicto(resumen);
+  /*
+   * El veredicto lo manda el CLV BRUTO, no la ventaja.
+   *
+   * La ventaja descuenta el margen, que es una comisión constante de las casas
+   * y no dice nada de quien apuesta: con precios de mercado sale negativa
+   * siempre. Encabezar con ella convertía «las casas cobran» en «tus picks son
+   * malos». La ventaja sigue estando, porque es la que decide si se gana
+   * dinero, pero no es la que juzga la habilidad.
+   */
+  const clave = claveVeredicto({ n: resumen.n, ...resumen.bruto });
   const flojoResultados = resultados.veredicto === 'muestra_insuficiente';
   const claveResultados = claveVeredicto(resultados);
 
@@ -105,6 +114,22 @@ export function VistaRegistro({
                 <Medidor n={resumen.n} total={N_MINIMO} locale={locale} textos={tm} />
               </div>
 
+              {/* Las dos preguntas, ANTES de los números que las responden. */}
+              <div className="mt-6 rounded-xl border border-borde bg-fondo/40 p-4">
+                <p className="etiqueta-dato">{t.dosPreguntas.titulo}</p>
+                <p className="mt-2 text-xs leading-relaxed text-tenue">
+                  <strong className="text-tinta">{t.etiquetas.clvBruto}.</strong>{' '}
+                  {t.dosPreguntas.bruto}
+                </p>
+                <p className="mt-2 text-xs leading-relaxed text-tenue">
+                  <strong className="text-tinta">{t.etiquetas.ventajaMedia}.</strong>{' '}
+                  {t.dosPreguntas.ventaja}
+                </p>
+                <p className="mt-2 text-xs leading-relaxed text-aviso">
+                  {t.dosPreguntas.conclusion}
+                </p>
+              </div>
+
               {/*
                 Cada cifra con lo que significa debajo. Sin eso, «Estadístico t»
                 no le dice nada a quien no vive de esto — y el producto entero
@@ -115,18 +140,28 @@ export function VistaRegistro({
                   [
                     [t.etiquetas.n, entero(resumen.n, locale), t.ayudas.n],
                     [
+                      t.etiquetas.clvBruto,
+                      resumen.n === 0 ? SIN_DATO : porcentaje(resumen.clvMedio, locale),
+                      t.ayudas.clvBruto,
+                    ],
+                    [
                       t.etiquetas.ventajaMedia,
                       resumen.n === 0 ? SIN_DATO : porcentaje(resumen.ventajaMedia, locale),
                       t.ayudas.ventajaMedia,
                     ],
                     [
+                      t.etiquetas.margen,
+                      resumen.n === 0 ? SIN_DATO : porcentajeSinSigno(resumen.margenMedio, locale),
+                      t.ayudas.margen,
+                    ],
+                    [
                       t.etiquetas.tasaAcierto,
-                      resumen.n === 0 ? SIN_DATO : porcentajeSinSigno(resumen.tasaDeAcierto, locale),
+                      resumen.n === 0 ? SIN_DATO : porcentajeSinSigno(resumen.bruto.tasa, locale),
                       t.ayudas.tasaAcierto,
                     ],
                     [
                       t.etiquetas.t,
-                      resumen.t === null ? SIN_DATO : decimal(resumen.t, locale, 2),
+                      resumen.bruto.t === null ? SIN_DATO : decimal(resumen.bruto.t, locale, 2),
                       t.ayudas.t,
                     ],
                   ] as const
