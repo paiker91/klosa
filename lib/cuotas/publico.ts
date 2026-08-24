@@ -155,8 +155,14 @@ export interface ProximoPartido {
   local: string;
   visitante: string;
   comienzo: string;
-  /** Lados con su precio de mercado, si lo hay. Rellena la cuota al elegir. */
-  lados: { lado: string; mediana: number | null }[];
+  /**
+   * Lados con su mejor precio disponible y la mediana como referencia.
+   *
+   * Se rellena con el MEJOR y no con la mediana: la mediana no la ofrece
+   * nadie, y registrarla deja el CLV bruto en cero por construccion. Medido
+   * sobre los primeros 34 picks, la diferencia era de 2,4 puntos.
+   */
+  lados: { lado: string; mejor: number | null; mediana: number | null; casa: string | null }[];
 }
 
 /**
@@ -182,10 +188,21 @@ export async function proximosPartidos(deporte: Deporte): Promise<ProximoPartido
         local: e.local,
         visitante: e.visitante,
         comienzo: e.comienzo.toISOString(),
-        lados: lados.map((lado) => ({
-          lado,
-          mediana: e.mercado?.find((m) => m.lado === lado)?.mediana ?? null,
-        })),
+        lados: lados.map((lado) => {
+          const ofertas = (e.porCasa ?? []).flatMap((c) =>
+            c.lados.filter((l) => l.lado === lado).map((l) => ({ casa: c.casa, cuota: l.cuota })),
+          );
+          const mejor = ofertas.reduce<{ casa: string; cuota: number } | null>(
+            (a, b) => (a === null || b.cuota > a.cuota ? b : a),
+            null,
+          );
+          return {
+            lado,
+            mejor: mejor?.cuota ?? null,
+            casa: mejor?.casa ?? null,
+            mediana: e.mercado?.find((m) => m.lado === lado)?.mediana ?? null,
+          };
+        }),
       };
     });
 }

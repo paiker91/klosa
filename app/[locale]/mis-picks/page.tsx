@@ -12,7 +12,13 @@ import { porcentaje, decimal, entero } from '@/components/formato';
 import { etiquetaLado } from '@/i18n/lados';
 import { URL_REPO } from '@/lib/picks/remoto';
 import { NOMBRE_DEPORTE, type Deporte } from '@/lib/cuotas/dominio';
-import { agregar, analizarApuestaN, N_MINIMO, type AnalisisApuesta } from '@/lib/clv';
+import {
+  agregar,
+  analizarApuestaN,
+  claveVeredicto,
+  N_MINIMO,
+  type AnalisisApuesta,
+} from '@/lib/clv';
 import { clienteServidor, usuarioActual } from '@/lib/supabase/servidor';
 import { FormularioPick } from './Formulario';
 import { borrarPick, salir, borrarCuenta } from './acciones';
@@ -115,17 +121,24 @@ export default async function MisPicks({ params }: { params: Promise<{ locale: s
                   [
                     [tr.etiquetas.n, entero(resumen.n, locale)],
                     [
+                      tr.etiquetas.clvBruto,
+                      resumen.n === 0 ? '—' : porcentaje(resumen.clvMedio, locale),
+                    ],
+                    [
                       tr.etiquetas.ventajaMedia,
                       resumen.n === 0 ? '—' : porcentaje(resumen.ventajaMedia, locale),
                     ],
-                    [tr.etiquetas.t, resumen.t === null ? '—' : decimal(resumen.t, locale, 2)],
+                    [
+                      tr.etiquetas.t,
+                      resumen.bruto.t === null ? '—' : decimal(resumen.bruto.t, locale, 2),
+                    ],
                   ] as const
                 ).map(([etiqueta, valor]) => (
                   <div key={etiqueta}>
                     <dt className="etiqueta-dato">{etiqueta}</dt>
                     <dd
                       className={`cifra mt-1 text-2xl ${
-                        resumen.veredicto === 'muestra_insuficiente'
+                        resumen.bruto.veredicto === 'muestra_insuficiente'
                           ? 'text-tenue opacity-70'
                           : 'text-tinta'
                       }`}
@@ -136,7 +149,7 @@ export default async function MisPicks({ params }: { params: Promise<{ locale: s
                 ))}
               </dl>
               <p className="mt-5 border-t border-borde pt-4 text-sm leading-relaxed text-tenue">
-                {tr.veredictos[resumen.veredicto]}
+                {tr.veredictos[claveVeredicto({ n: resumen.n, ...resumen.bruto })]}
               </p>
             </div>
 
@@ -144,8 +157,8 @@ export default async function MisPicks({ params }: { params: Promise<{ locale: s
               <h2 className="text-sm font-semibold">{tm.grafico.titulo}</h2>
               {analisis.size > 0 ? (
                 <Dispersion
-                  valores={[...analisis.values()].map((a) => a.ventaja)}
-                  media={resumen.ventajaMedia}
+                  valores={[...analisis.values()].map((a) => a.clvBruto)}
+                  media={resumen.clvMedio}
                   locale={locale}
                   textos={tm}
                 />

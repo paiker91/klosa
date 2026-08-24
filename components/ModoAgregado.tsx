@@ -4,6 +4,7 @@ import { useId, useState, type FormEvent } from 'react';
 import {
   analizarApuesta,
   agregar,
+  claveVeredicto,
   agregarPorGrupo,
   N_MINIMO,
   type GrupoAgregado,
@@ -29,7 +30,7 @@ const NOMBRE_DELIMITADOR: Record<Locale, Record<Delimitador, string>> = {
 interface Analisis {
   resumen: ResumenAgregado;
   porDeporte: GrupoAgregado[];
-  /** Ventaja de cada apuesta, para dibujar la dispersión. */
+  /** CLV bruto de cada apuesta: lo mismo que juzga el veredicto. */
   ventajas: number[];
   errores: ErrorFila[];
   delimitador: Delimitador;
@@ -93,7 +94,7 @@ export function ModoAgregado({
     setAnalisis({
       resumen: agregar(analizadas),
       porDeporte: porDeporte.length > 1 ? porDeporte : [],
-      ventajas: analizadas.map((a) => a.ventaja),
+      ventajas: analizadas.map((a) => a.clvBruto),
       errores,
       delimitador: parseo.delimitador,
       cabeceraOmitida: parseo.cabeceraOmitida,
@@ -101,20 +102,24 @@ export function ModoAgregado({
   }
 
   const resumen = analisis?.resumen;
-  const insuficiente = resumen?.veredicto === 'muestra_insuficiente';
-  const claveVeredicto =
-    resumen === undefined
-      ? null
-      : resumen.veredicto === 'significativo' && resumen.signo === 'contra'
-        ? 'contra'
-        : resumen.veredicto;
+  /*
+   * El veredicto lo manda el CLV BRUTO, igual que en el registro publico. La
+   * ventaja descuenta el margen, que es una comision constante de las casas:
+   * encabezar con ella haria que "las casas cobran" pareciera "tus apuestas
+   * son malas", y eso le pasaria a cualquiera que pegue aqui su historico.
+   */
+  const clave =
+    resumen === undefined ? null : claveVeredicto({ n: resumen.n, ...resumen.bruto });
+  const insuficiente = resumen?.bruto.veredicto === 'muestra_insuficiente';
 
   const tonoVeredicto =
-    claveVeredicto === 'significativo'
+    clave === 'significativo' || clave === 'temprano_favor'
       ? 'border-positivo/30 bg-positivo/10 text-positivo'
-      : claveVeredicto === 'contra'
+      : clave === 'contra' || clave === 'temprano_contra'
         ? 'border-negativo/30 bg-negativo/10 text-negativo'
-        : 'border-aviso/30 bg-aviso/10 text-aviso';
+        : clave === 'no_distinguible'
+          ? 'border-borde bg-fondo/40 text-tenue'
+          : 'border-aviso/30 bg-aviso/10 text-aviso';
 
   const metrica = (etiqueta: string, valor: string) => (
     <div>
@@ -179,11 +184,11 @@ export function ModoAgregado({
         </p>
       )}
 
-      {resumen !== undefined && analisis !== null && claveVeredicto !== null && (
+      {resumen !== undefined && analisis !== null && clave !== null && (
         <section aria-live="polite" className="mt-6 space-y-5">
           {/* El veredicto va PRIMERO y a propósito: ninguna cifra sin su contexto. */}
           <div className={`rounded-2xl border p-5 ${tonoVeredicto}`}>
-            <p className="text-sm leading-relaxed font-medium">{t.veredictos[claveVeredicto]}</p>
+            <p className="text-sm leading-relaxed font-medium">{t.veredictos[clave]}</p>
           </div>
 
           <div className="tarjeta p-5 sm:p-6">
@@ -191,14 +196,14 @@ export function ModoAgregado({
 
             <dl className="mt-6 grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-3">
               {metrica(t.etiquetas.n, entero(resumen.n, locale))}
-              {metrica(t.etiquetas.ventajaMedia, porcentaje(resumen.ventajaMedia, locale))}
               {metrica(t.etiquetas.clvMedio, porcentaje(resumen.clvMedio, locale))}
-              {metrica(t.etiquetas.tasaAcierto, porcentajeSinSigno(resumen.tasaDeAcierto, locale))}
+              {metrica(t.etiquetas.ventajaMedia, porcentaje(resumen.ventajaMedia, locale))}
+              {metrica(t.margen, porcentajeSinSigno(resumen.margenMedio, locale))}
+              {metrica(t.etiquetas.tasaAcierto, porcentajeSinSigno(resumen.bruto.tasa, locale))}
               {metrica(
-                t.etiquetas.desviacion,
-                Number.isNaN(resumen.desviacion) ? '—' : decimal(resumen.desviacion, locale, 4),
+                t.etiquetas.t,
+                resumen.bruto.t === null ? '—' : decimal(resumen.bruto.t, locale, 2),
               )}
-              {metrica(t.etiquetas.t, resumen.t === null ? '—' : decimal(resumen.t, locale, 2))}
             </dl>
           </div>
 

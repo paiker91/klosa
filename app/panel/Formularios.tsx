@@ -223,19 +223,21 @@ export function FormularioPick({
           }}
           className={`${CAMPO} min-h-12`}
         >
-          <option value="">Sin casa (mediana del mercado)</option>
+          <option value="">Sin casa (no recomendado)</option>
           {disponibles.map((c) => (
             <option key={c.casa} value={c.casa}>
               {c.casa} · {c.cuota.toFixed(2)}
             </option>
           ))}
         </select>
-        <p className="mt-1.5 text-xs leading-relaxed text-apagado">
-          Elegir casa hace la comparación más limpia, pero medido sobre los 16 primeros picks
-          apenas cambia el CLV (−4,82 % contra −4,83 %): el margen de esa casa se paga en los dos
-          extremos y se cancela. Lo que sí mueve la aguja es <strong>qué precio coges</strong>: el
-          mejor de la lista en vez de la mediana valía 2,5 puntos de CLV.
-        </p>
+        {disponibles.length > 1 && (
+          <p className="mt-1.5 text-xs leading-relaxed text-apagado">
+            La lista va del mejor precio al peor, y la cuota se rellena con el mejor. Medido sobre
+            los primeros 34 picks, coger el mejor en vez de la mediana valía{' '}
+            <strong className="text-tinta">2,4 puntos de CLV</strong> — y registrar a la mediana
+            deja el CLV bruto en cero por construcción. Elige donde apostaste de verdad.
+          </p>
+        )}
       </div>
 
       <div>

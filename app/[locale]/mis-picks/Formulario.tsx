@@ -13,7 +13,7 @@ interface Partido {
   local: string;
   visitante: string;
   comienzo: string;
-  lados: { lado: string; mediana: number | null }[];
+  lados: { lado: string; mejor: number | null; mediana: number | null; casa: string | null }[];
 }
 
 const CAMPO =
@@ -128,8 +128,12 @@ export function FormularioPick({
             onChange={(e) => {
               const { lado } = JSON.parse(e.target.value || '{}') as { lado?: string };
               const p = partidos?.find((x) => e.target.value.includes(x.id));
-              const m = p?.lados.find((l) => l.lado === lado)?.mediana;
-              // Se rellena con la mediana del mercado, para no teclear a mano.
+              const m = p?.lados.find((l) => l.lado === lado)?.mejor;
+              /*
+               * Se rellena con el MEJOR precio del mercado, no con la mediana.
+               * La mediana no la ofrece ninguna casa y registrarla deja el CLV
+               * bruto en cero por construccion.
+               */
               setCuota(m === null || m === undefined ? '' : m.toFixed(2).replace('.', ','));
             }}
             className={`${CAMPO} disabled:opacity-50`}
@@ -143,7 +147,7 @@ export function FormularioPick({
                 {p.lados.map((l) => (
                   <option key={l.lado} value={JSON.stringify({ id: p.id, lado: l.lado })}>
                     {etiquetaLado(l.lado, locale)}
-                    {l.mediana !== null ? ` · ${l.mediana.toFixed(2)}` : ''}
+                    {l.mejor !== null ? ` · ${l.mejor.toFixed(2)}${l.casa ? ` (${l.casa})` : ''}` : ''}
                   </option>
                 ))}
               </optgroup>

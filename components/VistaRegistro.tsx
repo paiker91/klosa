@@ -84,8 +84,9 @@ export function VistaRegistro({
   const flojoResultados = resultados.veredicto === 'muestra_insuficiente';
   const claveResultados = claveVeredicto(resultados);
 
+  /* La nube dibuja el CLV bruto: lo mismo que juzga el veredicto. */
   const ventajas = entradas
-    .map((e) => e.analisis?.ventaja)
+    .map((e) => e.analisis?.clvBruto)
     .filter((v): v is number => v !== undefined);
 
   const fecha = (iso: string) =>
@@ -191,7 +192,7 @@ export function VistaRegistro({
               {ventajas.length > 0 ? (
                 <Dispersion
                   valores={ventajas}
-                  media={resumen.ventajaMedia}
+                  media={resumen.clvMedio}
                   locale={locale}
                   textos={tm}
                 />

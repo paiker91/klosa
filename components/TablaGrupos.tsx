@@ -19,7 +19,12 @@ export function TablaGrupos({
   locale: Locale;
   encabezados: { grupo: string; n: string; ventaja: string; t: string };
 }) {
-  const extremo = Math.max(0.02, ...grupos.map((g) => Math.abs(g.resumen.ventajaMedia)));
+  /*
+   * El desglose enseña el CLV bruto, igual que el veredicto. Con la ventaja,
+   * todos los grupos salían a la izquierda por el margen y la tabla parecía
+   * decir que todos los deportes son malos.
+   */
+  const extremo = Math.max(0.02, ...grupos.map((g) => Math.abs(g.resumen.clvMedio)));
 
   return (
     <div className="mt-4 overflow-x-auto">
@@ -46,16 +51,16 @@ export function TablaGrupos({
         <tbody>
           {grupos.map((g) => {
             const r = g.resumen;
-            const flojo = r.veredicto === 'muestra_insuficiente';
-            const positivo = r.ventajaMedia >= 0;
+            const flojo = r.bruto.veredicto === 'muestra_insuficiente';
+            const positivo = r.clvMedio >= 0;
             const color =
-              r.veredicto !== 'significativo'
+              r.bruto.veredicto !== 'significativo'
                 ? 'text-tinta'
-                : r.signo === 'contra'
+                : r.bruto.signo === 'contra'
                   ? 'text-negativo'
                   : 'text-positivo';
             const tono = flojo ? 'text-tenue opacity-70' : color;
-            const ancho = (Math.abs(r.ventajaMedia) / extremo) * 50;
+            const ancho = (Math.abs(r.clvMedio) / extremo) * 50;
 
             return (
               <tr key={g.clave} className="border-b border-borde/50">
@@ -81,10 +86,10 @@ export function TablaGrupos({
                   </div>
                 </td>
                 <td className={`cifra py-3 pr-4 text-right ${tono}`}>
-                  {porcentaje(r.ventajaMedia, locale)}
+                  {porcentaje(r.clvMedio, locale)}
                 </td>
                 <td className={`cifra py-3 text-right ${tono}`}>
-                  {r.t === null ? '—' : decimal(r.t, locale, 2)}
+                  {r.bruto.t === null ? '—' : decimal(r.bruto.t, locale, 2)}
                 </td>
               </tr>
             );

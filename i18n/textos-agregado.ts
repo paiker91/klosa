@@ -25,7 +25,13 @@ export interface TextosAgregado {
     desviacion: string;
     t: string;
   };
-  veredictos: Record<Veredicto, string> & { contra: string };
+  veredictos: Record<Veredicto, string> & {
+    contra: string;
+    temprano_favor: string;
+    temprano_contra: string;
+  };
+  /** Margen medio de los mercados: la distancia entre las dos métricas. */
+  margen: string;
   desglose: {
     titulo: string;
     aviso: string;
@@ -64,7 +70,12 @@ const pt: TextosAgregado = {
     significativo: 'Sinal estatisticamente significativo de vantagem sobre a linha de fechamento.',
     contra:
       'Sinal estatisticamente significativo, mas contra você: essas apostas perdem valor em relação ao fechamento.',
+    temprano_favor:
+      'Amostra curta, mas o sinal já é forte e a favor. Ainda não é conclusão.',
+    temprano_contra:
+      'Amostra curta, mas o sinal já é forte e contra: essas apostas pegaram preço pior que o fechamento.',
   },
+  margen: 'Margem média',
   desglose: {
     titulo: 'Por esporte',
     aviso:
@@ -104,7 +115,12 @@ const es: TextosAgregado = {
     significativo: 'Señal estadísticamente significativa de ventaja sobre la línea de cierre.',
     contra:
       'Señal estadísticamente significativa, pero en contra: estas apuestas pierden valor frente al cierre.',
+    temprano_favor:
+      'Muestra corta, pero la señal ya es fuerte y a favor. Todavía no es conclusión.',
+    temprano_contra:
+      'Muestra corta, pero la señal ya es fuerte y en contra: estas apuestas cogieron peor precio que el cierre.',
   },
+  margen: 'Margen medio',
   desglose: {
     titulo: 'Por deporte',
     aviso:
@@ -144,7 +160,11 @@ const en: TextosAgregado = {
     significativo: 'Statistically significant signal of an edge over the closing line.',
     contra:
       'Statistically significant, but against you: these bets lose value relative to the close.',
+    temprano_favor: 'Short sample, but the signal is already strong and in your favour. Not a conclusion yet.',
+    temprano_contra:
+      'Short sample, but the signal is already strong and against: these bets took a worse price than the close.',
   },
+  margen: 'Average margin',
   desglose: {
     titulo: 'By sport',
     aviso:

@@ -88,11 +88,23 @@ async function opcionesDe(
           : [...new Set((e.porCasa ?? []).flatMap((c) => c.lados.map((l) => l.lado)))];
       return lados.map((lado) => {
         const precio = e.mercado?.find((m) => m.lado === lado);
+        /*
+         * Se rellena con el MEJOR precio disponible, no con la mediana.
+         *
+         * Medido sobre los primeros 34 picks: registrar a la mediana deja el
+         * CLV bruto en cero por construccion, y coger el mejor precio de la
+         * lista valia 2,4 puntos. El valor por defecto estaba empujando hacia
+         * el peor resultado posible, que es lo contrario de lo que esta
+         * herramienta existe para hacer.
+         */
+        const mejor = (e.porCasa ?? [])
+          .flatMap((c) => c.lados.filter((l) => l.lado === lado).map((l) => l.cuota))
+          .reduce<number | null>((a, b) => (a === null || b > a ? b : a), null);
+        const referencia = mejor ?? precio?.mediana ?? null;
         return {
           valor: JSON.stringify({ id: e.id, lado }),
-          etiqueta: `${lado === EMPATE ? 'Empate' : lado} ${precio ? `· ${precio.mediana.toFixed(2)} ` : ''}— ${e.visitante} @ ${e.local} (en ${horas} h)`,
-          // Rellena la casilla de la cuota al elegir, para no teclear a mano.
-          cuota: precio ? precio.mediana.toFixed(2).replace('.', ',') : '',
+          etiqueta: `${lado === EMPATE ? 'Empate' : lado} ${referencia ? `· ${referencia.toFixed(2)} ` : ''}— ${e.visitante} @ ${e.local} (en ${horas} h)`,
+          cuota: referencia ? referencia.toFixed(2).replace('.', ',') : '',
         };
       });
     });
