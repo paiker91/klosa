@@ -149,7 +149,7 @@ export function FormularioPick({
   deporte: Deporte;
   mercado: Mercado;
   opciones: OpcionEvento[];
-  casas: Record<string, { casa: string; cuota: number }[]>;
+  casas: Record<string, { casa: string; cuota: number; margen: number }[]>;
 }) {
   const [estado, accion] = useActionState(anotarPick, null);
   const [seleccion, setSeleccion] = useState(opciones[0]?.valor ?? '');
@@ -226,16 +226,16 @@ export function FormularioPick({
           <option value="">Sin casa (no recomendado)</option>
           {disponibles.map((c) => (
             <option key={c.casa} value={c.casa}>
-              {c.casa} · {c.cuota.toFixed(2)}
+              {c.casa} · {c.cuota.toFixed(2)} · margen {(c.margen * 100).toFixed(1)}%
             </option>
           ))}
         </select>
-        {disponibles.length > 1 && (
+        {disponibles.length > 0 && (
           <p className="mt-1.5 text-xs leading-relaxed text-apagado">
-            La lista va del mejor precio al peor, y la cuota se rellena con el mejor. Medido sobre
-            los primeros 34 picks, coger el mejor en vez de la mediana valía{' '}
-            <strong className="text-tinta">2,4 puntos de CLV</strong> — y registrar a la mediana
-            deja el CLV bruto en cero por construcción. Elige donde apostaste de verdad.
+            Solo salen las casas de margen bajo, calculado de sus propias cuotas. El listón para
+            ganar dinero es justo ese:{' '}
+            <strong className="text-tinta">hay que batir el cierre por más que el margen</strong>.
+            En una casa del 6 % necesitas un 6 %; en una del 2 %, basta con un 2 %.
           </p>
         )}
       </div>

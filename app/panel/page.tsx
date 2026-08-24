@@ -8,6 +8,7 @@ import {
   NOMBRE_DEPORTE,
   EMPATE,
   esFutbol,
+  viasDe,
   type Deporte,
   type Mercado,
 } from '@/lib/cuotas/dominio';
@@ -33,8 +34,8 @@ async function opcionesDe(
   mercado: Mercado,
 ): Promise<{
   opciones: OpcionEvento[];
-  /** Precio de cada casa por lado, para poder registrar uno que exista. */
-  casas: Record<string, { casa: string; cuota: number }[]>;
+  /** Precio y margen de cada casa por lado. */
+  casas: Record<string, { casa: string; cuota: number; margen: number }[]>;
   error: string | null;
 }> {
   try {
@@ -46,29 +47,49 @@ async function opcionesDe(
       return {
         opciones: [],
         casas: {},
-        error: `No hay partidos abiertos de ${NOMBRE_DEPORTE[deporte]} ahora mismo.`,
+        error:
+          `No hay partidos abiertos de ${NOMBRE_DEPORTE[deporte]} ahora mismo. ` +
+          'Puede estar fuera de temporada: prueba otra en el selector de arriba.',
       };
     }
 
     /*
-     * Precios por casa, ordenados de mejor a peor.
+     * Precios por casa, con el margen de CADA casa calculado de sus propias
+     * cuotas: la suma de las probabilidades implícitas de todos sus lados.
+     * Medido, no supuesto por reputación — una casa puede ser afilada en la NBA
+     * y blanda en la Série B, y el nombre no lo dice.
      *
-     * La mediana sigue saliendo como referencia, pero no es un precio que
-     * nadie pueda apostar: registrarla condena el CLV a salir negativo por el
-     * margen. Lo que se registra tiene que ser el precio de una casa concreta,
-     * porque el cierre se va a buscar en ESA casa.
+     * Solo se enseñan las de margen bajo, porque el listón para ganar dinero es
+     * exactamente ese: la ventaja sale positiva cuando el CLV bruto supera al
+     * margen del mercado donde se apostó. En una casa del 6 % hay que batir el
+     * cierre un 6 %; en una del 2 %, basta con un 2 %.
      */
-    const casas: Record<string, { casa: string; cuota: number }[]> = {};
+    const TOPE = { 2: 0.04, 3: 0.06 } as const;
+    const tope = TOPE[viasDe(deporte, mercado)];
+
+    const todas: Record<string, { casa: string; cuota: number; margen: number }[]> = {};
     for (const e of eventos) {
       for (const c of e.porCasa ?? []) {
+        const margen = c.lados.reduce((s, l) => s + 1 / l.cuota, 0) - 1;
         for (const l of c.lados) {
           const clave = `${e.id}|${l.lado}`;
-          casas[clave] = [...(casas[clave] ?? []), { casa: c.casa, cuota: l.cuota }];
+          todas[clave] = [...(todas[clave] ?? []), { casa: c.casa, cuota: l.cuota, margen }];
         }
       }
     }
-    for (const clave of Object.keys(casas)) {
-      (casas[clave] as { casa: string; cuota: number }[]).sort((a, b) => b.cuota - a.cuota);
+
+    const casas: Record<string, { casa: string; cuota: number; margen: number }[]> = {};
+    for (const [clave, lista] of Object.entries(todas)) {
+      const baratas = lista.filter((x) => x.margen <= tope);
+      /*
+       * Si ninguna baja del tope se dejan las tres de menor margen. Una lista
+       * vacía no protege de nada: obligaría a escribir la cuota a mano y sin
+       * saber de dónde sale, que es peor que enseñar una casa cara.
+       */
+      const elegidas = baratas.length > 0
+        ? baratas
+        : [...lista].sort((a, b) => a.margen - b.margen).slice(0, 3);
+      casas[clave] = elegidas.sort((a, b) => b.cuota - a.cuota);
     }
 
     /*
@@ -89,17 +110,15 @@ async function opcionesDe(
       return lados.map((lado) => {
         const precio = e.mercado?.find((m) => m.lado === lado);
         /*
-         * Se rellena con el MEJOR precio disponible, no con la mediana.
+         * Se rellena con el mejor precio ENTRE LAS CASAS DE MARGEN BAJO, no con
+         * la mediana ni con el mejor absoluto.
          *
          * Medido sobre los primeros 34 picks: registrar a la mediana deja el
-         * CLV bruto en cero por construccion, y coger el mejor precio de la
-         * lista valia 2,4 puntos. El valor por defecto estaba empujando hacia
-         * el peor resultado posible, que es lo contrario de lo que esta
-         * herramienta existe para hacer.
+         * CLV bruto en cero por construcción; comprar el mejor precio lo sube a
+         * +2,03 %. Y de nada sirve un precio alto en una casa que se queda el
+         * 7 %: la ventaja solo es positiva cuando el bruto supera al margen.
          */
-        const mejor = (e.porCasa ?? [])
-          .flatMap((c) => c.lados.filter((l) => l.lado === lado).map((l) => l.cuota))
-          .reduce<number | null>((a, b) => (a === null || b > a ? b : a), null);
+        const mejor = (casas[`${e.id}|${lado}`] ?? [])[0]?.cuota ?? null;
         const referencia = mejor ?? precio?.mediana ?? null;
         return {
           valor: JSON.stringify({ id: e.id, lado }),
@@ -175,7 +194,7 @@ export default async function Panel({
   }
 
   const { deporte: pedido, mercado: mercadoPedido } = await searchParams;
-  const deporte: Deporte = esDeporte(pedido) ? pedido : 'Champions';
+  const deporte: Deporte = esDeporte(pedido) ? pedido : 'PremierLeague';
   const mercado: Mercado = esMercado(mercadoPedido) ? mercadoPedido : 'moneyline';
   const { opciones, casas, error } = await opcionesDe(config.claveOdds, deporte, mercado);
 
