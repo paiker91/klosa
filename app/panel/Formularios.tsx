@@ -232,10 +232,10 @@ export function FormularioPick({
         </select>
         {disponibles.length > 0 && (
           <p className="mt-1.5 text-xs leading-relaxed text-apagado">
-            Todas las casas, de mejor precio a peor, con su margen al lado. Coge el precio más
-            alto aunque la casa sea cara:{' '}
-            <strong className="text-tinta">lo que cuenta es lo que te pagan a ti</strong>, y el
-            mejor precio suele estar en la casa lenta, no en la afilada.
+            Todas las casas, de mejor precio a peor, con su margen al lado. Lo que se publica es
+            una <strong className="text-tinta">referencia de mercado</strong>, no lo que pagaste
+            con tu dinero: el registro mide la calidad del pick para que lo pueda seguir alguien
+            desde cualquier país, no tu cuenta personal.
           </p>
         )}
       </div>

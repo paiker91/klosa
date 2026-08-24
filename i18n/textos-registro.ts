@@ -12,6 +12,14 @@ export interface TextosRegistro {
   meta: { titulo: string; descripcion: string };
   h1: string;
   entradilla: string;
+  /**
+   * Qué es exactamente este registro.
+   *
+   * Sin esto, un lector supone que las cuotas son las que se pagaron con
+   * dinero propio. No lo son, y en un producto cuyo único activo es la
+   * credibilidad esa suposición no puede quedar en el aire.
+   */
+  naturaleza: { titulo: string; texto: string };
   vacio: { titulo: string; texto: string };
   noDisponible: { titulo: string; texto: string };
   etiquetas: {
@@ -92,6 +100,11 @@ const pt: TextosRegistro = {
   h1: 'Registro de pronósticos',
   entradilla:
     'Cada pick abaixo foi anotado antes do jogo começar, e a linha de fechamento foi capturada depois por um provedor de odds — não por mim. Você não precisa acreditar em nada disso: pode conferir tudo no GitHub.',
+  naturaleza: {
+    titulo: 'O que este registro mede',
+    texto:
+      'Mede a qualidade do pick, não as minhas apostas. A odd guardada é a melhor referência do mercado no momento de publicar, e não necessariamente o que eu paguei: da Espanha não tenho acesso a todas as casas, e você não tem acesso às mesmas que eu. O que dá para comparar entre países é o lado escolhido e o preço a que estava — e é isso que está aqui. A vantagem se mede contra o mercado mais afiado do fechamento, hoje Betfair e Matchbook, com margens de cerca de 0,7 %.',
+  },
   vacio: {
     titulo: 'Ainda não há nenhum pick',
     texto:
@@ -215,6 +228,11 @@ const es: TextosRegistro = {
   h1: 'Registro de pronósticos',
   entradilla:
     'Cada pick de abajo se anotó antes de que empezara el partido, y la línea de cierre la capturó después un proveedor de cuotas, no yo. No hace falta que te fíes de nada de esto: puedes comprobarlo todo en GitHub.',
+  naturaleza: {
+    titulo: 'Qué mide este registro',
+    texto:
+      'Mide la calidad del pick, no mis apuestas. La cuota guardada es la mejor referencia del mercado en el momento de publicar, y no necesariamente lo que yo pagué: desde España no tengo acceso a todas las casas, y tú no tienes acceso a las mismas que yo. Lo que sí se puede comparar entre países es el lado elegido y el precio al que estaba — y eso es lo que hay aquí. La ventaja se mide contra el mercado más afilado del cierre, hoy Betfair y Matchbook, con márgenes en torno al 0,7 %.',
+  },
   vacio: {
     titulo: 'Todavía no hay ningún pick',
     texto:
@@ -338,6 +356,11 @@ const en: TextosRegistro = {
   h1: 'Pick record',
   entradilla:
     'Every pick below was logged before the game started, and the closing line was captured afterwards by an odds provider, not by me. You do not have to take any of it on trust: you can check all of it on GitHub.',
+  naturaleza: {
+    titulo: 'What this record measures',
+    texto:
+      'It measures pick quality, not my bets. The odds stored are the best market reference at the moment of publishing, not necessarily what I paid: from Spain I cannot reach every book, and you cannot reach the same ones I can. What does compare across countries is the side chosen and the price it was at — and that is what is here. Edge is measured against the sharpest closing market, today Betfair and Matchbook, with margins around 0.7 %.',
+  },
   vacio: {
     titulo: 'No picks yet',
     texto:

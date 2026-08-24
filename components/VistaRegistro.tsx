@@ -427,6 +427,16 @@ function Titulo({ t, publicar }: { t: TextosRegistro; publicar: string }) {
       <div className="max-w-3xl">
         <h1 className="text-4xl font-semibold tracking-tight text-balance sm:text-5xl">{t.h1}</h1>
         <p className="mt-4 leading-relaxed text-tenue">{t.entradilla}</p>
+        {/*
+          Va arriba y no en una nota al pie. Quien lee un histórico de picks da
+          por hecho que son apuestas reales de quien lo publica; decirle que no
+          después de que se haya formado esa idea es corregirle, y decírselo
+          antes es informarle.
+        */}
+        <div className="mt-5 rounded-xl border border-borde bg-fondo/40 p-4">
+          <p className="etiqueta-dato">{t.naturaleza.titulo}</p>
+          <p className="mt-2 text-xs leading-relaxed text-tenue">{t.naturaleza.texto}</p>
+        </div>
       </div>
       {/* Solo lo ve quien ya entró al panel; publicar sigue pidiendo contraseña. */}
       <AccesoPanel etiqueta={publicar} />
