@@ -232,10 +232,10 @@ export function FormularioPick({
         </select>
         {disponibles.length > 0 && (
           <p className="mt-1.5 text-xs leading-relaxed text-apagado">
-            Solo salen las casas de margen bajo, calculado de sus propias cuotas. El listón para
-            ganar dinero es justo ese:{' '}
-            <strong className="text-tinta">hay que batir el cierre por más que el margen</strong>.
-            En una casa del 6 % necesitas un 6 %; en una del 2 %, basta con un 2 %.
+            Todas las casas, de mejor precio a peor, con su margen al lado. Coge el precio más
+            alto aunque la casa sea cara:{' '}
+            <strong className="text-tinta">lo que cuenta es lo que te pagan a ti</strong>, y el
+            mejor precio suele estar en la casa lenta, no en la afilada.
           </p>
         )}
       </div>
