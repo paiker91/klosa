@@ -74,13 +74,19 @@ export interface Cierre {
   /**
    * De dónde salió el cierre.
    *
-   * `casa` es la misma casa donde se cogió la cuota, que es lo que hace
-   * comparable el número: mide el movimiento de la línea y no lo cara que sea
-   * esa casa. `consenso` es la mediana del mercado, y solo se usa cuando la
-   * casa del pick ya no cuelga ese mercado en el corte — pasa, porque las
-   * casas retiran mercados. Se guarda cuál se usó para no confundirlos.
+   * `afilada` es la casa de menor margen del corte, y es la referencia buena:
+   * su precio, una vez quitada la comisión, es el mejor estimador disponible de
+   * la probabilidad real. Medido sobre los primeros 34 picks, esa casa cerraba
+   * con un 0,66 % de margen frente al 4,14 % de la mediana del mercado — medir
+   * contra la mediana inflaba el CLV bruto en cuatro puntos que eran comisión,
+   * no habilidad.
+   *
+   * `consenso` es la mediana, y solo se usa si no hay ninguna casa utilizable.
+   * `casa` son los cierres antiguos, capturados contra la casa del pick.
    */
-  fuente: 'casa' | 'consenso';
+  fuente: 'afilada' | 'casa' | 'consenso';
+  /** Margen del mercado de referencia. Cuanto más bajo, mejor el estimador. */
+  margen: number;
   proveedor: string;
 }
 

@@ -211,23 +211,34 @@ for (const [clave, delGrupo] of grupos) {
     }
 
     /*
-     * La misma casa contra sí misma, si el pick declara dónde se cogió.
+     * La casa MÁS AFILADA del corte, no la del pick ni la mediana.
      *
-     * Comparar el precio de una casa contra la mediana del mercado mezcla dos
-     * cosas: cuánto se movió la línea y lo cara que es esa casa. Una casa con
-     * margen ancho sale siempre en negativo, y eso no dice nada de quien
-     * apuesta. Enfrentando la casa consigo misma queda solo lo que se quería
-     * medir.
+     * El de-vig convierte la cuota de cierre en una probabilidad, y el
+     * resultado depende de qué mercado se use. La mediana de treinta casas
+     * lleva un 4 % de comisión dentro; la casa más afilada, un 0,7 %. Medido
+     * sobre los 34 primeros picks: contra la mediana el mejor precio parecía
+     * sacar un +4,03 % de CLV, y contra la afilada sacaba un -0,03 %. Aquel
+     * cuatro por ciento era la comisión de las casas blandas, no habilidad de
+     * nadie.
      *
-     * Si esa casa ya no cuelga el mercado en el corte, se usa la mediana y se
-     * anota que se hizo así: mezclarlas sin decirlo daría números que parecen
-     * comparables y no lo son.
+     * Medir contra la casa del pick tampoco servía: una casa blanda con 7 % de
+     * margen ponía un listón del 7 % por el mero hecho de haber comprado ahí.
+     * Eso mide dónde compraste, no lo bien que compraste.
      */
-    const suCasa = p.casa
-      ? cierre.porCasa.find((c) => normal(c.casa) === normal(p.casa as string))
-      : undefined;
-    const usados = suCasa ? suCasa.lados : cierre.lados;
-    const fuente: 'casa' | 'consenso' = suCasa ? 'casa' : 'consenso';
+    const conMargen = cierre.porCasa
+      .map((c) => ({ ...c, margen: c.lados.reduce((s, l) => s + 1 / l.cuota, 0) - 1 }))
+      /* Un margen nulo o negativo no es una casa barata: es un dato roto o dos
+         momentos mezclados. Como referencia daría probabilidades imposibles. */
+      .filter((c) => c.margen > 0.001)
+      .filter((c) => c.lados.some((l) => normal(l.etiqueta) === normal(p.lado)))
+      .sort((a, b) => a.margen - b.margen);
+
+    const afilada = conMargen[0];
+    const usados = afilada ? afilada.lados : cierre.lados;
+    const margen = afilada
+      ? afilada.margen
+      : cierre.lados.reduce((s, l) => s + 1 / l.cuota, 0) - 1;
+    const fuente: 'afilada' | 'consenso' = afilada ? 'afilada' : 'consenso';
 
     // Emparejamiento estricto por etiqueta, nunca por posición: en fútbol son
     // tres lados y las casas no los devuelven en un orden fijo.
@@ -249,8 +260,9 @@ for (const [clave, delGrupo] of grupos) {
         lados,
         cuotas,
         indiceTomado: indice,
-        casa: suCasa ? suCasa.casa : cierre.casa,
+        casa: afilada ? afilada.casa : cierre.casa,
         fuente,
+        margen,
         proveedor: api.nombre,
       });
     } else if (supabase) {
@@ -260,8 +272,9 @@ for (const [clave, delGrupo] of grupos) {
         lados,
         cuotas,
         indice_tomado: indice,
-        casa: suCasa ? suCasa.casa : cierre.casa,
+        casa: afilada ? afilada.casa : cierre.casa,
         fuente,
+        margen,
         proveedor: api.nombre,
       });
       if (error) {
@@ -275,7 +288,7 @@ for (const [clave, delGrupo] of grupos) {
     const signo = analisis.ventaja >= 0 ? '+' : '';
     console.log(
       `  ${p.origen === 'registro' ? '📄' : '👤'} ${p.lado} @ ${p.cuotaTomada} → ` +
-        `cierre ${cuotas[indice]} (${fuente === 'casa' ? suCasa?.casa : 'consenso'}) · ` +
+        `cierre ${cuotas[indice]} (${afilada ? `${afilada.casa}, margen ${(margen * 100).toFixed(1)}%` : 'consenso'}) · ` +
         `ventaja ${signo}${(analisis.ventaja * 100).toFixed(2)} %`,
     );
   }

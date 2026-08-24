@@ -41,7 +41,8 @@ const cierre = (p: Pick, cuotaCierre: number): Cierre => ({
   cuotas: [cuotaCierre, 1 / (1.05 - 1 / cuotaCierre)],
   indiceTomado: 0,
   casa: 'Casa',
-  fuente: 'casa',
+  fuente: 'afilada',
+  margen: 0.02,
   proveedor: 'prueba',
 });
 
