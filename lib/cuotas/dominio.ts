@@ -14,9 +14,10 @@ import { validarCuota, ErrorCuota } from '../clv';
 /**
  * Competiciones cubiertas.
  *
- * El fútbol va primero y el Brasileirão el primero de todos: es lo que se
- * apuesta en el mercado objetivo. Las otras están porque el mismo proveedor
- * las trae sin coste adicional.
+ * Agrupadas por deporte y, dentro del fútbol, por tamaño de la competición.
+ * Antes iban las brasileñas delante porque el proyecto apuntaba a un solo
+ * país; ese orden le decía a todo el que no fuera brasileño que el sitio no
+ * era para él.
  */
 export type Deporte =
   | 'Brasileirao'
@@ -36,16 +37,16 @@ export type Deporte =
 export type Mercado = 'moneyline' | 'handicap' | 'totales';
 
 export const DEPORTES: readonly Deporte[] = [
-  'Brasileirao',
-  'BrasileiraoB',
-  'Libertadores',
-  'Sudamericana',
+  'Champions',
   'PremierLeague',
   'LaLiga',
   'SerieA',
   'Bundesliga',
   'Ligue1',
-  'Champions',
+  'Libertadores',
+  'Sudamericana',
+  'Brasileirao',
+  'BrasileiraoB',
   'NBA',
   'Euroliga',
   'MLB',

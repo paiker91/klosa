@@ -1,8 +1,10 @@
 /**
  * Política de privacidad.
  *
- * Obligatoria desde que se guardan correos: la LGPD brasileña exige decir qué
- * se recoge, para qué, con qué base legal y cómo se ejerce cada derecho.
+ * Obligatoria desde que se guardan correos. Se escribió pensando en la LGPD
+ * brasileña, pero el sitio se usa desde cualquier país, así que se sostiene
+ * sobre el listón más alto de los dos: el RGPD europeo. Cumplir el estricto
+ * cumple el otro; al revés, no.
  *
  * Está escrita para que se entienda, no para cubrirse. Un documento que nadie
  * puede leer cumple la letra y falla al propósito, y este proyecto se sostiene
@@ -88,13 +90,14 @@ const pt: TextosPrivacidad = {
     {
       titulo: 'Base legal',
       parrafos: [
-        'O tratamento se apoia na execução do serviço que você pediu ao criar a conta (art. 7º, V da LGPD). Sem e-mail não há como entrar; sem os picks não há o que medir.',
+        'O tratamento se apoia na execução do serviço que você pediu ao criar a conta — art. 7º, V da LGPD no Brasil, art. 6.1.b do GDPR na Europa. Sem e-mail não há como entrar; sem os picks não há o que medir.',
       ],
     },
     {
       titulo: 'Onde ficam',
       parrafos: [
-        'Em um banco de dados da Supabase hospedado em São Paulo. Seus dados não saem do Brasil.',
+        'Em um banco de dados da Supabase hospedado em São Paulo, Brasil.',
+        'Se você está na União Europeia, isso é uma transferência internacional: o Brasil não tem decisão de adequação da UE. Dizemos isso porque é verdade e porque você tem direito a saber onde estão seus dados antes de criar a conta, não depois.',
         'O site roda na Vercel, que serve as páginas. O provedor de odds recebe consultas sobre jogos e mercados, nunca sobre pessoas: ele não sabe que você existe.',
       ],
     },
@@ -107,7 +110,7 @@ const pt: TextosPrivacidad = {
     {
       titulo: 'Seus direitos',
       parrafos: [
-        'A LGPD garante que você possa confirmar o tratamento, acessar, corrigir, apagar, levar seus dados embora e revogar o consentimento.',
+        'Tanto a LGPD quanto o GDPR garantem que você possa confirmar o tratamento, acessar, corrigir, apagar, levar seus dados embora e revogar o consentimento. Aqui valem para todo mundo, esteja onde estiver.',
         'O mais importante deles está implementado como um botão: em «Meus picks» você apaga a conta e todo o seu conteúdo, sem pedir nada a ninguém. Para os demais, escreva.',
       ],
     },
@@ -185,13 +188,14 @@ const es: TextosPrivacidad = {
     {
       titulo: 'Base legal',
       parrafos: [
-        'El tratamiento se apoya en la ejecución del servicio que pediste al crear la cuenta. Sin email no hay forma de entrar; sin los picks no hay nada que medir.',
+        'El tratamiento se apoya en la ejecución del servicio que pediste al crear la cuenta — art. 7º V de la LGPD en Brasil, art. 6.1.b del RGPD en Europa. Sin email no hay forma de entrar; sin los picks no hay nada que medir.',
       ],
     },
     {
       titulo: 'Dónde están',
       parrafos: [
-        'En una base de datos de Supabase alojada en São Paulo. Tus datos no salen de Brasil.',
+        'En una base de datos de Supabase alojada en São Paulo, Brasil.',
+        'Si estás en la Unión Europea, eso es una transferencia internacional: Brasil no tiene decisión de adecuación de la UE. Lo decimos porque es verdad y porque tienes derecho a saber dónde están tus datos antes de crear la cuenta, no después.',
         'El sitio corre en Vercel, que sirve las páginas. El proveedor de cuotas recibe consultas sobre partidos y mercados, nunca sobre personas: no sabe que existes.',
       ],
     },
@@ -204,7 +208,7 @@ const es: TextosPrivacidad = {
     {
       titulo: 'Tus derechos',
       parrafos: [
-        'Puedes confirmar el tratamiento, acceder, corregir, borrar, llevarte tus datos y revocar el consentimiento.',
+        'Tanto la LGPD como el RGPD garantizan que puedas confirmar el tratamiento, acceder, corregir, borrar, llevarte tus datos y revocar el consentimiento. Aquí valen para todo el mundo, estés donde estés.',
         'El más importante está implementado como un botón: en «Mis picks» borras la cuenta y todo su contenido sin pedírselo a nadie. Para el resto, escribe.',
       ],
     },
@@ -282,13 +286,14 @@ const en: TextosPrivacidad = {
     {
       titulo: 'Legal basis',
       parrafos: [
-        'Processing rests on performing the service you asked for when creating the account. Without an email there is no way to sign in; without picks there is nothing to measure.',
+        'Processing rests on performing the service you asked for when creating the account — art. 7 V of Brazil’s LGPD, art. 6(1)(b) of the EU GDPR. Without an email there is no way to sign in; without picks there is nothing to measure.',
       ],
     },
     {
       titulo: 'Where it lives',
       parrafos: [
-        'In a Supabase database hosted in São Paulo. Your data does not leave Brazil.',
+        'In a Supabase database hosted in São Paulo, Brazil.',
+        'If you are in the European Union, that is an international transfer: Brazil has no EU adequacy decision. We say so because it is true and because you have a right to know where your data sits before creating the account, not after.',
         'The site runs on Vercel, which serves the pages. The odds provider receives queries about games and markets, never about people: it does not know you exist.',
       ],
     },
@@ -301,7 +306,7 @@ const en: TextosPrivacidad = {
     {
       titulo: 'Your rights',
       parrafos: [
-        'You can confirm the processing, access, correct, delete, take your data with you and withdraw consent.',
+        'Both Brazil’s LGPD and the EU GDPR guarantee you can confirm the processing, access, correct, delete, take your data with you and withdraw consent. Here they apply to everyone, wherever you are.',
         'The most important one is a button: in “My picks” you delete the account and everything in it without asking anyone. For the rest, get in touch.',
       ],
     },

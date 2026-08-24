@@ -175,7 +175,7 @@ export default async function Panel({
   }
 
   const { deporte: pedido, mercado: mercadoPedido } = await searchParams;
-  const deporte: Deporte = esDeporte(pedido) ? pedido : 'Brasileirao';
+  const deporte: Deporte = esDeporte(pedido) ? pedido : 'Champions';
   const mercado: Mercado = esMercado(mercadoPedido) ? mercadoPedido : 'moneyline';
   const { opciones, casas, error } = await opcionesDe(config.claveOdds, deporte, mercado);
 

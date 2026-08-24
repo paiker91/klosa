@@ -1,15 +1,21 @@
 /**
  * Configuración de idiomas.
  *
- * pt-BR es el principal: el mercado objetivo es Brasil. Las rutas cambian por
- * idioma a propósito, porque una URL en el idioma del usuario posiciona mejor
- * que un prefijo sobre una ruta en inglés.
+ * Los tres valen lo mismo. El proyecto nació apuntando a Brasil, pero la
+ * herramienta no tiene nada de local: el CLV se calcula igual en cualquier
+ * mercado y el proveedor de cuotas cubre trece competiciones de tres
+ * continentes. Centrar el sitio en un país solo servía para dejar fuera al
+ * resto.
+ *
+ * El inglés es el que sirve la raíz por ser el denominador común, no por ser
+ * más importante. Las rutas cambian por idioma a propósito, porque una URL en
+ * el idioma del usuario posiciona mejor que un prefijo sobre una ruta ajena.
  */
 
 export const LOCALES = ['pt', 'es', 'en'] as const;
 export type Locale = (typeof LOCALES)[number];
 
-export const LOCALE_POR_DEFECTO: Locale = 'pt';
+export const LOCALE_POR_DEFECTO: Locale = 'en';
 
 export function esLocale(valor: string): valor is Locale {
   return (LOCALES as readonly string[]).includes(valor);

@@ -20,7 +20,9 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: `${SITIO}${urlDe(pagina, locale)}`,
       lastModified: new Date(),
       changeFrequency: pagina === 'registro' ? ('daily' as const) : ('monthly' as const),
-      priority: pagina === 'privacidad' ? 0.3 : locale === 'pt' ? 1 : 0.8,
+      /* Los tres idiomas pesan igual: la herramienta sirve en cualquier
+         mercado y priorizar uno solo dejaba fuera a los demás. */
+      priority: pagina === 'privacidad' ? 0.3 : 1,
       alternates: { languages: alternativas },
     }));
   });
