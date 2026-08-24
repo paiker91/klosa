@@ -29,7 +29,7 @@ import {
   type ResultadoEvento,
   DEPORTES,
   EMPATE,
-  VIAS,
+  viasDe,
   esFutbol,
   ErrorProveedor,
   ErrorCuotaAgotada,
@@ -403,7 +403,7 @@ export class TheOddsApi implements ProveedorDeCuotas {
       },
     );
 
-    const vias = VIAS[deporte];
+    const vias = viasDe(deporte, mercado);
     const salida = new Map<string, CuotasDeCierre>();
 
     for (const bruto of instantanea.data) {

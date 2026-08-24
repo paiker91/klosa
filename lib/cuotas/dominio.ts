@@ -79,6 +79,21 @@ export const VIAS: Record<Deporte, 2 | 3> = {
 
 export const esFutbol = (deporte: Deporte): boolean => VIAS[deporte] === 3;
 
+/**
+ * Salidas de un mercado concreto.
+ *
+ * `VIAS` describe el mercado de RESULTADO y solo ese. El hándicap y los
+ * totales son de dos vías en todos los deportes: no existe el empate en un
+ * «Barcelona −1,5» ni en un «Más de 2,5».
+ *
+ * Confundirlos no da un número equivocado, da silencio: se exigen tres salidas
+ * donde solo hay dos, se descartan todas las casas y el partido desaparece de
+ * la instantánea sin decir por qué. Pasó de verdad con un hándicap de LaLiga.
+ */
+export function viasDe(deporte: Deporte, mercado: Mercado): 2 | 3 {
+  return mercado === 'moneyline' ? VIAS[deporte] : 2;
+}
+
 /** Nombres propios: no se traducen, se escriben como se llaman. */
 export const NOMBRE_DEPORTE: Record<Deporte, string> = {
   Brasileirao: 'Brasileirão Série A',

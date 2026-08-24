@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   validarCuotasDeCierre,
+  viasDe,
   ErrorProveedor,
   ErrorCuotaAgotada,
   type CuotasDeCierre,
@@ -497,5 +498,26 @@ describe('datos imposibles en una instantánea compartida', () => {
     ]);
     expect(m.has('roto')).toBe(false);
     expect(m.get('bueno')?.casas).toBe(3);
+  });
+});
+
+describe('salidas por mercado, no por deporte', () => {
+  it('el hándicap es de dos vías también en fútbol', () => {
+    /*
+     * El fallo que dejó sin cierre a un «Barcelona -1.5» de LaLiga: se exigían
+     * tres salidas porque el fútbol es de tres vías, ninguna casa las tenía —un
+     * hándicap no tiene empate— y el partido desaparecía de la instantánea sin
+     * decir por qué. Silencio, no error.
+     */
+    expect(viasDe('LaLiga', 'moneyline')).toBe(3);
+    expect(viasDe('LaLiga', 'handicap')).toBe(2);
+    expect(viasDe('LaLiga', 'totales')).toBe(2);
+  });
+
+  it('en baloncesto y béisbol son dos en todos los mercados', () => {
+    for (const m of ['moneyline', 'handicap', 'totales'] as const) {
+      expect(viasDe('NBA', m)).toBe(2);
+      expect(viasDe('MLB', m)).toBe(2);
+    }
   });
 });

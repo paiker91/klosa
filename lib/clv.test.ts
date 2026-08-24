@@ -14,6 +14,7 @@ import {
   agregarPorGrupo,
   desviacionMuestral,
   estadisticoT,
+  claveVeredicto,
   ErrorCuota,
   type AnalisisApuesta,
 } from './clv';
@@ -302,5 +303,36 @@ describe('desglose por grupo', () => {
   it('agrupa lo que no trae etiqueta bajo un guion', () => {
     const r = con([['', 10, 0.02]]);
     expect(r[0]?.clave).toBe('—');
+  });
+});
+
+describe('cómo se le cuenta el veredicto a una persona', () => {
+  const base = { n: 33, t: -3.36, veredicto: 'muestra_insuficiente' as const, signo: null };
+
+  it('muestra corta con señal fuerte no es «no prueba nada»', () => {
+    /*
+     * El caso real: 33 picks, t = -3,36. La pantalla decía «con menos de 100
+     * picks esto no prueba nada» justo al lado de un estadístico que sí dice
+     * algo. Contradictorio, y en la dirección cómoda.
+     */
+    expect(claveVeredicto(base)).toBe('temprano_contra');
+    expect(claveVeredicto({ ...base, t: 3.36 })).toBe('temprano_favor');
+  });
+
+  it('muestra corta y señal débil sigue siendo muestra insuficiente', () => {
+    expect(claveVeredicto({ ...base, t: -1.2 })).toBe('muestra_insuficiente');
+    expect(claveVeredicto({ ...base, t: null })).toBe('muestra_insuficiente');
+  });
+
+  it('con muestra suficiente manda el veredicto de siempre', () => {
+    expect(
+      claveVeredicto({ n: 200, t: 3.5, veredicto: 'significativo', signo: 'favor' }),
+    ).toBe('significativo');
+    expect(
+      claveVeredicto({ n: 200, t: -3.5, veredicto: 'significativo', signo: 'contra' }),
+    ).toBe('contra');
+    expect(claveVeredicto({ n: 200, t: 0.4, veredicto: 'no_distinguible', signo: null })).toBe(
+      'no_distinguible',
+    );
   });
 });

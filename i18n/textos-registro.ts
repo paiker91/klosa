@@ -21,7 +21,13 @@ export interface TextosRegistro {
     t: string;
     pendientes: string;
   };
-  veredictos: Record<Veredicto, string> & { contra: string };
+  veredictos: Record<Veredicto, string> & {
+    contra: string;
+    temprano_favor: string;
+    temprano_contra: string;
+  };
+  /** Qué significa cada cifra, para quien no vive de esto. */
+  ayudas: { n: string; ventajaMedia: string; tasaAcierto: string; t: string };
   tabla: {
     resultado: string;
     ganada: string;
@@ -54,7 +60,11 @@ export interface TextosRegistro {
      * aplicado al yield insinuaría que con 100 apuestas resueltas ya diría
      * algo — exactamente lo contrario de lo que este bloque demuestra.
      */
-    veredictos: Record<Veredicto, string> & { contra: string };
+    veredictos: Record<Veredicto, string> & {
+      contra: string;
+      temprano_favor: string;
+      temprano_contra: string;
+    };
     sinDato: string;
     vacio: string;
   };
@@ -95,6 +105,18 @@ const pt: TextosRegistro = {
       'Não dá para distinguir de zero. Ainda não há evidência de vantagem, nem de que ela não exista.',
     significativo: 'Sinal estatisticamente significativo de vantagem sobre a linha de fechamento.',
     contra: 'Sinal estatisticamente significativo, mas contra: esses picks perdem valor.',
+    temprano_favor:
+      'Amostra curta, mas o sinal já é forte e a favor. Não é conclusão ainda — com poucos picks a estatística é frágil e apostas do mesmo dia não são totalmente independentes.',
+    temprano_contra:
+      'Amostra curta, mas o sinal já é forte e CONTRA. Com esses números, esses picks estão perdendo valor de forma difícil de explicar por azar.',
+  },
+  ayudas: {
+    n: 'Picks cujo fechamento o provedor já capturou. Só esses entram nas contas.',
+    ventajaMedia:
+      'Quanto melhor (ou pior) foi sua odd em relação ao preço justo do fechamento, já sem a margem da casa. Zero é pagar o preço certo.',
+    tasaAcierto:
+      'Quantos picks pegaram um preço melhor que o justo. Não é quantos ganharam: é quantos valiam a pena.',
+    t: 'Quantos desvios a média está de zero. Acima de 1,96 ou abaixo de -1,96 é difícil de explicar por acaso.',
   },
   tabla: {
     resultado: 'Resultado',
@@ -137,6 +159,10 @@ const pt: TextosRegistro = {
         'Yield estatisticamente significativo. Raro, e ainda assim não é promessa de nada: veja também o CLV.',
       contra:
         'Estatisticamente significativo, mas negativo: com esta amostra, estes picks perdem dinheiro.',
+      temprano_favor:
+        'Amostra curta, mas o yield já se separa de zero. Não conclua ainda: o yield é a métrica mais barulhenta que existe e precisa de muito mais apostas.',
+      temprano_contra:
+        'Amostra curta, mas o yield já se separa de zero, e para baixo.',
     },
     sinDato:
       'Ainda não dá para estimar quantas apostas fariam falta: o yield está perto demais de zero.',
@@ -187,6 +213,18 @@ const es: TextosRegistro = {
       'No se distingue de cero. Aún no hay evidencia de ventaja, ni de que no la haya.',
     significativo: 'Señal estadísticamente significativa de ventaja sobre la línea de cierre.',
     contra: 'Señal estadísticamente significativa, pero en contra: estos picks pierden valor.',
+    temprano_favor:
+      'Muestra corta, pero la señal ya es fuerte y a favor. Todavía no es conclusión — con pocos picks el estadístico es frágil y las apuestas del mismo día no son del todo independientes.',
+    temprano_contra:
+      'Muestra corta, pero la señal ya es fuerte y EN CONTRA. Con estos números, estos picks están perdiendo valor de una forma difícil de explicar por mala suerte.',
+  },
+  ayudas: {
+    n: 'Picks cuyo cierre ya capturó el proveedor. Solo esos entran en las cuentas.',
+    ventajaMedia:
+      'Cuánto mejor (o peor) fue tu cuota que el precio justo del cierre, ya sin el margen de la casa. Cero es pagar el precio correcto.',
+    tasaAcierto:
+      'Cuántos picks cogieron un precio mejor que el justo. No es cuántos ganaron: es cuántos valían la pena.',
+    t: 'Cuántas desviaciones está la media de cero. Por encima de 1,96 o por debajo de -1,96 es difícil de explicar por azar.',
   },
   tabla: {
     resultado: 'Resultado',
@@ -229,6 +267,10 @@ const es: TextosRegistro = {
         'Yield estadísticamente significativo. Es raro, y aun así no promete nada: mira también el CLV.',
       contra:
         'Estadísticamente significativo, pero negativo: con esta muestra, estos picks pierden dinero.',
+      temprano_favor:
+        'Muestra corta, pero el yield ya se separa de cero. No concluyas todavía: el yield es la métrica más ruidosa que existe y necesita muchas más apuestas.',
+      temprano_contra:
+        'Muestra corta, pero el yield ya se separa de cero, y hacia abajo.',
     },
     sinDato:
       'Todavía no se puede estimar cuántas apuestas harían falta: el yield está demasiado cerca de cero.',
@@ -279,6 +321,18 @@ const en: TextosRegistro = {
       'Not distinguishable from zero. No evidence of an edge yet, nor of its absence.',
     significativo: 'Statistically significant signal of an edge over the closing line.',
     contra: 'Statistically significant, but against: these picks lose value.',
+    temprano_favor:
+      'Short sample, but the signal is already strong and in your favour. Not a conclusion yet — with few picks the statistic is fragile and bets from the same day are not fully independent.',
+    temprano_contra:
+      'Short sample, but the signal is already strong and AGAINST. On these numbers, these picks are losing value in a way that is hard to explain by bad luck.',
+  },
+  ayudas: {
+    n: 'Picks whose closing line the provider has already captured. Only those count.',
+    ventajaMedia:
+      'How much better (or worse) your odds were than the fair closing price, with the margin removed. Zero means paying the right price.',
+    tasaAcierto:
+      'How many picks got a better price than fair. Not how many won: how many were worth taking.',
+    t: 'How many deviations the mean is from zero. Above 1.96 or below -1.96 is hard to explain by chance.',
   },
   tabla: {
     resultado: 'Result',
@@ -321,6 +375,9 @@ const en: TextosRegistro = {
         'Statistically significant yield. That is rare, and it still promises nothing: look at the CLV too.',
       contra:
         'Statistically significant, but negative: on this sample, these picks lose money.',
+      temprano_favor:
+        'Short sample, but the yield already separates from zero. Do not conclude yet: yield is the noisiest metric there is and needs far more bets.',
+      temprano_contra: 'Short sample, but the yield already separates from zero, and downwards.',
     },
     sinDato:
       'It is not yet possible to estimate how many bets would be needed: the yield is too close to zero.',

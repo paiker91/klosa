@@ -325,6 +325,39 @@ export function analizarApuesta(
 
 export type Veredicto = 'muestra_insuficiente' | 'no_distinguible' | 'significativo';
 
+/**
+ * Cómo se le cuenta el veredicto a una persona.
+ *
+ * Añade dos casos que el veredicto crudo no distingue y que la pantalla estaba
+ * contando mal: cuando la muestra es corta PERO el estadístico ya pasa el
+ * umbral. Decir «no prueba nada» al lado de un t de −3,36 es contradictorio, y
+ * además es deshonesto en la dirección cómoda — el umbral de cien existe para
+ * frenar a quien se cree bueno con veinte apuestas, no para tapar una señal
+ * fuerte y desfavorable.
+ *
+ * Sigue sin ser un veredicto firme: con muestra corta el estadístico es más
+ * frágil y las apuestas de un mismo día no son del todo independientes. Por eso
+ * es «señal temprana» y no «significativo».
+ */
+export type ClaveVeredicto =
+  | Veredicto
+  | 'contra'
+  | 'temprano_favor'
+  | 'temprano_contra';
+
+export function claveVeredicto(r: {
+  n: number;
+  t: number | null;
+  veredicto: Veredicto;
+  signo: 'favor' | 'contra' | null;
+}): ClaveVeredicto {
+  if (r.veredicto === 'significativo') return r.signo === 'contra' ? 'contra' : 'significativo';
+  if (r.veredicto === 'muestra_insuficiente' && r.t !== null && Math.abs(r.t) >= T_CRITICO) {
+    return r.t < 0 ? 'temprano_contra' : 'temprano_favor';
+  }
+  return r.veredicto;
+}
+
 export interface ResumenAgregado {
   n: number;
   clvMedio: number;

@@ -5,7 +5,8 @@ import type { RegistroPublico } from '@/lib/picks/remoto';
 import { cuotaTomadaDelCierre } from '@/lib/picks/dominio';
 import { etiquetaLado } from '@/i18n/lados';
 import type { Desenlace } from '@/lib/apuestas/handicap';
-import { N_MINIMO } from '@/lib/clv';
+import type { ClaveVeredicto } from '@/lib/clv';
+import { N_MINIMO, claveVeredicto } from '@/lib/clv';
 import { porcentaje, porcentajeSinSigno, decimal, entero } from './formato';
 import { Medidor, CosteDeLaMuestra } from './Medidor';
 import { Dispersion } from './Dispersion';
@@ -64,16 +65,15 @@ export function VistaRegistro({
   const { resumen, resultados, conteos, entradas, urls } = registro;
   const insuficiente = resumen.veredicto === 'muestra_insuficiente';
 
-  const claveVeredicto =
-    resumen.veredicto === 'significativo' && resumen.signo === 'contra'
-      ? 'contra'
-      : resumen.veredicto;
-
+  /*
+   * La clave la calcula `lib/clv.ts` para que no se repita en cada pantalla.
+   * Distingue el caso que antes se contaba mal: muestra corta pero estadístico
+   * que ya pasa el umbral. Decir «no prueba nada» junto a un t de -3,36 es una
+   * contradicción, y encima en la dirección cómoda.
+   */
+  const clave = claveVeredicto(resumen);
   const flojoResultados = resultados.veredicto === 'muestra_insuficiente';
-  const claveResultados =
-    resultados.veredicto === 'significativo' && resultados.signo === 'contra'
-      ? 'contra'
-      : resultados.veredicto;
+  const claveResultados = claveVeredicto(resultados);
 
   const ventajas = entradas
     .map((e) => e.analisis?.ventaja)
@@ -99,27 +99,38 @@ export function VistaRegistro({
           <section className="mt-10 grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:items-start">
             {/* Bloque de CLV: veredicto, medidor y cifras, en ese orden. */}
             <div className="tarjeta p-5 sm:p-6">
-              <Veredicto clave={claveVeredicto} texto={t.veredictos[claveVeredicto]} />
+              <Veredicto clave={clave} texto={t.veredictos[clave]} />
 
               <div className="mt-5">
                 <Medidor n={resumen.n} total={N_MINIMO} locale={locale} textos={tm} />
               </div>
 
-              <dl className="mt-6 grid grid-cols-2 gap-x-4 gap-y-5 sm:grid-cols-4">
+              {/*
+                Cada cifra con lo que significa debajo. Sin eso, «Estadístico t»
+                no le dice nada a quien no vive de esto — y el producto entero
+                existe porque la gente lee mal estos números.
+              */}
+              <dl className="mt-6 grid grid-cols-2 gap-x-4 gap-y-6 sm:grid-cols-2">
                 {(
                   [
-                    [t.etiquetas.n, entero(resumen.n, locale)],
+                    [t.etiquetas.n, entero(resumen.n, locale), t.ayudas.n],
                     [
                       t.etiquetas.ventajaMedia,
                       resumen.n === 0 ? SIN_DATO : porcentaje(resumen.ventajaMedia, locale),
+                      t.ayudas.ventajaMedia,
                     ],
                     [
                       t.etiquetas.tasaAcierto,
                       resumen.n === 0 ? SIN_DATO : porcentajeSinSigno(resumen.tasaDeAcierto, locale),
+                      t.ayudas.tasaAcierto,
                     ],
-                    [t.etiquetas.t, resumen.t === null ? '—' : decimal(resumen.t, locale, 2)],
+                    [
+                      t.etiquetas.t,
+                      resumen.t === null ? SIN_DATO : decimal(resumen.t, locale, 2),
+                      t.ayudas.t,
+                    ],
                   ] as const
-                ).map(([etiqueta, valor]) => (
+                ).map(([etiqueta, valor, ayuda]) => (
                   <div key={etiqueta}>
                     <dt className="etiqueta-dato">{etiqueta}</dt>
                     <dd
@@ -127,6 +138,7 @@ export function VistaRegistro({
                     >
                       {valor}
                     </dd>
+                    <p className="mt-1.5 text-xs leading-relaxed text-apagado">{ayuda}</p>
                   </div>
                 ))}
               </dl>
@@ -387,17 +399,11 @@ function Titulo({ t, publicar }: { t: TextosRegistro; publicar: string }) {
 }
 
 /** Franja de veredicto. Un color por estado, y el ámbar significa "todavía no se sabe". */
-function Veredicto({
-  clave,
-  texto,
-}: {
-  clave: 'muestra_insuficiente' | 'no_distinguible' | 'significativo' | 'contra';
-  texto: string;
-}) {
+function Veredicto({ clave, texto }: { clave: ClaveVeredicto; texto: string }) {
   const tono =
-    clave === 'significativo'
+    clave === 'significativo' || clave === 'temprano_favor'
       ? 'border-positivo/30 bg-positivo/10 text-positivo'
-      : clave === 'contra'
+      : clave === 'contra' || clave === 'temprano_contra'
         ? 'border-negativo/30 bg-negativo/10 text-negativo'
         : clave === 'no_distinguible'
           ? 'border-borde bg-fondo/40 text-tenue'
