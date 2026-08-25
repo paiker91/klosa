@@ -15,8 +15,13 @@
  * diferencia entre que esto se sostenga y que no.
  *
  * Si un lado no se puede emparejar con las etiquetas del proveedor, NO se
- * inventa: se deja pendiente y se avisa. Adivinar produciría un CLV plausible
- * y falso, que es peor que no tener dato.
+ * inventa: se renuncia y se avisa. Adivinar produciría un CLV plausible y
+ * falso, que es peor que no tener dato.
+ *
+ * Y se renuncia de verdad, no se deja pendiente. La instantánea histórica de
+ * un partido terminado es inmutable: reintentarla mañana devuelve exactamente
+ * los mismos datos. Dejarlo pendiente costaba 20 peticiones cada dos horas
+ * indefinidamente por un cierre que nunca iba a llegar.
  */
 import { TheOddsApi } from '../lib/cuotas/the-odds-api';
 import {
@@ -29,10 +34,12 @@ import {
 import {
   estadoDelRegistro,
   anadirCierre,
+  anadirRenuncia,
   anadirResultado,
   leerResultados,
   resolverMoneyline,
 } from '../lib/picks/registro';
+import { ESPERA_ANTES_DE_RENUNCIAR, type SinCierre } from '../lib/picks/dominio';
 import { clienteDeServicio } from '../lib/tracker/servicio';
 import { analizarApuestaN, analizarConReferencia } from '../lib/clv';
 import {
@@ -118,7 +125,9 @@ if (supabase === null) {
    */
   const { data, error } = await supabase
     .from('picks')
-    .select('id, deporte, evento_id, comienzo, mercado, lado, cuota_tomada, casa, cierres(pick_id)')
+    // prettier-ignore — Postgrest infiere los tipos del literal, así que
+    // partirlo en dos con `+` deja `data` como GenericStringError.
+    .select('id, deporte, evento_id, comienzo, mercado, lado, cuota_tomada, casa, cierres(pick_id), renuncias(pick_id)')
     .lte('comienzo', new Date().toISOString())
     .order('comienzo', { ascending: true })
     .limit(500);
@@ -126,8 +135,11 @@ if (supabase === null) {
   if (error) {
     console.error(`\nNo se pudieron leer los picks de usuarios: ${error.message}`);
   } else {
+    // Ni cierre capturado ni renuncia anotada: solo eso sigue costando dinero.
     const sinCierre = (data ?? []).filter(
-      (p) => (p.cierres as unknown[] | null)?.length !== 1,
+      (p) =>
+        (p.cierres as unknown[] | null)?.length !== 1 &&
+        (p.renuncias as unknown[] | null)?.length !== 1,
     );
     console.log(
       `Picks de usuarios: ${data?.length ?? 0} empezados · ${sinCierre.length} pendientes`,
@@ -171,10 +183,47 @@ console.log(
 );
 
 const normal = (s: string) => s.trim().toLowerCase();
+
+/**
+ * Da por perdido el cierre de un pick, en el origen que le toque.
+ *
+ * Devuelve si ha escrito algo, para no contar dos veces la misma renuncia
+ * cuando el job vuelva a pasar antes de que el pick salga de la lista.
+ */
+async function renunciar(
+  p: Pendiente,
+  motivo: SinCierre['motivo'],
+  detalle: string,
+): Promise<void> {
+  const fila = {
+    pickId: p.id,
+    motivo,
+    detalle,
+    renunciadoEn: new Date().toISOString(),
+    proveedor: api.nombre,
+  };
+  if (p.origen === 'registro') {
+    anadirRenuncia(fila);
+  } else if (supabase) {
+    const { error } = await supabase.from('renuncias').upsert(
+      {
+        pick_id: fila.pickId,
+        motivo,
+        detalle,
+        renunciado_en: fila.renunciadoEn,
+        proveedor: fila.proveedor,
+      },
+      { onConflict: 'pick_id', ignoreDuplicates: true },
+    );
+    if (error) console.error(`  ${p.id}: no se pudo anotar la renuncia — ${error.message}`);
+  }
+}
+
 let capturados = 0;
 let instantaneas = 0;
-const sinEmparejar: string[] = [];
 const sinDatos: string[] = [];
+/** Lo que se ha dado por perdido en esta pasada, para decirlo en voz alta. */
+const renunciados: string[] = [];
 
 for (const [clave, delGrupo] of grupos) {
   if (instantaneas >= MAX_INSTANTANEAS) {
@@ -206,7 +255,18 @@ for (const [clave, delGrupo] of grupos) {
   for (const p of delGrupo) {
     const cierre = cierres.get(p.eventoId);
     if (!cierre) {
-      sinDatos.push(`${p.id} (${p.eventoId})`);
+      /*
+       * Un fallo transitorio del proveedor y un partido que de verdad no está
+       * se ven igual desde aquí, así que este caso NO se abandona al primer
+       * intento: se le dan tres días de reintentos y solo entonces se cierra.
+       */
+      const antiguedad = Date.now() - p.comienzo.getTime();
+      if (antiguedad > ESPERA_ANTES_DE_RENUNCIAR) {
+        await renunciar(p, 'evento_ausente', `el evento ${p.eventoId} no está en la instantánea`);
+        renunciados.push(`${p.id} (${p.eventoId}): el partido no aparece tras 3 días`);
+      } else {
+        sinDatos.push(`${p.id} (${p.eventoId})`);
+      }
       continue;
     }
 
@@ -243,9 +303,14 @@ for (const [clave, delGrupo] of grupos) {
     // tres lados y las casas no los devuelven en un orden fijo.
     const indice = usados.findIndex((l) => normal(l.etiqueta) === normal(p.lado));
     if (indice === -1) {
-      sinEmparejar.push(
-        `${p.id}: "${p.lado}" no está entre ${usados.map((l) => `"${l.etiqueta}"`).join(', ')}`,
-      );
+      /*
+       * La línea se movió y el lado apostado ya no existe en el cierre. La
+       * instantánea es inmutable, así que esto no va a cambiar nunca: se
+       * renuncia al primer intento en vez de reintentar cada dos horas.
+       */
+      const detalle = `"${p.lado}" no está entre ${usados.map((l) => `"${l.etiqueta}"`).join(', ')}`;
+      await renunciar(p, 'linea_movida', detalle);
+      renunciados.push(`${p.id}: ${detalle}`);
       continue;
     }
 
@@ -318,9 +383,9 @@ console.log(`\n${capturados} cierre(s) capturados en ${instantaneas} instantáne
 if (sinDatos.length > 0) {
   console.log(`${sinDatos.length} sin datos de cierre todavía: ${sinDatos.slice(0, 5).join(', ')}`);
 }
-if (sinEmparejar.length > 0) {
-  console.log('\n⚠ Sin emparejar (se dejan pendientes, no se adivina):');
-  for (const s of sinEmparejar) console.log(`  ${s}`);
+if (renunciados.length > 0) {
+  console.log('\n⚠ Sin cierre medible (se renuncia, no se adivina ni se reintenta):');
+  for (const s of renunciados) console.log(`  ${s}`);
 }
 
 // ---------------------------------------------------------------------------

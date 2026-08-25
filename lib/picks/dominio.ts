@@ -111,6 +111,50 @@ export interface Cierre {
 export const cuotaTomadaDelCierre = (c: Cierre): number | undefined => c.cuotas[c.indiceTomado];
 
 /**
+ * Renuncia a capturar el cierre de un pick.
+ *
+ * Existe por dinero. La instantánea histórica de un partido que ya terminó es
+ * inmutable: si el lado apostado no aparece en ella hoy, no va a aparecer
+ * mañana. Sin este fichero el job reintentaba cada dos horas, para siempre, a
+ * 20 peticiones por intento — 240 al día quemadas en algo que no puede salir
+ * bien. Con la clave a 3.824 peticiones eso era casi un tercio de lo que
+ * quedaba.
+ *
+ * No es tapar un fallo: es declararlo. Un pick cuya línea se movió fuera del
+ * mercado NO tiene CLV medible, y decirlo es más honesto que dejarlo
+ * «esperando cierre» eternamente, que es lo que hacía y sugería que algún día
+ * llegaría.
+ *
+ * Va en su propio fichero de solo-añadir, como los cierres y los resultados.
+ */
+export interface SinCierre {
+  pickId: string;
+  /**
+   * `linea_movida`: el mercado existía pero el lado apostado ya no estaba en
+   * él. Es determinista — la instantánea no cambia — así que se renuncia al
+   * primer intento.
+   *
+   * `evento_ausente`: el partido entero no venía en la instantánea. Se parece
+   * demasiado a una respuesta incompleta del proveedor, así que aquí NO se
+   * renuncia enseguida: hay que esperar a `ESPERA_ANTES_DE_RENUNCIAR`.
+   */
+  motivo: 'linea_movida' | 'evento_ausente';
+  /** Qué había en su lugar. Sin esto la renuncia no se puede auditar. */
+  detalle: string;
+  renunciadoEn: string;
+  proveedor: string;
+}
+
+/**
+ * Cuánto se espera antes de dar por perdido un partido que no aparece.
+ *
+ * Un fallo transitorio del proveedor y un partido que de verdad no está se ven
+ * igual desde aquí. Tres días de reintentos cuestan unas 720 peticiones en el
+ * peor caso y compran la certeza de que no se renunció por un mal minuto.
+ */
+export const ESPERA_ANTES_DE_RENUNCIAR = 3 * 24 * 60 * 60 * 1000;
+
+/**
  * Desenlace de la apuesta, capturado del marcador final.
  *
  * Va en su propio fichero de solo-añadir, como los cierres: el pick no se

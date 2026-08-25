@@ -1,8 +1,10 @@
 /**
  * Lectura y escritura de los dos ficheros de solo-añadir.
  *
- *   picks/picks.jsonl    nunca se modifica, solo crece
- *   picks/cierres.jsonl  lo que captura el proveedor, después
+ *   picks/picks.jsonl      nunca se modifica, solo crece
+ *   picks/cierres.jsonl    lo que captura el proveedor, después
+ *   picks/resultados.jsonl el desenlace, del marcador final
+ *   picks/renuncias.jsonl  los cierres que ya no se van a poder capturar
  *
  * Están separados a propósito. Si el cierre se escribiera dentro de la línea
  * del pick, cada captura sería una modificación en el diff de git y un pick
@@ -12,7 +14,7 @@
 import { appendFileSync, existsSync, mkdirSync, readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { EMPATE } from '../cuotas/dominio';
-import type { Cierre, Pick, ResultadoPick } from './dominio';
+import type { Cierre, Pick, ResultadoPick, SinCierre } from './dominio';
 import { auditar, type Auditoria } from './dominio';
 
 /**
@@ -29,6 +31,7 @@ const DIRECTORIO = process.env.KLOSA_PICKS_DIR ?? 'picks';
 export const RUTA_PICKS = join(DIRECTORIO, 'picks.jsonl');
 export const RUTA_CIERRES = join(DIRECTORIO, 'cierres.jsonl');
 export const RUTA_RESULTADOS = join(DIRECTORIO, 'resultados.jsonl');
+export const RUTA_RENUNCIAS = join(DIRECTORIO, 'renuncias.jsonl');
 
 function leerLineas<T>(ruta: string): T[] {
   if (!existsSync(ruta)) return [];
@@ -81,6 +84,22 @@ export function anadirResultado(resultado: ResultadoPick, ruta = RUTA_RESULTADOS
   anadirLinea(ruta, resultado);
 }
 
+export const leerRenuncias = (ruta = RUTA_RENUNCIAS): SinCierre[] =>
+  leerLineas<SinCierre>(ruta);
+
+/**
+ * Deja constancia de que el cierre de un pick no se va a poder capturar.
+ *
+ * Es idempotente por diseño: si ya se renunció, no vuelve a escribir. Lanzar
+ * aquí como hacen `anadirCierre` y `anadirResultado` rompería el job entero
+ * por un caso que no es un error sino la ejecución normal repitiéndose.
+ */
+export function anadirRenuncia(renuncia: SinCierre, ruta = RUTA_RENUNCIAS): boolean {
+  if (leerRenuncias(ruta).some((r) => r.pickId === renuncia.pickId)) return false;
+  anadirLinea(ruta, renuncia);
+  return true;
+}
+
 /**
  * Resuelve una apuesta de moneyline a partir del marcador.
  *
@@ -125,12 +144,15 @@ export interface EstadoRegistro {
   cierres: Map<string, Cierre>;
   /** Picks válidos cuyo partido ya empezó y aún no tienen cierre. */
   pendientesDeCierre: Pick[];
+  /** Picks a los que ya se renunció, por sello. No se vuelven a intentar. */
+  renuncias: Map<string, SinCierre>;
   resumen: {
     total: number;
     validos: number;
     invalidos: number;
     conCierre: number;
     pendientes: number;
+    renunciados: number;
   };
 }
 
@@ -138,10 +160,12 @@ export function estadoDelRegistro(
   ahora = new Date(),
   rutaPicks = RUTA_PICKS,
   rutaCierres = RUTA_CIERRES,
+  rutaRenuncias = RUTA_RENUNCIAS,
 ): EstadoRegistro {
   const picks = leerPicks(rutaPicks);
   const auditorias = picks.map(auditar);
   const cierres = new Map(leerCierres(rutaCierres).map((c) => [c.pickId, c]));
+  const renuncias = new Map(leerRenuncias(rutaRenuncias).map((r) => [r.pickId, r]));
 
   /*
    * Solo se intenta cerrar lo que pasa la auditoría. Capturar el cierre de un
@@ -151,7 +175,9 @@ export function estadoDelRegistro(
   const pendientesDeCierre = auditorias
     .filter((a) => a.valido)
     .map((a) => a.pick)
-    .filter((p) => new Date(p.comienzo) <= ahora && !cierres.has(p.id));
+    .filter(
+      (p) => new Date(p.comienzo) <= ahora && !cierres.has(p.id) && !renuncias.has(p.id),
+    );
 
   const validos = auditorias.filter((a) => a.valido).length;
 
@@ -159,12 +185,14 @@ export function estadoDelRegistro(
     auditorias,
     cierres,
     pendientesDeCierre,
+    renuncias,
     resumen: {
       total: picks.length,
       validos,
       invalidos: picks.length - validos,
       conCierre: picks.filter((p) => cierres.has(p.id)).length,
       pendientes: pendientesDeCierre.length,
+      renunciados: picks.filter((p) => renuncias.has(p.id)).length,
     },
   };
 }

@@ -328,7 +328,7 @@ export function VistaRegistro({
                 </tr>
               </thead>
               <tbody>
-                {entradas.map(({ pick, auditoria, cierre, resultado, analisis }) => {
+                {entradas.map(({ pick, auditoria, cierre, sinCierre, resultado, analisis }) => {
                   const cerrada = cierre ? cuotaTomadaDelCierre(cierre) : undefined;
                   return (
                   <tr
@@ -374,6 +374,16 @@ export function VistaRegistro({
                       ) : analisis ? (
                         <span className={analisis.ventaja >= 0 ? 'text-positivo' : 'text-negativo'}>
                           {porcentaje(analisis.ventaja, locale)}
+                        </span>
+                      ) : sinCierre ? (
+                        /*
+                         * «Sin cierre medible», no «esperando». El pick existe
+                         * y el resultado está, pero su línea se movió fuera del
+                         * mercado y ese CLV no se puede calcular. Dejarlo en
+                         * «esperando» prometía un dato que no iba a llegar.
+                         */
+                        <span className="text-xs text-aviso" title={sinCierre.detalle}>
+                          {t.tabla.sinCierre}
                         </span>
                       ) : (
                         <span className="text-xs text-apagado">{t.tabla.esperando}</span>

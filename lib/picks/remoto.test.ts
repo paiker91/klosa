@@ -253,3 +253,55 @@ describe('construirRegistro: yield, cuota media y acierto', () => {
     expect(r.entradas[0]?.resultado?.desenlace).toBe('perdida');
   });
 });
+
+/*
+ * Un pick al que se renunció NO es un pick esperando cierre. La diferencia es
+ * visible en la tabla —«línea movida» en vez de «esperando»— y es lo que
+ * impide que el job siga pagando 20 peticiones cada dos horas por él.
+ */
+describe('picks sin cierre medible', () => {
+  const renuncia = (p: Pick) => ({
+    pickId: p.id,
+    motivo: 'linea_movida' as const,
+    detalle: '"Over 2" no está entre "Over 2.25", "Under 2.25"',
+    renunciadoEn: p.comienzo,
+    proveedor: 'prueba',
+  });
+
+  it('no cuenta como pendiente y se declara aparte', () => {
+    const p = pick('MLB', 2.0);
+    const r = construirRegistro([p], [], [], [renuncia(p)]);
+    expect(r.conteos.pendientes).toBe(0);
+    expect(r.conteos.sinCierre).toBe(1);
+    expect(r.entradas[0]?.sinCierre?.motivo).toBe('linea_movida');
+  });
+
+  /*
+   * No tiene CLV, pero sí tiene resultado: la apuesta se jugó y se ganó o se
+   * perdió. Excluirla del yield la borraría del denominador, que es
+   * exactamente el sesgo que este producto existe para denunciar.
+   */
+  it('sigue contando en el yield si tiene resultado', () => {
+    const p = pick('MLB', 2.0);
+    const res: ResultadoPick = {
+      pickId: p.id,
+      desenlace: 'ganada',
+      marcador: '3 — 1',
+      capturadoEn: p.comienzo,
+      proveedor: 'prueba',
+    };
+    const r = construirRegistro([p], [], [res], [renuncia(p)]);
+    expect(r.resultados.n).toBe(1);
+    expect(r.resultados.ganadas).toBe(1);
+    // Y no aporta nada al CLV, que es lo que no se puede medir.
+    expect(r.resumen.n).toBe(0);
+  });
+
+  it('sin renuncia, un pick sin cierre sigue pendiente', () => {
+    const p = pick('MLB', 2.0);
+    const r = construirRegistro([p], []);
+    expect(r.conteos.pendientes).toBe(1);
+    expect(r.conteos.sinCierre).toBe(0);
+    expect(r.entradas[0]?.sinCierre).toBeNull();
+  });
+});

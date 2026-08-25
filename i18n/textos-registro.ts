@@ -59,6 +59,11 @@ export interface TextosRegistro {
     cierre: string;
     ventaja: string;
     esperando: string;
+    /**
+     * Distinto de `esperando`. La línea se movió y el lado apostado no está en
+     * el cierre, así que no hay CLV que calcular — ni ahora ni nunca.
+     */
+    sinCierre: string;
     invalido: string;
     /** El sello no se puede recalcular. No es lo mismo que estar roto. */
     selloIlegible: string;
@@ -180,6 +185,7 @@ const pt: TextosRegistro = {
     cierre: 'Fechamento',
     ventaja: 'Vantagem',
     esperando: 'aguardando',
+    sinCierre: 'linha moveu, sem fechamento',
     invalido: 'não passa na auditoria',
     selloIlegible: 'selo antigo, não verificável',
   },
@@ -308,6 +314,7 @@ const es: TextosRegistro = {
     cierre: 'Cierre',
     ventaja: 'Ventaja',
     esperando: 'esperando',
+    sinCierre: 'línea movida, sin cierre',
     invalido: 'no pasa la auditoría',
     selloIlegible: 'sello antiguo, no verificable',
   },
@@ -436,6 +443,7 @@ const en: TextosRegistro = {
     cierre: 'Close',
     ventaja: 'Edge',
     esperando: 'awaiting',
+    sinCierre: 'line moved, no close',
     invalido: 'fails audit',
     selloIlegible: 'old seal, not verifiable',
   },

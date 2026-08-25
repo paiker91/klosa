@@ -6,7 +6,9 @@ import { crearPick, auditar, sellar, esperandoCierre, type Pick } from './domini
 import {
   anadirPick,
   anadirCierre,
+  anadirRenuncia,
   leerPicks,
+  leerRenuncias,
   estadoDelRegistro,
   resolverMoneyline,
 } from './registro';
@@ -104,11 +106,13 @@ describe('ficheros de solo-añadir', () => {
   let dir: string;
   let rutaPicks: string;
   let rutaCierres: string;
+  let rutaRenuncias: string;
 
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'klosa-'));
     rutaPicks = join(dir, 'picks.jsonl');
     rutaCierres = join(dir, 'cierres.jsonl');
+    rutaRenuncias = join(dir, 'renuncias.jsonl');
   });
   afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
@@ -164,11 +168,13 @@ describe('estado del registro', () => {
   let dir: string;
   let rutaPicks: string;
   let rutaCierres: string;
+  let rutaRenuncias: string;
 
   beforeEach(() => {
     dir = mkdtempSync(join(tmpdir(), 'klosa-'));
     rutaPicks = join(dir, 'picks.jsonl');
     rutaCierres = join(dir, 'cierres.jsonl');
+    rutaRenuncias = join(dir, 'renuncias.jsonl');
   });
   afterEach(() => rmSync(dir, { recursive: true, force: true }));
 
@@ -217,6 +223,57 @@ describe('estado del registro', () => {
     const e = estadoDelRegistro(new Date('2026-10-20T22:00:00Z'), rutaPicks, rutaCierres);
     expect(e.resumen.conCierre).toBe(1);
     expect(e.resumen.pendientes).toBe(0);
+  });
+
+  /*
+   * El motivo de que esto exista es dinero, no limpieza. Cada pick pendiente
+   * cuesta 20 peticiones cada vez que corre el job, y la instantánea de un
+   * partido terminado no cambia: reintentarla es gasto garantizado a cambio de
+   * nada. Si esta prueba se cae, la clave del proveedor se vacía sola.
+   */
+  it('deja de reintentar un pick al que ya se renunció', () => {
+    const pick = crearPick(base());
+    anadirPick(pick, rutaPicks);
+    anadirRenuncia(
+      {
+        pickId: pick.id,
+        motivo: 'linea_movida',
+        detalle: '"Over 2" no está entre "Over 2.25", "Under 2.25"',
+        renunciadoEn: '2026-10-20T21:00:00.000Z',
+        proveedor: 'the-odds-api',
+      },
+      rutaRenuncias,
+    );
+    const e = estadoDelRegistro(
+      new Date('2026-10-20T22:00:00Z'),
+      rutaPicks,
+      rutaCierres,
+      rutaRenuncias,
+    );
+    expect(e.resumen.pendientes).toBe(0);
+    expect(e.resumen.renunciados).toBe(1);
+    // Y sigue contando como pick: renunciar al cierre no lo borra del registro.
+    expect(e.resumen.total).toBe(1);
+    expect(e.resumen.validos).toBe(1);
+  });
+
+  /*
+   * El job vuelve a pasar antes de que nada cambie, así que reescribir sería
+   * lo normal, no la excepción. Lanzar como hacen `anadirCierre` y
+   * `anadirResultado` tumbaría la ejecución entera cada dos horas.
+   */
+  it('renunciar dos veces no duplica ni revienta', () => {
+    const pick = crearPick(base());
+    const renuncia = {
+      pickId: pick.id,
+      motivo: 'evento_ausente' as const,
+      detalle: 'el evento nba-123 no está en la instantánea',
+      renunciadoEn: '2026-10-20T21:00:00.000Z',
+      proveedor: 'the-odds-api',
+    };
+    expect(anadirRenuncia(renuncia, rutaRenuncias)).toBe(true);
+    expect(anadirRenuncia(renuncia, rutaRenuncias)).toBe(false);
+    expect(leerRenuncias(rutaRenuncias)).toHaveLength(1);
   });
 });
 

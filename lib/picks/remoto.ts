@@ -8,7 +8,7 @@
  *
  * Sin base de datos y sin estado, como pide la v1.
  */
-import type { Cierre, Pick, ResultadoPick } from './dominio';
+import type { Cierre, Pick, ResultadoPick, SinCierre } from './dominio';
 import { auditar, type Auditoria } from './dominio';
 import {
   analizarApuestaN,
@@ -27,6 +27,7 @@ const BASE = `https://raw.githubusercontent.com/${REPO}/main`;
 export const URL_PICKS = `${BASE}/picks.jsonl`;
 export const URL_CIERRES = `${BASE}/cierres.jsonl`;
 export const URL_RESULTADOS = `${BASE}/resultados.jsonl`;
+export const URL_RENUNCIAS = `${BASE}/renuncias.jsonl`;
 export const URL_REPO = `https://github.com/${REPO}`;
 
 /** Cada cuánto se vuelve a mirar el repositorio, en segundos. */
@@ -83,6 +84,14 @@ export interface EntradaRegistro {
   pick: Pick;
   auditoria: Auditoria;
   cierre: Cierre | null;
+  /**
+   * Por qué este pick no tiene cierre ni lo va a tener.
+   *
+   * `null` es «todavía no», y `sinCierre` es «nunca». Distinguirlos importa:
+   * dejar un pick en «esperando cierre» indefinidamente insinúa que el dato
+   * está por llegar cuando lo cierto es que ese CLV no se puede medir.
+   */
+  sinCierre: SinCierre | null;
   resultado: ResultadoPick | null;
   analisis: AnalisisApuesta | null;
 }
@@ -94,17 +103,25 @@ export interface RegistroPublico {
   resultados: ResumenResultados;
   /** Desglose por deporte. Vacío si solo hay uno: repetiría el agregado. */
   porDeporte: GrupoAgregado[];
-  conteos: { total: number; validos: number; conCierre: number; pendientes: number };
+  conteos: {
+    total: number;
+    validos: number;
+    conCierre: number;
+    pendientes: number;
+    /** Picks sin cierre medible. No entran en las cuentas ni las estorban. */
+    sinCierre: number;
+  };
   urls: { picks: string; cierres: string; repo: string };
 }
 
 export async function leerRegistroPublico(): Promise<RegistroPublico> {
-  const [picks, cierres, resultados] = await Promise.all([
+  const [picks, cierres, resultados, renuncias] = await Promise.all([
     descargarLineas<Pick>(URL_PICKS),
     descargarLineas<Cierre>(URL_CIERRES),
     descargarLineas<ResultadoPick>(URL_RESULTADOS),
+    descargarLineas<SinCierre>(URL_RENUNCIAS),
   ]);
-  return construirRegistro(picks, cierres, resultados);
+  return construirRegistro(picks, cierres, resultados, renuncias);
 }
 
 /**
@@ -118,9 +135,11 @@ export function construirRegistro(
   picks: Pick[],
   cierres: Cierre[],
   resultados: ResultadoPick[] = [],
+  renuncias: SinCierre[] = [],
 ): RegistroPublico {
   const porPick = new Map(cierres.map((c) => [c.pickId, c]));
   const porResultado = new Map(resultados.map((r) => [r.pickId, r]));
+  const porRenuncia = new Map(renuncias.map((r) => [r.pickId, r]));
 
   const entradas: EntradaRegistro[] = picks
     .map((pick) => {
@@ -152,7 +171,14 @@ export function construirRegistro(
           analisis = null;
         }
       }
-      return { pick, auditoria, cierre, resultado: porResultado.get(pick.id) ?? null, analisis };
+      return {
+        pick,
+        auditoria,
+        cierre,
+        sinCierre: porRenuncia.get(pick.id) ?? null,
+        resultado: porResultado.get(pick.id) ?? null,
+        analisis,
+      };
     })
     // Más recientes primero.
     .sort((a, b) => b.pick.registradoEn.localeCompare(a.pick.registradoEn));
@@ -193,7 +219,8 @@ export function construirRegistro(
       total: picks.length,
       validos: entradas.filter((e) => e.auditoria.valido).length,
       conCierre: analizados.length,
-      pendientes: entradas.filter((e) => e.auditoria.valido && !e.cierre).length,
+      pendientes: entradas.filter((e) => e.auditoria.valido && !e.cierre && !e.sinCierre).length,
+      sinCierre: entradas.filter((e) => e.sinCierre !== null).length,
     },
     urls: { picks: URL_PICKS, cierres: URL_CIERRES, repo: URL_REPO },
   };
