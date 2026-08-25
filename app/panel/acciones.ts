@@ -3,7 +3,7 @@
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { parsearCuota } from '@/lib/clv';
-import { TheOddsApi } from '@/lib/cuotas/the-odds-api';
+import { clienteCacheado } from '@/lib/cuotas/publico';
 import { DEPORTES, MERCADOS, type Deporte, type Mercado } from '@/lib/cuotas/dominio';
 import { crearPick } from '@/lib/picks/dominio';
 import { anadirLinea } from '@/lib/github';
@@ -128,7 +128,15 @@ export async function anotarPick(_previo: Resultado | null, datos: FormData): Pr
     const mercado = String(datos.get('mercado') ?? 'moneyline') as Mercado;
     if (!MERCADOS.includes(mercado)) throw new Error('Mercado no válido.');
 
-    const api = new TheOddsApi({ claveApi: config.claveOdds });
+    /*
+     * Cacheado un minuto, igual que el panel: así publicar reutiliza la misma
+     * respuesta que se acaba de pintar en el formulario en vez de pedirla otra
+     * vez. No debilita la comprobación de abajo — `evento.comienzo` es una
+     * fecha absoluta y se compara contra el reloj de ahora, así que un partido
+     * que acaba de empezar se sigue rechazando aunque la lista tenga 59
+     * segundos.
+     */
+    const api = clienteCacheado(config.claveOdds, 60);
     const evento = (await api.buscarEventos({ deporte, mercado })).find(
       (e) => e.id === seleccion.id,
     );

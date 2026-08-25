@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { COOKIE_SESION, configuracionPanel, tokenValido } from '@/lib/sesion';
-import { TheOddsApi } from '@/lib/cuotas/the-odds-api';
+import { clienteCacheado } from '@/lib/cuotas/publico';
 import {
   DEPORTES,
   MERCADOS,
@@ -38,7 +38,14 @@ async function opcionesDe(
   error: string | null;
 }> {
   try {
-    const eventos = (await new TheOddsApi({ claveApi }).buscarEventos({ deporte, mercado }))
+    /*
+     * Cliente cacheado, no uno pelado. Cambiar de competición o de mercado en
+     * el desplegable es un `router.push`, o sea una carga de página entera, y
+     * cada carga pagaba sus dos peticiones al proveedor. Un minuto de caché
+     * hace gratis la navegación entre desplegables sin que el precio que se
+     * ve deje de ser el de ahora mismo.
+     */
+    const eventos = (await clienteCacheado(claveApi, 60).buscarEventos({ deporte, mercado }))
       .filter((e) => e.comienzo > new Date())
       .sort((a, b) => a.comienzo.getTime() - b.comienzo.getTime());
 

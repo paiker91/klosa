@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { parsearCuota } from '@/lib/clv';
 import { DEPORTES, type Deporte } from '@/lib/cuotas/dominio';
-import { TheOddsApi } from '@/lib/cuotas/the-odds-api';
+import { clienteCacheado } from '@/lib/cuotas/publico';
 import { sellarPick } from '@/lib/tracker/dominio';
 import { clienteServidor } from '@/lib/supabase/servidor';
 import { esLocale, type Locale } from '@/i18n/config';
@@ -59,7 +59,9 @@ export async function anotarPick(_previo: Resultado | null, datos: FormData): Pr
     const claveApi = process.env.THE_ODDS_API_KEY;
     if (!claveApi) throw new Error('Falta la clave del proveedor de cuotas.');
 
-    const api = new TheOddsApi({ claveApi });
+    // Cacheado, como el panel: con muchos usuarios publicando a la vez, cada
+    // uno pagando su propia petición, esto es lo primero que agota la clave.
+    const api = clienteCacheado(claveApi, 60);
     const evento = (await api.buscarEventos({ deporte })).find((e) => e.id === seleccion.id);
     if (!evento) throw new Error('Ese partido ya no está abierto.');
     if (evento.comienzo <= new Date()) {

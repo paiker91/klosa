@@ -40,21 +40,33 @@ export class SinCuota extends Error {
  * Cliente con caché de Next por tipo de petición.
  *
  * El histórico de un partido terminado es inmutable, así que se cachea sin
- * caducidad. La lista de partidos cambia según van empezando, y cinco minutos
+ * caducidad. La lista de partidos cambia según van empezando, y unos minutos
  * de retraso ahí no molestan a nadie.
+ *
+ * Sin esto, `fetch` en Next 15+ no cachea nada por defecto y CADA render paga
+ * su llamada al proveedor. Es lo que le pasaba al panel, que construía su
+ * propio cliente pelado: dos peticiones por carga de página, y cambiar de
+ * competición en el desplegable es una carga de página. Publicar una tarde de
+ * picks costaba cientos de peticiones en un recurso que solo tiene 20.000 al
+ * mes.
+ *
+ * `frescura` en segundos. Las rutas públicas usan 300; el panel, donde el
+ * precio que se ve es el que se registra, usa 60.
  */
-function cliente(claveApi: string): TheOddsApi {
+export function clienteCacheado(claveApi: string, frescura = 300): TheOddsApi {
   return new TheOddsApi({
     claveApi,
     buscar: (url, init) => {
       const inmutable = String(url).includes('/historical/');
       return fetch(url, {
         ...init,
-        next: inmutable ? { revalidate: false } : { revalidate: 300 },
+        next: inmutable ? { revalidate: false } : { revalidate: frescura },
       });
     },
   });
 }
+
+const cliente = (claveApi: string): TheOddsApi => clienteCacheado(claveApi);
 
 export interface PartidoPublico {
   id: string;
