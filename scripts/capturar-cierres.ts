@@ -23,6 +23,7 @@
  * los mismos datos. Dejarlo pendiente costaba 20 peticiones cada dos horas
  * indefinidamente por un cierre que nunca iba a llegar.
  */
+import { appendFileSync } from 'node:fs';
 import { TheOddsApi } from '../lib/cuotas/the-odds-api';
 import {
   ErrorCuotaAgotada,
@@ -58,6 +59,11 @@ if (!claveApi) {
 /**
  * Peticiones que no se gastan aquí. Deja margen para que la calculadora
  * pública siga respondiendo entre una ejecución y la siguiente.
+ *
+ * Es DELIBERADAMENTE menor que la reserva de la web (`RESERVA` en
+ * lib/cuotas/publico.ts, hoy 2.000): el registro puede meterse donde la
+ * calculadora ya no llega. Es la misma asimetría de siempre — un cierre
+ * perdido no se recupera nunca, una consulta denegada se repite mañana.
  */
 const RESERVA = 300;
 /** El histórico cuesta esto por consulta. Medido contra la API, no supuesto. */
@@ -68,6 +74,15 @@ const COSTE = 20;
  * Lo que se quede fuera se dice en voz alta y se coge en la pasada siguiente.
  */
 const MAX_INSTANTANEAS = 12;
+/**
+ * Cuánta cuota tiene que quedar para no dar la voz de alarma.
+ *
+ * Por debajo de `ALARMA` quedan pocos días de capturas: el workflow falla a
+ * propósito para que GitHub mande un correo. La vez anterior el gasto se
+ * descubrió de casualidad, mirando otra cosa, y ya se había ido media clave.
+ */
+const AVISO = 2500;
+const ALARMA = 1200;
 
 const api = new TheOddsApi({ claveApi });
 const supabase = clienteDeServicio();
@@ -160,10 +175,20 @@ if (supabase === null) {
   }
 }
 
-if (pendientes.length === 0) {
-  console.log('\nNada que capturar.');
-  process.exit(0);
-}
+/*
+ * Sin cierres pendientes NO se sale: todavía puede haber picks con el cierre
+ * ya capturado esperando su resultado, y los marcadores son baratos.
+ *
+ * Aquí había un `process.exit(0)` que se llevaba por delante la fase entera
+ * de resultados. Nunca se notó porque siempre quedaba algún cierre pendiente
+ * que mantenía viva la ejecución — en concreto el pick al que ahora se
+ * renuncia. Al arreglar aquello, esto habría dejado de resolver picks para
+ * siempre y en silencio, que es la peor forma de romperse.
+ *
+ * No hace falta condición: con la lista vacía no hay grupos, el bucle de
+ * abajo no da ni una vuelta y no se gasta una sola petición.
+ */
+if (pendientes.length === 0) console.log('\nNingún cierre pendiente.');
 
 // ---------------------------------------------------------------------------
 // Agrupar: una instantánea por competición, hora y mercado
@@ -518,5 +543,32 @@ if (porResolver.length > 0) {
   console.log(`${resueltos} resultado(s) capturados de ${porResolver.length} pendiente(s).`);
 }
 
-const restante = api.cuotaRestante();
-if (restante !== null) console.log(`\nCuota restante del proveedor: ${restante}`);
+/*
+ * Si la pasada no ha llamado a la API —nada que capturar, nada que resolver—
+ * no hay cabeceras de las que leer la cuota. Se sondea, que es gratis: sin
+ * esto, precisamente las pasadas tranquilas se quedarían sin vigilancia.
+ */
+const restante = api.cuotaRestante() ?? (await api.sondearCuota().catch(() => null));
+if (restante !== null) {
+  console.log(`\nCuota restante del proveedor: ${restante}`);
+
+  /*
+   * Se deja por escrito para que el workflow pueda fallar DESPUÉS de haber
+   * empujado los cierres. Fallar aquí dentro abortaría el commit y se
+   * perdería la captura de esta pasada, que es justo lo que se protege.
+   */
+  if (process.env.GITHUB_OUTPUT) {
+    appendFileSync(process.env.GITHUB_OUTPUT, `restante=${restante}\nalarma=${ALARMA}\n`);
+  }
+
+  // ::warning:: y ::error:: las entiende GitHub Actions y las enseña en el
+  // resumen de la ejecución. Fuera de Actions son una línea más.
+  if (restante < ALARMA) {
+    console.log(
+      `::error::Quedan ${restante} peticiones del proveedor. Por debajo de ${ALARMA} el ` +
+        'registro se queda sin cierres en pocos días: renueva la clave o baja la frecuencia.',
+    );
+  } else if (restante < AVISO) {
+    console.log(`::warning::Quedan ${restante} peticiones (aviso por debajo de ${AVISO}).`);
+  }
+}

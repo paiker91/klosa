@@ -21,10 +21,22 @@ import { EMPATE, esFutbol, ErrorProveedor, type Deporte, type Mercado } from './
  * Peticiones que NO se gastan en la web.
  *
  * La captura automática del registro público tiene prioridad absoluta sobre la
- * calculadora: si la web agota la clave, el registro se queda sin cierres y lo
- * que se rompe es la única pieza verificable del proyecto.
+ * calculadora, y la razón es que los dos fallos no son simétricos. Un cierre
+ * que no se captura hoy no se recupera nunca: la instantánea de ese instante
+ * deja de estar disponible y ese pick se queda sin CLV para siempre. A un
+ * visitante al que hoy se le dice que no, en cambio, se le puede decir que sí
+ * mañana. Se protege lo irreversible.
+ *
+ * El número sale de medir lo que consume el registro: unas 350 peticiones en
+ * un día de mucho movimiento —doce instantáneas de cierre más los marcadores
+ * de cada pasada—, así que 2.000 son unos seis días de autonomía. Suficiente
+ * para cruzar un fin de semana entero sin que nadie mire.
+ *
+ * Estaba en 600, que es menos de dos días. Nunca llegó a saltar, pero era la
+ * red que sostenía la única pieza verificable del proyecto y estaba puesta
+ * demasiado baja.
  */
-export const RESERVA = 600;
+export const RESERVA = 2000;
 
 /** El histórico cuesta 20 peticiones por consulta. Medido, no supuesto. */
 export const COSTE_HISTORICO = 20;

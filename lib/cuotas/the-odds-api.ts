@@ -306,6 +306,20 @@ export class TheOddsApi implements ProveedorDeCuotas {
    * terminado; se descarta lo que no sea un número para no resolver una
    * apuesta con un marcador a medias.
    */
+  /**
+   * Refresca `cuotaRestante()` sin gastar nada.
+   *
+   * El listado de deportes es la única ruta gratuita del proveedor —medido:
+   * devuelve `x-requests-last: 0`— pero trae las mismas cabeceras de cuota que
+   * las demás. Sirve de latido: una pasada del job que no captura nada tampoco
+   * llama a la API, y sin esto se quedaría sin saber cuánta cuota queda, que es
+   * justo lo que hay que vigilar.
+   */
+  async sondearCuota(): Promise<number | null> {
+    await this.pedir<unknown[]>('/sports/', {});
+    return this.cuotaRestante();
+  }
+
   async resultados(deporte: Deporte, diasAtras: number): Promise<ResultadoEvento[]> {
     const brutos = await this.pedir<ResultadoAPI2[]>(
       `/sports/${DEPORTE_API[deporte]}/scores/`,
