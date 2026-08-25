@@ -26,17 +26,21 @@ export function ResultadoCLV({
   const bien = r.cogioValor;
 
   return (
-    <section className="tarjeta overflow-hidden">
+    <section className="tarjeta aparece overflow-hidden">
       {/* El veredicto arriba y en color: es lo único que mucha gente va a leer. */}
       <div
         className={`flex items-center gap-3 border-b px-5 py-4 ${
-          bien ? 'border-positivo/25 bg-positivo/10' : 'border-negativo/25 bg-negativo/10'
+          bien
+            ? 'border-positivo/30 bg-gradient-to-r from-positivo/18 via-positivo/10 to-transparent'
+            : 'border-negativo/30 bg-gradient-to-r from-negativo/18 via-negativo/10 to-transparent'
         }`}
       >
         <span
           aria-hidden="true"
-          className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-lg ${
-            bien ? 'bg-positivo/15 text-positivo' : 'bg-negativo/15 text-negativo'
+          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-lg ring-1 ${
+            bien
+              ? 'bg-positivo/15 text-positivo ring-positivo/30'
+              : 'bg-negativo/15 text-negativo ring-negativo/30'
           }`}
         >
           {bien ? '↑' : '↓'}
@@ -48,12 +52,19 @@ export function ResultadoCLV({
 
       <div className="p-5 sm:p-6">
         <p className="etiqueta-dato">{t.resultado.ventaja}</p>
+        {/*
+          Esta cifra es a lo que ha venido el visitante. Se le da el tamaño que
+          le corresponde y un halo de su propio color — verde o rojo, según el
+          signo, que aquí es la información y no decoración.
+        */}
         <p
-          className={`cifra mt-1 text-5xl font-semibold ${bien ? 'text-positivo' : 'text-negativo'}`}
+          className={`cifra destello mt-1 text-6xl leading-none font-semibold sm:text-7xl ${
+            bien ? 'text-positivo' : 'text-negativo'
+          }`}
         >
           {porcentaje(r.ventaja, locale)}
         </p>
-        <p className="mt-2 text-xs leading-relaxed text-apagado">{t.resultado.ventajaExplicacion}</p>
+        <p className="mt-3 text-xs leading-relaxed text-apagado">{t.resultado.ventajaExplicacion}</p>
 
         <ComparadorCuotas
           tomada={r.cuotaTomada}

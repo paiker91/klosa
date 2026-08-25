@@ -132,21 +132,30 @@ export default async function Pagina({
               un bloque de texto, el visitante se va antes de usar la herramienta.
             */}
             <section className="max-w-3xl">
-              <p className="inline-flex items-center gap-2 rounded-full border border-borde bg-superficie px-3 py-1 text-xs text-tenue">
-                <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-dato" />
+              <p className="inline-flex items-center gap-2 rounded-full border border-borde bg-superficie/80 px-3 py-1 text-xs text-tenue backdrop-blur-sm">
+                {/* El punto late: sugiere que hay datos vivos detrás, que los hay. */}
+                <span aria-hidden="true" className="relative flex h-1.5 w-1.5">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-dato opacity-70" />
+                  <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-dato" />
+                </span>
                 {tm.hero.distintivo}
               </p>
-              <h1 className="mt-5 text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
+              <h1 className="titular-degradado mt-5 text-4xl font-semibold tracking-tight text-balance sm:text-6xl">
                 {t.h1}
               </h1>
-              <p className="mt-4 text-base leading-relaxed text-tenue sm:text-lg">{t.entradilla}</p>
-              <p className="mt-6">
+              <p className="mt-5 text-base leading-relaxed text-tenue sm:text-lg">{t.entradilla}</p>
+              <p className="mt-7">
                 <Link
                   href={urlRegistro(idioma)}
-                  className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-borde bg-superficie px-4 text-sm font-medium text-tinta transition-colors hover:border-borde-fuerte"
+                  className="group inline-flex min-h-11 items-center gap-2 rounded-xl border border-acento/30 bg-acento/10 px-4.5 text-sm font-semibold text-tinta transition-all hover:border-acento/60 hover:bg-acento/15"
                 >
                   {tm.hero.verRegistro}
-                  <span aria-hidden="true">→</span>
+                  <span
+                    aria-hidden="true"
+                    className="transition-transform group-hover:translate-x-0.5"
+                  >
+                    →
+                  </span>
                 </Link>
               </p>
             </section>
@@ -156,8 +165,8 @@ export default async function Pagina({
             {/* Contenido indexable: la mitad del motivo por el que existe la página. */}
             <div className="mt-20 max-w-3xl space-y-12">
               {t.contenido.map((seccion) => (
-                <section key={seccion.titulo}>
-                  <h2 className="text-2xl font-semibold tracking-tight text-balance">
+                <section key={seccion.titulo} className="border-l-2 border-borde pl-5">
+                  <h2 className="titular-degradado text-2xl font-semibold tracking-tight text-balance">
                     {seccion.titulo}
                   </h2>
                   {seccion.parrafos.map((parrafo) => (

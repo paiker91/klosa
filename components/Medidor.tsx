@@ -43,10 +43,12 @@ export function Medidor({
         aria-valuemin={0}
         aria-valuemax={total}
         aria-label={t.medidor.titulo}
-        className="mt-2 h-1.5 overflow-hidden rounded-full bg-borde"
+        className="mt-2 h-2 overflow-hidden rounded-full bg-borde/70 ring-1 ring-borde ring-inset"
       >
         <div
-          className={`h-full rounded-full ${suficiente ? 'bg-positivo' : 'bg-aviso'}`}
+          className={`barra-relleno h-full rounded-full transition-[width] duration-700 ease-out ${
+            suficiente ? 'text-positivo' : 'text-aviso'
+          }`}
           /* Un mínimo visible: una barra de 0,2 px se lee como "cero picks". */
           style={{ width: `${n === 0 ? 0 : Math.max(2, porcentaje)}%` }}
         />
@@ -79,9 +81,9 @@ export function CosteDeLaMuestra({
   const barra = (etiqueta: string, valor: number, color: string) => (
     <div className="grid grid-cols-[3.5rem_1fr_auto] items-center gap-3">
       <span className="text-xs font-medium text-tenue">{etiqueta}</span>
-      <div className="h-2.5 overflow-hidden rounded-full bg-borde">
+      <div className="h-3 overflow-hidden rounded-full bg-borde/70 ring-1 ring-borde ring-inset">
         <div
-          className={`h-full rounded-full ${color}`}
+          className={`barra-relleno h-full rounded-full ${color}`}
           style={{ width: `${Math.max(1.5, (valor / maximo) * 100)}%` }}
         />
       </div>
@@ -93,8 +95,8 @@ export function CosteDeLaMuestra({
     <div className="rounded-xl border border-borde bg-fondo/40 p-4">
       <p className="etiqueta-dato">{t.coste.titulo}</p>
       <div className="mt-3 space-y-2.5">
-        {barra(t.coste.clv, necesariasClv, 'bg-dato')}
-        {barra(t.coste.yield, necesariasYield, 'bg-aviso')}
+        {barra(t.coste.clv, necesariasClv, 'text-dato')}
+        {barra(t.coste.yield, necesariasYield, 'text-aviso')}
       </div>
       {Number.isFinite(veces) && veces > 1 && (
         <p className="mt-3 text-xs text-tenue">

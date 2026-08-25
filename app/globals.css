@@ -73,17 +73,19 @@ body::before {
   z-index: -1;
   pointer-events: none;
   background:
-    radial-gradient(58rem 32rem at 12% -8%, rgb(110 139 255 / 0.11), transparent 60%),
-    radial-gradient(46rem 30rem at 92% 4%, rgb(69 209 197 / 0.07), transparent 62%),
+    radial-gradient(64rem 36rem at 8% -10%, rgb(110 139 255 / 0.20), transparent 62%),
+    radial-gradient(52rem 34rem at 96% 2%, rgb(69 209 197 / 0.13), transparent 64%),
+    radial-gradient(40rem 26rem at 50% 0%, rgb(160 120 255 / 0.08), transparent 68%),
     linear-gradient(to bottom, rgb(255 255 255 / 0.022) 1px, transparent 1px),
     linear-gradient(to right, rgb(255 255 255 / 0.022) 1px, transparent 1px);
   background-size:
     100% 100%,
     100% 100%,
+    100% 100%,
     100% 4.5rem,
     4.5rem 100%;
   /* La rejilla se desvanece hacia abajo: si llega al pie, parece un error de fondo. */
-  mask-image: linear-gradient(to bottom, #000 0%, #000 22rem, transparent 46rem);
+  mask-image: linear-gradient(to bottom, #000 0%, #000 26rem, transparent 54rem);
 }
 
 /* El foco tiene que verse siempre: se navega mucho con teclado en escritorio. */
@@ -104,12 +106,37 @@ body::before {
  * ------------------------------------------------------------------------ */
 
 @utility tarjeta {
+  position: relative;
   background: linear-gradient(180deg, var(--color-superficie-alta), var(--color-superficie));
   border: 1px solid var(--color-borde);
   border-radius: var(--radius-2xl);
   box-shadow:
-    0 1px 0 0 rgb(255 255 255 / 0.03) inset,
-    0 12px 32px -18px rgb(0 0 0 / 0.9);
+    0 1px 0 0 rgb(255 255 255 / 0.04) inset,
+    0 16px 40px -22px rgb(0 0 0 / 0.95);
+  transition:
+    border-color 0.2s ease,
+    box-shadow 0.2s ease,
+    transform 0.2s ease;
+
+  /*
+   * Filo de luz en el borde superior. Es el truco que separa una caja plana de
+   * una que parece tener volumen, y cuesta un pseudoelemento sin pintar nada.
+   */
+  &::after {
+    content: '';
+    position: absolute;
+    inset: 0 0 auto 0;
+    height: 1px;
+    border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      rgb(255 255 255 / 0.14) 22%,
+      rgb(255 255 255 / 0.14) 78%,
+      transparent
+    );
+    pointer-events: none;
+  }
 }
 
 @utility etiqueta-dato {
@@ -134,4 +161,78 @@ body::before {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/*
+ * Titular con degradado.
+ *
+ * Solo para los h1 y h2 de página. En una cifra sería una mala idea: el color
+ * de un número aquí SIGNIFICA algo —verde es ventaja, rojo es lo contrario— y
+ * teñirlo de azul le quitaría la información.
+ */
+@utility titular-degradado {
+  background: linear-gradient(
+    170deg,
+    var(--color-tinta) 0%,
+    var(--color-tinta) 46%,
+    color-mix(in oklab, var(--color-acento) 62%, var(--color-tinta)) 100%
+  );
+  background-clip: text;
+  color: transparent;
+  /* Sin esto, la parte alta de las tildes y los acentos se recorta en Safari. */
+  padding-block: 0.06em;
+}
+
+/*
+ * Halo detrás de la cifra grande del resultado.
+ *
+ * `currentColor` a propósito: la pieza no sabe si el CLV salió a favor o en
+ * contra, y así el halo hereda el verde o el rojo que ya decidió quien la usa.
+ * Un color fijo aquí obligaría a duplicar la clase.
+ */
+@utility destello {
+  position: relative;
+  isolation: isolate;
+
+  &::before {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    inset: -18% -12%;
+    background: radial-gradient(60% 60% at 22% 50%, currentColor, transparent 70%);
+    opacity: 0.17;
+    filter: blur(18px);
+    pointer-events: none;
+  }
+}
+
+/* Entrada suave. La usa el resultado, que aparece de golpe al calcular. */
+@keyframes aparecer {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@utility aparece {
+  animation: aparecer 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/*
+ * Barra de progreso con degradado y un filo claro al final.
+ *
+ * El filo importa más de lo que parece: con un relleno plano, una barra al
+ * 8 % y otra al 12 % se distinguen mal de un vistazo.
+ */
+@utility barra-relleno {
+  background-image: linear-gradient(
+    90deg,
+    color-mix(in oklab, currentColor 55%, transparent),
+    currentColor
+  );
+  box-shadow: 0 0 12px -2px currentColor;
 }

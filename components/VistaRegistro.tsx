@@ -167,14 +167,22 @@ export function VistaRegistro({
                     ],
                   ] as const
                 ).map(([etiqueta, valor, ayuda]) => (
-                  <div key={etiqueta}>
+                  /*
+                    Cada métrica en su propia caja. Antes eran celdas sueltas de
+                    una rejilla y con seis seguidas costaba ver dónde acababa un
+                    dato y empezaba el siguiente; el borde hace ese trabajo.
+                  */
+                  <div
+                    key={etiqueta}
+                    className="rounded-xl border border-borde/70 bg-fondo/30 p-3.5 transition-colors hover:border-borde-fuerte"
+                  >
                     <dt className="etiqueta-dato">{etiqueta}</dt>
                     <dd
-                      className={`cifra mt-1 text-2xl ${insuficiente ? 'text-tenue opacity-70' : 'text-tinta'}`}
+                      className={`cifra mt-1.5 text-3xl ${insuficiente ? 'text-tenue opacity-70' : 'text-tinta'}`}
                     >
                       {valor}
                     </dd>
-                    <p className="mt-1.5 text-xs leading-relaxed text-apagado">{ayuda}</p>
+                    <p className="mt-2 text-xs leading-relaxed text-apagado">{ayuda}</p>
                   </div>
                 ))}
               </dl>

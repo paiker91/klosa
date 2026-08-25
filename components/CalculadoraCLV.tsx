@@ -73,10 +73,10 @@ export function CalculadoraCLV({
         tabIndex={activa ? 0 : -1}
         onClick={() => setModo(valor)}
         onKeyDown={alPulsarTecla}
-        className={`min-h-10 flex-1 rounded-lg px-4 text-sm font-medium transition-colors ${
+        className={`min-h-10 flex-1 rounded-lg px-4 text-sm font-medium transition-all ${
           activa
-            ? 'bg-superficie-alta text-tinta shadow-[inset_0_0_0_1px_var(--color-borde-fuerte)]'
-            : 'text-tenue hover:text-tinta'
+            ? 'bg-gradient-to-b from-superficie-alta to-superficie text-tinta shadow-[inset_0_0_0_1px_var(--color-borde-fuerte),0_2px_10px_-4px_rgb(0_0_0/0.8)]'
+            : 'text-tenue hover:bg-superficie-alta/40 hover:text-tinta'
         }`}
       >
         {etiqueta}
@@ -85,11 +85,20 @@ export function CalculadoraCLV({
   };
 
   return (
-    <div className="mt-8">
+    <div className="relative mt-10">
+      {/*
+        Halo detrás de la calculadora. Es el objeto principal de la página y
+        antes competía en peso visual con el texto que la rodea; esto la separa
+        del fondo sin necesidad de encerrarla en otra caja.
+      */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute -inset-x-6 -top-8 -bottom-4 -z-10 rounded-[2rem] bg-[radial-gradient(60%_50%_at_30%_0%,rgb(110_139_255/0.10),transparent_70%)]"
+      />
       <div
         role="tablist"
         aria-label={t.h1}
-        className="flex max-w-xl gap-1 rounded-xl border border-borde bg-superficie p-1"
+        className="flex max-w-xl gap-1 rounded-xl border border-borde bg-superficie/80 p-1 backdrop-blur-sm"
       >
         {pestana('buscar', t.buscar.pestana)}
         {pestana('simple', ta.pestanaSimple)}
