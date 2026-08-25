@@ -17,7 +17,7 @@ export function Simbolo({ className = 'h-7 w-7' }: { className?: string }) {
         height="30.5"
         rx="8.5"
         stroke="currentColor"
-        strokeOpacity="0.18"
+        strokeOpacity="0.10"
         strokeWidth="1.5"
       />
       <path
@@ -31,8 +31,8 @@ export function Simbolo({ className = 'h-7 w-7' }: { className?: string }) {
       <circle cx="11.5" cy="10" r="3" fill="var(--color-acento)" />
       <defs>
         <linearGradient id="klosa-fondo" x1="0" y1="0" x2="32" y2="32">
-          <stop stopColor="#3a4577" />
-          <stop offset="1" stopColor="#1d2547" />
+          <stop stopColor="#e7ebfa" />
+          <stop offset="1" stopColor="#d3daf4" />
         </linearGradient>
       </defs>
     </svg>

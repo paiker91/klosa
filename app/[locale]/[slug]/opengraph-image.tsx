@@ -44,13 +44,13 @@ export default async function Imagen({
           display: 'flex',
           flexDirection: 'column',
           justifyContent: 'space-between',
-          background: 'linear-gradient(135deg, #202a55 0%, #151b38 55%, #151b38 100%)',
-          color: '#f4f6ff',
+          background: 'linear-gradient(135deg, #ffffff 0%, #f6f7fb 52%, #eef1fa 100%)',
+          color: '#10142c',
           padding: '72px 80px',
           fontFamily: 'sans-serif',
         }}
       >
-        <div style={{ display: 'flex', fontSize: 26, letterSpacing: 6, color: '#b4bee3' }}>
+        <div style={{ display: 'flex', fontSize: 26, letterSpacing: 6, color: '#4a5372' }}>
           KLOSA
         </div>
 
@@ -58,7 +58,7 @@ export default async function Imagen({
           <div style={{ fontSize: 86, fontWeight: 700, letterSpacing: -2, lineHeight: 1.05 }}>
             {t.h1}
           </div>
-          <div style={{ marginTop: 28, fontSize: 34, color: '#b4bee3', lineHeight: 1.35 }}>
+          <div style={{ marginTop: 28, fontSize: 34, color: '#4a5372', lineHeight: 1.35 }}>
             {claim}
           </div>
         </div>
@@ -73,10 +73,10 @@ export default async function Imagen({
           engañar con los números, ese descuido sería el peor posible.
         */}
         <div style={{ display: 'flex', alignItems: 'center', gap: 18, fontSize: 30 }}>
-          <div style={{ display: 'flex', color: '#8fa0ff' }}>1,90 / 1,90</div>
-          <div style={{ display: 'flex', color: '#4f5b9e' }}>→</div>
-          <div style={{ display: 'flex', color: '#f4f6ff' }}>2,00</div>
-          <div style={{ display: 'flex', color: '#96a1cb', marginLeft: 14 }}>
+          <div style={{ display: 'flex', color: '#4457d8' }}>1,90 / 1,90</div>
+          <div style={{ display: 'flex', color: '#bcc4d8' }}>→</div>
+          <div style={{ display: 'flex', color: '#10142c' }}>2,00</div>
+          <div style={{ display: 'flex', color: '#676f8a', marginLeft: 14 }}>
             margem 5,26%
           </div>
         </div>

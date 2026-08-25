@@ -75,7 +75,7 @@ export function CalculadoraCLV({
         onKeyDown={alPulsarTecla}
         className={`min-h-10 flex-1 rounded-lg px-4 text-sm font-medium transition-all ${
           activa
-            ? 'bg-gradient-to-b from-superficie-alta to-superficie text-tinta shadow-[inset_0_0_0_1px_var(--color-borde-fuerte),0_2px_10px_-4px_rgb(0_0_0/0.8)]'
+            ? 'bg-superficie-alta text-tinta shadow-[inset_0_0_0_1px_var(--color-borde-fuerte),0_2px_8px_-4px_rgb(16_20_44/0.25)]'
             : 'text-tenue hover:bg-superficie-alta/40 hover:text-tinta'
         }`}
       >
@@ -93,7 +93,7 @@ export function CalculadoraCLV({
       */}
       <div
         aria-hidden="true"
-        className="pointer-events-none absolute -inset-x-6 -top-8 -bottom-4 -z-10 rounded-[2rem] bg-[radial-gradient(60%_50%_at_30%_0%,rgb(110_139_255/0.10),transparent_70%)]"
+        className="pointer-events-none absolute -inset-x-6 -top-8 -bottom-4 -z-10 rounded-[2rem] bg-[radial-gradient(62%_52%_at_30%_0%,rgb(68_87_216/0.07),transparent_70%)]"
       />
       <div
         role="tablist"

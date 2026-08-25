@@ -15,50 +15,44 @@
 
 @theme {
   /*
-   * Fondo en capas. Tres niveles bastan; con más, nada destaca.
+   * Tema claro.
    *
-   * Azul profundo, no negro.
+   * Nació oscuro y estuvo así tres iteraciones. Se probó a subirlo dos veces
+   * —de #0a0c10 a #0d1122 y de ahí a #151b38— y la respuesta las dos veces fue
+   * que seguía apagado. La segunda subida además se defendió mal: «1,6 veces
+   * más claridad» son 2,1 puntos de L*, justo el umbral de lo que el ojo
+   * distingue. El problema no era el ajuste, era el tema.
    *
-   * Van dos intentos. El original era #0a0c10, gris frío a un paso del negro,
-   * y el sitio entero salía apagado. El segundo fue #0d1122 y se anunció como
-   * «1,6 veces más claridad», que es cierto y es engañoso: en claridad
-   * PERCIBIDA eso son 2,1 puntos de L*, justo el umbral de lo que el ojo
-   * distingue. Cambió el número y no cambió nada.
-   *
-   * Este es un azul que se ve azul: L* 10,8 frente a los 3,3 del original. La
-   * regla que se saca de aquí es que sobre un fondo casi negro las diferencias
-   * relativas de luminancia no significan nada — hay que mirar L*.
-   *
-   * Contrastes comprobados sobre las DOS superficies donde aparece el texto,
-   * el fondo y la tarjeta, que es la más clara. El peor caso es `apagado`
-   * sobre tarjeta con 4,91; todo lo demás pasa de 5.
+   * Sobre claro los colores de dato tienen que ser MÁS oscuros y menos
+   * saturados de lo que la intuición pide. Un verde bonito de pantalla oscura
+   * (#2fe3a0) da 1,6 de contraste sobre blanco: ilegible. Los de aquí salen de
+   * oscurecer cada tono manteniendo su matiz hasta pasar 4,6 sobre el FONDO DE
+   * PÁGINA, que es la superficie exigente — no sobre la tarjeta blanca, que
+   * perdona más. Ese detalle se hizo al revés la primera vez.
    */
-  --color-fondo: #151b38;
-  --color-superficie: #1e2649;
-  --color-superficie-alta: #28315b;
-  --color-borde: #39437a;
-  --color-borde-fuerte: #4f5b9e;
+  --color-fondo: #f6f7fb;
+  --color-superficie: #fbfcff;
+  /* Las tarjetas son blancas: en claro, lo elevado es lo más claro. */
+  --color-superficie-alta: #ffffff;
+  --color-borde: #dfe3ee;
+  --color-borde-fuerte: #bcc4d8;
 
-  --color-tinta: #f4f6ff;
-  --color-tenue: #b4bee3;
-  /* Aclarado hasta cumplir AA también sobre la tarjeta, no solo sobre el fondo. */
-  --color-apagado: #96a1cb;
+  --color-tinta: #10142c;
+  --color-tenue: #4a5372;
+  --color-apagado: #676f8a;
 
   /*
    * Verde y rojo son datos, no decoración: solo se usan cuando el signo del
    * número es la información. El ámbar es "todavía no se sabe", que en este
    * producto es un estado de primera clase y no un error.
-   *
-   * Suben de saturación con el fondo. Un verde apagado sobre un fondo apagado
-   * no se lee como «esto salió bien», y ese es justo el trabajo que tienen.
    */
-  --color-positivo: #2fe3a0;
-  --color-negativo: #ff7b7c;
-  --color-aviso: #ffc85c;
+  --color-positivo: #0c7f56;
+  --color-negativo: #d3302b;
+  --color-aviso: #956700;
 
-  --color-acento: #8fa0ff;
-  --color-acento-suave: #3c4885;
-  --color-dato: #3ce0d2;
+  --color-acento: #4457d8;
+  --color-acento-suave: #dbe0fb;
+  --color-dato: #0c7c82;
 
   --font-sans:
     ui-sans-serif, system-ui, -apple-system, 'Segoe UI Variable Text', 'Segoe UI', Roboto,
@@ -72,7 +66,7 @@
 }
 
 html {
-  color-scheme: dark;
+  color-scheme: light;
   -webkit-text-size-adjust: 100%;
 }
 
@@ -85,8 +79,12 @@ body {
 }
 
 /*
- * Ambiente del fondo: una rejilla muy tenue y dos halos de color.
+ * Ambiente del fondo: una rejilla muy tenue y unos halos de color.
  * Va en un pseudoelemento fijo para que no cueste repintado al hacer scroll.
+ *
+ * En claro las líneas de la rejilla son OSCURAS y los halos van a opacidad
+ * mucho menor. Los mismos valores que servían sobre azul marino aquí
+ * ensucian: sobre claro, un tinte de color no ilumina, mancha.
  */
 body::before {
   content: '';
@@ -95,16 +93,14 @@ body::before {
   z-index: -1;
   pointer-events: none;
   background:
-    /* Bajan de opacidad respecto a la versión anterior: sobre un fondo claro
-       los mismos halos se emborronan en vez de iluminar. */
-    radial-gradient(64rem 36rem at 6% -12%, rgb(143 160 255 / 0.20), transparent 62%),
-    radial-gradient(52rem 34rem at 98% 0%, rgb(60 224 210 / 0.12), transparent 64%),
-    radial-gradient(44rem 28rem at 52% -4%, rgb(186 140 255 / 0.13), transparent 66%),
-    /* Un punto cálido abajo a la derecha. Sin él la pantalla entera es azul
-       y azul solo, por muy saturado que esté, se lee como frío. */
-    radial-gradient(38rem 24rem at 88% 92%, rgb(255 165 125 / 0.07), transparent 70%),
-    linear-gradient(to bottom, rgb(255 255 255 / 0.045) 1px, transparent 1px),
-    linear-gradient(to right, rgb(255 255 255 / 0.045) 1px, transparent 1px);
+    radial-gradient(60rem 34rem at 4% -12%, rgb(68 87 216 / 0.10), transparent 60%),
+    radial-gradient(48rem 30rem at 98% -2%, rgb(12 124 130 / 0.075), transparent 62%),
+    radial-gradient(40rem 26rem at 54% -6%, rgb(140 90 220 / 0.055), transparent 64%),
+    /* El punto cálido se queda: sin él la pantalla es azul y azul solo se lee
+       como frío, tanto en claro como en oscuro. */
+    radial-gradient(36rem 22rem at 90% 94%, rgb(255 150 90 / 0.07), transparent 70%),
+    linear-gradient(to bottom, rgb(16 20 44 / 0.045) 1px, transparent 1px),
+    linear-gradient(to right, rgb(16 20 44 / 0.045) 1px, transparent 1px);
   background-size:
     100% 100%,
     100% 100%,
@@ -133,37 +129,32 @@ body::before {
  * puramente visuales: no tienen estado ni lógica que probar.
  * ------------------------------------------------------------------------ */
 
+/*
+ * Tarjeta.
+ *
+ * En oscuro el volumen lo daba un filo de luz arriba. En claro eso no existe:
+ * lo que separa una tarjeta del papel es la SOMBRA, y tiene que ser suave y en
+ * dos capas —una corta y cerrada para el contacto, otra larga y muy diluida
+ * para la distancia—. Con una sola capa la caja parece pegada o parece flotar
+ * un palmo, nunca apoyada.
+ */
 @utility tarjeta {
   position: relative;
-  background: linear-gradient(180deg, var(--color-superficie-alta), var(--color-superficie));
+  background: var(--color-superficie-alta);
   border: 1px solid var(--color-borde);
   border-radius: var(--radius-2xl);
   box-shadow:
-    0 1px 0 0 rgb(255 255 255 / 0.04) inset,
-    0 16px 40px -22px rgb(0 0 0 / 0.95);
+    0 1px 2px -1px rgb(16 20 44 / 0.10),
+    0 12px 28px -18px rgb(16 20 44 / 0.18);
   transition:
     border-color 0.2s ease,
     box-shadow 0.2s ease,
     transform 0.2s ease;
 
-  /*
-   * Filo de luz en el borde superior. Es el truco que separa una caja plana de
-   * una que parece tener volumen, y cuesta un pseudoelemento sin pintar nada.
-   */
-  &::after {
-    content: '';
-    position: absolute;
-    inset: 0 0 auto 0;
-    height: 1px;
-    border-radius: var(--radius-2xl) var(--radius-2xl) 0 0;
-    background: linear-gradient(
-      90deg,
-      transparent,
-      rgb(255 255 255 / 0.14) 22%,
-      rgb(255 255 255 / 0.14) 78%,
-      transparent
-    );
-    pointer-events: none;
+  &:hover {
+    box-shadow:
+      0 1px 2px -1px rgb(16 20 44 / 0.12),
+      0 18px 36px -20px rgb(16 20 44 / 0.24);
   }
 }
 
@@ -228,8 +219,8 @@ body::before {
     z-index: -1;
     inset: -18% -12%;
     background: radial-gradient(60% 60% at 22% 50%, currentColor, transparent 70%);
-    opacity: 0.17;
-    filter: blur(18px);
+    opacity: 0.13;
+    filter: blur(20px);
     pointer-events: none;
   }
 }
@@ -262,7 +253,6 @@ body::before {
     color-mix(in oklab, currentColor 55%, transparent),
     currentColor
   );
-  box-shadow: 0 0 12px -2px currentColor;
 }
 
 /* ---------------------------------------------------------------------------
@@ -386,7 +376,7 @@ body::before {
     max-width: calc(100% - 0.5rem);
     border-radius: 3px;
     background: currentColor;
-    opacity: 0.14;
+    opacity: 0.16;
     pointer-events: none;
   }
 }

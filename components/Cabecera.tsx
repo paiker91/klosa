@@ -49,7 +49,7 @@ export function Cabecera({
   );
 
   return (
-    <header className="sticky top-0 z-30 border-b border-borde/80 bg-fondo/75 shadow-[0_1px_0_0_rgb(255_255_255/0.04)] backdrop-blur-xl">
+    <header className="sticky top-0 z-30 border-b border-borde/80 bg-fondo/80 shadow-[0_1px_12px_-6px_rgb(16_20_44/0.35)] backdrop-blur-xl">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2.5 sm:h-16 sm:flex-nowrap sm:py-0 sm:px-6">
         <Link
           href={urlCalculadora(locale)}

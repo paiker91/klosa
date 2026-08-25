@@ -20,6 +20,14 @@ export default async function LayoutIdioma({
 
   return (
     <html lang={HTML_LANG[locale]}>
+      <head>
+        {/*
+          Tiñe la barra del navegador en móvil. Sin esto, Chrome de Android
+          pinta la suya oscura por defecto y quedaba una franja negra sobre una
+          página clara, que es exactamente el remiendo que se ve mal.
+        */}
+        <meta name="theme-color" content="#f6f7fb" />
+      </head>
       <body className="flex min-h-dvh flex-col bg-fondo text-tinta antialiased">
         {children}
         {/*

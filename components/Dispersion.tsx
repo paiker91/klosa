@@ -74,12 +74,12 @@ export function Dispersion({
       >
         <defs>
           <linearGradient id="disp-mal" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stopColor="var(--color-negativo)" stopOpacity="0.13" />
+            <stop offset="0%" stopColor="var(--color-negativo)" stopOpacity="0.10" />
             <stop offset="100%" stopColor="var(--color-negativo)" stopOpacity="0" />
           </linearGradient>
           <linearGradient id="disp-bien" x1="0" y1="0" x2="1" y2="0">
             <stop offset="0%" stopColor="var(--color-positivo)" stopOpacity="0" />
-            <stop offset="100%" stopColor="var(--color-positivo)" stopOpacity="0.13" />
+            <stop offset="100%" stopColor="var(--color-positivo)" stopOpacity="0.10" />
           </linearGradient>
         </defs>
 
@@ -119,7 +119,7 @@ export function Dispersion({
             fill={p.v >= 0 ? 'var(--color-positivo)' : 'var(--color-negativo)'}
             fillOpacity="0.9"
             /* Un borde del color del fondo: dos puntos pegados se siguen contando. */
-            stroke="var(--color-superficie)"
+            stroke="var(--color-superficie-alta)"
             strokeWidth="1"
           />
         ))}
