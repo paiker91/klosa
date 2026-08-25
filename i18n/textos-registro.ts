@@ -159,8 +159,19 @@ const pt: TextosRegistro = {
   },
   tabla: {
     resultado: 'Resultado',
-    ganada: 'green',
-    perdida: 'red',
+    /*
+     * «ganha»/«perdida», no «green»/«red».
+     *
+     * La jerga brasileña es auténtica y un apostante de São Paulo la entiende
+     * sin pensar, pero convivía con «anulada» en portugués en la misma
+     * columna: ya era una columna en dos idiomas. Y a quien no es brasileño
+     * —el resto del mundo, que es a quien apunta esto ahora— dos palabras en
+     * inglés donde esperaba un resultado le hacen dudar de si el pick está
+     * liquidado. Esa duda ya costó una revisión entera del pipeline para
+     * acabar descubriendo que no había nada roto.
+     */
+    ganada: 'ganha',
+    perdida: 'perdida',
     anulada: 'anulada',
     fecha: 'Anotado em',
     partido: 'Jogo',

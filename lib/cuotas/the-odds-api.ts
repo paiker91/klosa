@@ -187,6 +187,27 @@ export class TheOddsApi implements ProveedorDeCuotas {
     }
   }
 
+  /**
+   * Nombre con el que se identifica una casa.
+   *
+   * El proveedor repite títulos: «Betfair» son DOS casas distintas,
+   * `betfair_ex_eu` y `betfair_ex_uk`, con precios y liquidez diferentes.
+   * Usar el título como identidad las mezclaba: en el desplegable salían dos
+   * opciones idénticas y al capturar el cierre se emparejaba con la primera
+   * que apareciera, así que podía medirse contra el exchange británico una
+   * apuesta hecha en el europeo.
+   *
+   * Solo se desambigua cuando hace falta, para no ensuciar los nombres del
+   * resto con sufijos que no aportan nada.
+   */
+  private static nombrar(casa: CasaAPI, todas: readonly CasaAPI[]): string {
+    if (todas.filter((x) => x.title === casa.title).length < 2) return casa.title;
+    const sufijo = casa.key.split('_').pop() ?? '';
+    return sufijo.length >= 2 && sufijo.length <= 3
+      ? `${casa.title} (${sufijo.toUpperCase()})`
+      : `${casa.title} (${casa.key})`;
+  }
+
   /** Mediana de una lista de precios. */
   private static mediana(xs: number[]): number {
     const s = [...xs].sort((a, b) => a - b);
@@ -253,7 +274,7 @@ export class TheOddsApi implements ProveedorDeCuotas {
       .map((c) => {
         const m = c.markets.find((x) => x.key === claveMercado);
         return {
-          casa: c.title,
+          casa: TheOddsApi.nombrar(c, bruto.bookmakers ?? []),
           lados: (m?.outcomes ?? [])
             .filter((o) => lados.includes(etiquetar(o)))
             .map((o) => ({ lado: etiquetar(o), cuota: o.price })),
@@ -445,11 +466,11 @@ export class TheOddsApi implements ProveedorDeCuotas {
               mercado,
               lados: salidas.map((o) => ({ etiqueta: this.etiquetar(o, mercado), cuota: o.price })),
               capturadoEn: new Date(casa.last_update),
-              casa: casa.title,
+              casa: TheOddsApi.nombrar(casa, bruto.bookmakers ?? []),
               casas: 1,
               porCasa: [
                 {
-                  casa: casa.title,
+                  casa: TheOddsApi.nombrar(casa, bruto.bookmakers ?? []),
                   lados: salidas.map((o) => ({
                     etiqueta: this.etiquetar(o, mercado),
                     cuota: o.price,
@@ -505,7 +526,7 @@ export class TheOddsApi implements ProveedorDeCuotas {
 
       const etiquetas = salidas.map((o) => this.etiquetar(o, mercado));
       porCasa.push({
-        casa: casa.title,
+        casa: TheOddsApi.nombrar(casa, evento.bookmakers ?? []),
         lados: salidas.map((o, i) => ({ etiqueta: etiquetas[i] as string, cuota: o.price })),
       });
       const clave = [...etiquetas].sort().join(' | ');

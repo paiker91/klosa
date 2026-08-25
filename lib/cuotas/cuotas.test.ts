@@ -521,3 +521,89 @@ describe('salidas por mercado, no por deporte', () => {
     }
   });
 });
+
+describe('casas distintas con el mismo nombre', () => {
+  const betfair = (clave: string, a: number, b: number) => ({
+    key: clave,
+    title: 'Betfair',
+    last_update: '2026-04-09T23:10:00Z',
+    markets: [
+      {
+        key: 'h2h',
+        last_update: '2026-04-09T23:10:00Z',
+        outcomes: [
+          { name: 'Chicago Bulls', price: a },
+          { name: 'Washington Wizards', price: b },
+        ],
+      },
+    ],
+  });
+  const otra = (titulo: string) => ({
+    key: titulo.toLowerCase(),
+    title: titulo,
+    last_update: '2026-04-09T23:10:00Z',
+    markets: [
+      {
+        key: 'h2h',
+        last_update: '2026-04-09T23:10:00Z',
+        outcomes: [
+          { name: 'Chicago Bulls', price: 2.0 },
+          { name: 'Washington Wizards', price: 1.9 },
+        ],
+      },
+    ],
+  });
+
+  const pedir = (casas: unknown[]) =>
+    new TheOddsApi({
+      claveApi: 'x',
+      buscar: fetchFalso([
+        {
+          contiene: '/historical/',
+          cuerpo: {
+            timestamp: '2026-04-09T23:11:00Z',
+            data: [
+              {
+                id: 'evt',
+                sport_key: 'basketball_nba',
+                commence_time: '2026-04-09T23:12:28Z',
+                home_team: 'Washington Wizards',
+                away_team: 'Chicago Bulls',
+                bookmakers: casas,
+              },
+            ],
+          },
+        },
+      ]),
+    }).cuotasDeCierre(
+      { id: 'evt', deporte: 'NBA', comienzo: new Date('2026-04-09T23:12:28Z') },
+      'moneyline',
+    );
+
+  it('«Betfair» son dos casas y se distinguen por región', async () => {
+    /*
+     * El proveedor da el mismo título a betfair_ex_eu y betfair_ex_uk. Con el
+     * título como identidad salían dos opciones idénticas en el desplegable y
+     * el cierre se emparejaba con la primera: podía medirse contra el exchange
+     * británico una apuesta hecha en el europeo.
+     */
+    const cierre = await pedir([
+      betfair('betfair_ex_eu', 2.05, 1.87),
+      betfair('betfair_ex_uk', 2.02, 1.9),
+      otra('Pinnacle'),
+    ]);
+
+    const nombres = (cierre?.porCasa ?? []).map((c) => c.casa).sort();
+    expect(nombres).toEqual(['Betfair (EU)', 'Betfair (UK)', 'Pinnacle']);
+    expect(new Set(nombres).size).toBe(3);
+  });
+
+  it('a las que no se repiten no se les añade nada', async () => {
+    const cierre = await pedir([otra('Pinnacle'), otra('Bet365'), otra('Matchbook')]);
+    expect((cierre?.porCasa ?? []).map((c) => c.casa).sort()).toEqual([
+      'Bet365',
+      'Matchbook',
+      'Pinnacle',
+    ]);
+  });
+});
