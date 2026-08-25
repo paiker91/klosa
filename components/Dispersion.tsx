@@ -72,6 +72,31 @@ export function Dispersion({
         role="img"
         aria-label={`${t.grafico.titulo}. ${t.grafico.media}: ${porcentaje(media, locale)}.`}
       >
+        <defs>
+          <linearGradient id="disp-mal" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="var(--color-negativo)" stopOpacity="0.13" />
+            <stop offset="100%" stopColor="var(--color-negativo)" stopOpacity="0" />
+          </linearGradient>
+          <linearGradient id="disp-bien" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor="var(--color-positivo)" stopOpacity="0" />
+            <stop offset="100%" stopColor="var(--color-positivo)" stopOpacity="0.13" />
+          </linearGradient>
+        </defs>
+
+        {/*
+          Las dos mitades teñidas. El lado bueno y el malo se distinguían solo
+          por el color de cada punto, y con la nube casi toda de un lado eso
+          obliga a buscar la línea de cero para saber de qué lado se está.
+        */}
+        <rect x={MARGEN - 8} y={12} width={x(0) - MARGEN + 8} height={EJE_Y - 12} fill="url(#disp-mal)" />
+        <rect
+          x={x(0)}
+          y={12}
+          width={ANCHO - MARGEN + 8 - x(0)}
+          height={EJE_Y - 12}
+          fill="url(#disp-bien)"
+        />
+
         {/* Cero: la referencia. Todo lo que está a su derecha batió al cierre. */}
         <line
           x1={x(0)}
@@ -92,7 +117,10 @@ export function Dispersion({
             cy={p.cy}
             r={RADIO}
             fill={p.v >= 0 ? 'var(--color-positivo)' : 'var(--color-negativo)'}
-            fillOpacity="0.85"
+            fillOpacity="0.9"
+            /* Un borde del color del fondo: dos puntos pegados se siguen contando. */
+            stroke="var(--color-superficie)"
+            strokeWidth="1"
           />
         ))}
 

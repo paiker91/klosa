@@ -177,15 +177,37 @@ export default async function Pagina({
 
             <CalculadoraCLV locale={idioma} textos={t} marco={tm} />
 
-            {/* Contenido indexable: la mitad del motivo por el que existe la página. */}
-            <div className="mt-20 max-w-3xl space-y-12">
-              {t.contenido.map((seccion) => (
-                <section key={seccion.titulo} className="border-l-2 border-borde pl-5">
-                  <h2 className="titular-degradado text-2xl font-semibold tracking-tight text-balance">
-                    {seccion.titulo}
-                  </h2>
+            {/*
+              Contenido indexable: la mitad del motivo por el que existe la
+              página. Era una columna de párrafos con una raya al lado y se leía
+              como la letra pequeña; en tarjetas numeradas cada idea tiene
+              principio y final, que es lo que hace que alguien empiece a leer.
+
+              Dos columnas desde lg. Con una sola, las líneas de 3xl de ancho
+              en un monitor son incómodas de seguir.
+            */}
+            <div className="mt-24 grid gap-5 lg:grid-cols-2">
+              {t.contenido.map((seccion, i) => (
+                <section
+                  key={seccion.titulo}
+                  className="tarjeta group p-6 transition-colors hover:border-borde-fuerte sm:p-7"
+                >
+                  <div className="flex items-baseline gap-3.5">
+                    <span
+                      aria-hidden="true"
+                      className="cifra shrink-0 text-sm font-semibold text-acento/70 transition-colors group-hover:text-acento"
+                    >
+                      {String(i + 1).padStart(2, '0')}
+                    </span>
+                    <h2 className="titular-degradado text-xl font-semibold tracking-tight text-balance sm:text-2xl">
+                      {seccion.titulo}
+                    </h2>
+                  </div>
                   {seccion.parrafos.map((parrafo) => (
-                    <p key={parrafo.slice(0, 40)} className="mt-3.5 leading-relaxed text-tenue">
+                    <p
+                      key={parrafo.slice(0, 40)}
+                      className="mt-3.5 pl-[2.1rem] text-sm leading-relaxed text-tenue"
+                    >
                       {parrafo}
                     </p>
                   ))}

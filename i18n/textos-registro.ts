@@ -20,6 +20,14 @@ export interface TextosRegistro {
    * credibilidad esa suposición no puede quedar en el aire.
    */
   naturaleza: { titulo: string; texto: string };
+  /**
+   * Cabecera de cifras.
+   *
+   * La página abría con dos párrafos y una caja de texto: había que leer para
+   * saber qué dice el registro. Estas cuatro cifras lo dicen de un vistazo, y
+   * el veredicto va con ellas para que nunca se lean sueltas.
+   */
+  vistazo: { titulo: string; picks: string; resueltos: string };
   vacio: { titulo: string; texto: string };
   noDisponible: { titulo: string; texto: string };
   etiquetas: {
@@ -113,6 +121,11 @@ const pt: TextosRegistro = {
     titulo: 'O que este registro mede',
     texto:
       'Mede a qualidade do pick, não as minhas apostas. A odd guardada é a melhor referência do mercado no momento de publicar, e não necessariamente o que eu paguei: da Espanha não tenho acesso a todas as casas, e você não tem acesso às mesmas que eu. O que dá para comparar entre países é o lado escolhido e o preço a que estava — e é isso que está aqui. A vantagem se mede contra o mercado mais afiado do fechamento, hoje Betfair e Matchbook, com margens de cerca de 0,7 %.',
+  },
+  vistazo: {
+    titulo: 'De relance',
+    picks: 'picks com fechamento',
+    resueltos: 'já liquidados',
   },
   vacio: {
     titulo: 'Ainda não há nenhum pick',
@@ -256,6 +269,11 @@ const es: TextosRegistro = {
     texto:
       'Mide la calidad del pick, no mis apuestas. La cuota guardada es la mejor referencia del mercado en el momento de publicar, y no necesariamente lo que yo pagué: desde España no tengo acceso a todas las casas, y tú no tienes acceso a las mismas que yo. Lo que sí se puede comparar entre países es el lado elegido y el precio al que estaba — y eso es lo que hay aquí. La ventaja se mide contra el mercado más afilado del cierre, hoy Betfair y Matchbook, con márgenes en torno al 0,7 %.',
   },
+  vistazo: {
+    titulo: 'De un vistazo',
+    picks: 'picks con cierre',
+    resueltos: 'ya liquidados',
+  },
   vacio: {
     titulo: 'Todavía no hay ningún pick',
     texto:
@@ -386,6 +404,11 @@ const en: TextosRegistro = {
     titulo: 'What this record measures',
     texto:
       'It measures pick quality, not my bets. The odds stored are the best market reference at the moment of publishing, not necessarily what I paid: from Spain I cannot reach every book, and you cannot reach the same ones I can. What does compare across countries is the side chosen and the price it was at — and that is what is here. Edge is measured against the sharpest closing market, today Betfair and Matchbook, with margins around 0.7 %.',
+  },
+  vistazo: {
+    titulo: 'At a glance',
+    picks: 'picks with a close',
+    resueltos: 'already settled',
   },
   vacio: {
     titulo: 'No picks yet',

@@ -106,17 +106,56 @@ export function VistaRegistro({
         </section>
       ) : (
         <>
-          <section className="mt-10 grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:items-start">
-            {/* Bloque de CLV: veredicto, medidor y cifras, en ese orden. */}
-            <div className="tarjeta p-5 sm:p-6">
-              <Veredicto clave={clave} texto={t.veredictos[clave]} />
+          {/*
+            Cabecera de cifras. La página abría con dos párrafos y una caja de
+            texto: había que LEER para saber qué dice el registro. Estas cuatro
+            cifras lo dicen de un vistazo.
 
-              <div className="mt-5">
-                <Medidor n={resumen.n} total={N_MINIMO} locale={locale} textos={tm} />
-              </div>
+            El veredicto va dentro del mismo bloque a propósito. Un panel de
+            números grandes es justo lo que este producto critica cuando se
+            enseña suelto, así que aquí no se puede separar del aviso de que la
+            muestra todavía no prueba nada.
+          */}
+          <section className="tarjeta mt-10 overflow-hidden">
+            <Veredicto clave={clave} texto={t.veredictos[clave]} destacado />
+
+            <div className="grid grid-cols-2 divide-borde/70 border-t border-borde sm:grid-cols-4 sm:divide-x">
+              <Vistazo
+                etiqueta={t.vistazo.picks}
+                valor={entero(conteos.conCierre, locale)}
+                pie={`${entero(resultados.n, locale)} ${t.vistazo.resueltos}`}
+              />
+              <Vistazo
+                etiqueta={t.etiquetas.clvBruto}
+                valor={resumen.n === 0 ? SIN_DATO : porcentaje(resumen.clvMedio, locale)}
+                signo={resumen.n === 0 ? undefined : resumen.clvMedio}
+                atenuado={insuficiente}
+              />
+              <Vistazo
+                etiqueta={t.etiquetas.ventajaMedia}
+                valor={resumen.n === 0 ? SIN_DATO : porcentaje(resumen.ventajaMedia, locale)}
+                signo={resumen.n === 0 ? undefined : resumen.ventajaMedia}
+                atenuado={insuficiente}
+              />
+              <Vistazo
+                etiqueta={t.resultados.yield}
+                valor={resultados.n === 0 ? SIN_DATO : porcentaje(resultados.yield, locale)}
+                signo={resultados.n === 0 ? undefined : resultados.yield}
+                atenuado={flojoResultados}
+              />
+            </div>
+
+            <div className="border-t border-borde px-5 py-4 sm:px-6">
+              <Medidor n={resumen.n} total={N_MINIMO} locale={locale} textos={tm} />
+            </div>
+          </section>
+
+          <section className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:items-start">
+            {/* Bloque de CLV: las dos preguntas y las cifras que las responden. */}
+            <div className="tarjeta p-5 sm:p-6">
 
               {/* Las dos preguntas, ANTES de los números que las responden. */}
-              <div className="mt-6 rounded-xl border border-borde bg-fondo/40 p-4">
+              <div className="rounded-xl border border-borde bg-fondo/40 p-4">
                 <p className="etiqueta-dato">{t.dosPreguntas.titulo}</p>
                 <p className="mt-2 text-xs leading-relaxed text-tenue">
                   <strong className="text-tinta">{t.etiquetas.clvBruto}.</strong>{' '}
@@ -494,20 +533,125 @@ function Titulo({ t, publicar }: { t: TextosRegistro; publicar: string }) {
   );
 }
 
-/** Franja de veredicto. Un color por estado, y el ámbar significa "todavía no se sabe". */
-function Veredicto({ clave, texto }: { clave: ClaveVeredicto; texto: string }) {
+/**
+ * Una cifra de la cabecera.
+ *
+ * `atenuado` no es un detalle de estilo: cuando la muestra no da para
+ * concluir, el número se apaga y pierde el verde o el rojo. Un panel de cifras
+ * grandes y de colores es exactamente lo que este producto critica cuando se
+ * enseña sin contexto, así que aquí el contexto entra en el color.
+ */
+function Vistazo({
+  etiqueta,
+  valor,
+  pie,
+  signo,
+  atenuado = false,
+}: {
+  etiqueta: string;
+  valor: string;
+  pie?: string;
+  signo?: number;
+  atenuado?: boolean;
+}) {
   const tono =
-    clave === 'significativo' || clave === 'temprano_favor'
-      ? 'border-positivo/30 bg-positivo/10 text-positivo'
-      : clave === 'contra' || clave === 'temprano_contra'
-        ? 'border-negativo/30 bg-negativo/10 text-negativo'
-        : clave === 'no_distinguible'
-          ? 'border-borde bg-fondo/40 text-tenue'
-          : 'border-aviso/30 bg-aviso/10 text-aviso';
+    atenuado || signo === undefined
+      ? 'text-tinta'
+      : signo >= 0
+        ? 'text-positivo'
+        : 'text-negativo';
 
   return (
-    <div className={`rounded-xl border p-4 ${tono}`}>
-      <p className="text-sm leading-relaxed font-medium">{texto}</p>
+    <div className="px-5 py-5 sm:px-6">
+      <p className="etiqueta-dato">{etiqueta}</p>
+      <p
+        className={`cifra mt-1.5 text-3xl leading-none font-semibold sm:text-4xl ${tono} ${
+          atenuado ? 'opacity-60' : ''
+        }`}
+      >
+        {valor}
+      </p>
+      {pie !== undefined && <p className="mt-2 text-xs text-apagado">{pie}</p>}
+    </div>
+  );
+}
+
+/** Franja de veredicto. Un color por estado, y el ámbar significa "todavía no se sabe". */
+function Veredicto({
+  clave,
+  texto,
+  destacado = false,
+}: {
+  clave: ClaveVeredicto;
+  texto: string;
+  /** En la cabecera ocupa el ancho entero y se lee grande; en el resto, no. */
+  destacado?: boolean;
+}) {
+  const favor = clave === 'significativo' || clave === 'temprano_favor';
+  const contra = clave === 'contra' || clave === 'temprano_contra';
+  const neutro = clave === 'no_distinguible';
+
+  const tono = favor
+    ? 'border-positivo/30 bg-positivo/10 text-positivo'
+    : contra
+      ? 'border-negativo/30 bg-negativo/10 text-negativo'
+      : neutro
+        ? 'border-borde bg-fondo/40 text-tenue'
+        : 'border-aviso/30 bg-aviso/10 text-aviso';
+
+  if (!destacado) {
+    return (
+      <div className={`rounded-xl border p-4 ${tono}`}>
+        <p className="text-sm leading-relaxed font-medium">{texto}</p>
+      </div>
+    );
+  }
+
+  /*
+   * El icono repite lo que ya dice el color, y eso es deliberado: con
+   * daltonismo rojo-verde —cerca del 8 % de los hombres— el color solo no
+   * distingue «tienes ventaja» de «la estás perdiendo».
+   */
+  const icono = favor ? '↑' : contra ? '↓' : neutro ? '=' : '!';
+  const franja = favor
+    ? 'from-positivo/18'
+    : contra
+      ? 'from-negativo/18'
+      : neutro
+        ? 'from-borde/40'
+        : 'from-aviso/18';
+
+  return (
+    <div
+      className={`flex items-start gap-4 bg-gradient-to-r via-transparent to-transparent px-5 py-5 sm:px-6 ${franja}`}
+    >
+      <span
+        aria-hidden="true"
+        className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-full text-lg font-semibold ring-1 ${
+          favor
+            ? 'bg-positivo/15 text-positivo ring-positivo/30'
+            : contra
+              ? 'bg-negativo/15 text-negativo ring-negativo/30'
+              : neutro
+                ? 'bg-superficie-alta text-tenue ring-borde'
+                : 'bg-aviso/15 text-aviso ring-aviso/30'
+        }`}
+      >
+        {icono}
+      </span>
+      <p
+        className={`text-base leading-relaxed font-medium text-balance sm:text-lg ${
+          favor
+            ? 'text-positivo'
+            : contra
+              ? 'text-negativo'
+              : neutro
+                ? 'text-tenue'
+                : 'text-aviso'
+        }`}
+      >
+        {texto}
+      </p>
     </div>
   );
 }
