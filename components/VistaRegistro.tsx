@@ -413,7 +413,7 @@ export function VistaRegistro({
                   return (
                   <tr
                     key={pick.id}
-                    className="border-b border-borde/40 transition-colors last:border-0 hover:bg-superficie-alta/60"
+                    className="border-b border-borde transition-colors last:border-0 hover:bg-superficie"
                   >
                     <td className="cifra hidden px-3 py-3.5 text-xs whitespace-nowrap text-apagado md:table-cell">
                       {fecha(pick.registradoEn)}
@@ -695,15 +695,23 @@ function Insignia({ desenlace, textos: t }: { desenlace: Desenlace; textos: Text
    * Las medias se enseñan con su propio tono, más apagado: media ganada no es
    * ganada, y darles el mismo verde las convertiría en victorias a la vista.
    */
+  /*
+   * Las medias se distinguen por el RELLENO, no por diluir el texto.
+   *
+   * Antes llevaban el color al 80 % sobre un tinte del 10 %: sobre fondo
+   * oscuro eso se leía como «lo mismo pero más flojo», y sobre blanco se
+   * quedaba en un pastel casi ilegible. La distinción ya la lleva el prefijo ½
+   * de la etiqueta, así que el texto va a plena intensidad.
+   */
   const estilo =
     desenlace === 'ganada'
       ? 'bg-positivo/15 text-positivo'
       : desenlace === 'media_ganada'
-        ? 'bg-positivo/10 text-positivo/80'
+        ? 'bg-positivo/8 text-positivo'
         : desenlace === 'perdida'
           ? 'bg-negativo/15 text-negativo'
           : desenlace === 'media_perdida'
-            ? 'bg-negativo/10 text-negativo/80'
+            ? 'bg-negativo/8 text-negativo'
             : 'bg-borde text-tenue';
 
   const etiqueta =
