@@ -49,9 +49,21 @@
   --color-borde: #d3daea;
   --color-borde-fuerte: #a9b3cd;
 
+  /*
+   * Tres pesos de texto, y los tres pisan fuerte.
+   *
+   * `tenue` estaba en #4a5372, que cumple AA de sobra pero se lee lavado en un
+   * párrafo largo: cumplir el mínimo legal y leerse bien no son lo mismo. Los
+   * tres pasan ahora de 6,4 de contraste sobre el fondo de página, y el de
+   * cuerpo llega a 9,4 — nivel AAA, no AA raspado.
+   *
+   * La jerarquía se mantiene entera: 15,5 / 9,4 / 6,5. Oscurecerlos todos sin
+   * conservar la distancia entre ellos habría aplanado la página, que es el
+   * problema contrario y no mejor.
+   */
   --color-tinta: #10142c;
-  --color-tenue: #4a5372;
-  --color-apagado: #626983;
+  --color-tenue: #333b57;
+  --color-apagado: #4a5372;
 
   /*
    * Verde y rojo son datos, no decoración: solo se usan cuando el signo del
