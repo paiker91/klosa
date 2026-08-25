@@ -7,7 +7,7 @@ import type { Locale } from '@/i18n/config';
 import type { TextosCuenta } from '@/i18n/textos-cuenta';
 
 const CAMPO =
-  'mt-2 w-full rounded-xl border border-borde bg-fondo/60 px-3.5 py-3 text-tinta transition-colors hover:border-borde-fuerte focus:border-acento';
+  'mt-2 w-full rounded-xl border border-borde bg-superficie px-3.5 py-3 text-tinta transition-colors hover:border-borde-fuerte focus:border-acento';
 
 function Boton({ children }: { children: string }) {
   const { pending } = useFormStatus();
@@ -15,7 +15,7 @@ function Boton({ children }: { children: string }) {
     <button
       type="submit"
       disabled={pending}
-      className="min-h-12 w-full rounded-xl bg-acento px-4 font-semibold text-fondo transition-opacity hover:opacity-90 disabled:opacity-60"
+      className="min-h-12 w-full rounded-xl bg-acento px-4 font-semibold text-superficie-alta shadow-[0_4px_12px_-6px_var(--color-acento)] transition-all hover:brightness-110 disabled:opacity-60"
     >
       {pending ? '…' : children}
     </button>

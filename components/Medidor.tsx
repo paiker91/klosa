@@ -92,7 +92,7 @@ export function CosteDeLaMuestra({
   );
 
   return (
-    <div className="rounded-xl border border-borde bg-fondo/40 p-4">
+    <div className="rounded-xl border border-borde bg-superficie p-4">
       <p className="etiqueta-dato">{t.coste.titulo}</p>
       <div className="mt-3 space-y-2.5">
         {barra(t.coste.clv, necesariasClv, 'text-dato')}

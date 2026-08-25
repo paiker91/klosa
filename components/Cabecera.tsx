@@ -40,7 +40,7 @@ export function Cabecera({
              * solo con un fondo un punto más claro y en una cabecera de tres
              * enlaces eso no se ve: había que fijarse para saber dónde estabas.
              */
-            'bg-acento/12 text-tinta shadow-[inset_0_0_0_1px_var(--color-acento)]/40'
+            'bg-acento/10 text-acento shadow-[inset_0_0_0_1px_var(--color-acento)]/35'
           : 'text-tenue hover:bg-superficie-alta/60 hover:text-tinta'
       }`}
     >
@@ -73,7 +73,7 @@ export function Cabecera({
               <span
                 key={l}
                 aria-current="page"
-                className="flex h-8 min-w-10 items-center justify-center rounded-[0.4rem] bg-acento/15 px-2 font-mono text-xs font-semibold text-tinta shadow-[inset_0_0_0_1px_var(--color-acento)]"
+                className="flex h-8 min-w-10 items-center justify-center rounded-[0.4rem] bg-acento/12 px-2 font-mono text-xs font-semibold text-acento shadow-[inset_0_0_0_1px_var(--color-acento)]"
               >
                 {l.toUpperCase()}
               </span>

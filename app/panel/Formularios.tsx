@@ -22,7 +22,7 @@ function Boton({ children }: { children: string }) {
     <button
       type="submit"
       disabled={pending}
-      className="min-h-12 w-full rounded-xl bg-acento px-4 font-semibold text-fondo transition-opacity hover:opacity-90 disabled:opacity-60"
+      className="min-h-12 w-full rounded-xl bg-acento px-4 font-semibold text-superficie-alta shadow-[0_4px_12px_-6px_var(--color-acento)] transition-all hover:brightness-110 disabled:opacity-60"
     >
       {pending ? '…' : children}
     </button>

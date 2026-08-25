@@ -98,7 +98,7 @@ export function CalculadoraCLV({
       <div
         role="tablist"
         aria-label={t.h1}
-        className="flex max-w-xl gap-1 rounded-xl border border-borde bg-superficie/80 p-1 backdrop-blur-sm"
+        className="flex max-w-xl gap-1 rounded-xl border border-borde bg-superficie p-1 backdrop-blur-sm"
       >
         {pestana('buscar', t.buscar.pestana)}
         {pestana('simple', ta.pestanaSimple)}

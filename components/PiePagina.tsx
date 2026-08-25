@@ -36,7 +36,7 @@ export function PiePagina({
   );
 
   return (
-    <footer className="relative mt-24 border-t border-borde bg-superficie/40">
+    <footer className="relative mt-24 border-t border-borde bg-superficie">
       {/*
         Filo de luz sobre la línea del pie. Es el mismo recurso que llevan las
         tarjetas y cierra la página en vez de dejarla cortada en seco.
@@ -101,7 +101,7 @@ export function PiePagina({
           </nav>
         </div>
 
-        <div className="mt-10 rounded-xl border border-borde bg-fondo/40 p-5">
+        <div className="mt-10 rounded-xl border border-borde bg-superficie p-5">
           <h2 className="etiqueta-dato">{t.pie.legal}</h2>
           <p className="mt-2 max-w-3xl text-xs leading-relaxed text-apagado">{t.pie.aviso}</p>
           <p className="mt-3">

@@ -119,7 +119,7 @@ export function ModoSimple({ locale, textos: t }: { locale: Locale; textos: Text
           {t.campos.tresVias}
         </label>
 
-        <details className="rounded-xl border border-borde bg-fondo/40 px-3.5 py-2.5">
+        <details className="rounded-xl border border-borde bg-superficie px-3.5 py-2.5">
           <summary className="cursor-pointer text-sm font-medium text-tenue">
             {t.campos.metodo}
           </summary>
@@ -159,7 +159,7 @@ export function ModoSimple({ locale, textos: t }: { locale: Locale; textos: Text
               setCierreB(e.cierreB);
               setEmpate(tresVias ? EJEMPLO_FUTBOL.empate : '');
             }}
-            className="min-h-11 flex-1 rounded-xl bg-acento px-4 text-sm font-semibold text-fondo transition-opacity hover:opacity-90"
+            className="min-h-11 flex-1 rounded-xl bg-acento px-4 text-sm font-semibold text-superficie-alta shadow-[0_4px_12px_-6px_var(--color-acento)] transition-all hover:brightness-110"
           >
             {t.campos.ejemplo}
           </button>

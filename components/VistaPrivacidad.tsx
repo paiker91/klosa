@@ -55,7 +55,7 @@ export function VistaPrivacidad({ textos: t }: { textos: TextosPrivacidad }) {
           <a
             href={`${REPO_CODIGO}/issues/new`}
             rel="noopener"
-            className="inline-flex min-h-10 items-center rounded-xl bg-acento px-4 text-sm font-semibold text-fondo transition-opacity hover:opacity-90"
+            className="inline-flex min-h-10 items-center rounded-xl bg-acento px-4 text-sm font-semibold text-superficie-alta shadow-[0_4px_12px_-6px_var(--color-acento)] transition-all hover:brightness-110"
           >
             {t.contacto.enlace}
           </a>

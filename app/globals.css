@@ -30,29 +30,41 @@
    * PÁGINA, que es la superficie exigente — no sobre la tarjeta blanca, que
    * perdona más. Ese detalle se hizo al revés la primera vez.
    */
-  --color-fondo: #f6f7fb;
-  --color-superficie: #fbfcff;
-  /* Las tarjetas son blancas: en claro, lo elevado es lo más claro. */
+  /*
+   * Tres niveles, y en claro tienen que separarse DE VERDAD.
+   *
+   * La primera versión clara puso fondo #f6f7fb, superficie #fbfcff y tarjeta
+   * #ffffff: entre el primero y el último había 1,07 de contraste, o sea que
+   * los tres eran el mismo blanco. Todo lo hundido dentro de una tarjeta
+   * —los recuadros de ayuda, los campos, la tira de pestañas— desaparecía.
+   *
+   * En oscuro la jerarquía va hacia arriba: lo elevado es más claro. En claro
+   * va hacia ABAJO: la tarjeta es blanca y lo hundido es más gris que ella.
+   * Copiar la escala del tema oscuro tal cual es lo que la colapsó.
+   */
+  --color-fondo: #e9edf7;
+  /* Lo hundido: recuadros dentro de una tarjeta, campos, tiras de pestañas. */
+  --color-superficie: #f1f4fc;
   --color-superficie-alta: #ffffff;
-  --color-borde: #dfe3ee;
-  --color-borde-fuerte: #bcc4d8;
+  --color-borde: #d3daea;
+  --color-borde-fuerte: #a9b3cd;
 
   --color-tinta: #10142c;
   --color-tenue: #4a5372;
-  --color-apagado: #676f8a;
+  --color-apagado: #626983;
 
   /*
    * Verde y rojo son datos, no decoración: solo se usan cuando el signo del
    * número es la información. El ámbar es "todavía no se sabe", que en este
    * producto es un estado de primera clase y no un error.
    */
-  --color-positivo: #0c7f56;
-  --color-negativo: #d3302b;
-  --color-aviso: #956700;
+  --color-positivo: #0b7952;
+  --color-negativo: #c82e29;
+  --color-aviso: #8c6100;
 
   --color-acento: #4457d8;
-  --color-acento-suave: #dbe0fb;
-  --color-dato: #0c7c82;
+  --color-acento-suave: #d6ddfa;
+  --color-dato: #0b767b;
 
   --font-sans:
     ui-sans-serif, system-ui, -apple-system, 'Segoe UI Variable Text', 'Segoe UI', Roboto,
@@ -312,7 +324,7 @@ body::before {
   min-height: 3rem;
   border-radius: var(--radius-xl);
   border: 1px solid var(--color-borde);
-  background: color-mix(in oklab, var(--color-fondo) 60%, transparent);
+  background: var(--color-superficie);
   padding-inline: 0.875rem;
   color: var(--color-tinta);
   transition:
@@ -339,7 +351,7 @@ body::before {
   &:focus {
     outline: none;
     border-color: var(--color-acento);
-    background: color-mix(in oklab, var(--color-acento) 6%, var(--color-fondo));
+    background: var(--color-superficie-alta);
     box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-acento) 22%, transparent);
   }
 

@@ -18,7 +18,7 @@ export default function NoEncontrado() {
           </p>
           <Link
             href={urlCalculadora(LOCALE_POR_DEFECTO)}
-            className="mt-7 inline-flex min-h-11 w-fit items-center rounded-xl bg-acento px-5 text-sm font-semibold text-fondo transition-opacity hover:opacity-90"
+            className="mt-7 inline-flex min-h-11 w-fit items-center rounded-xl bg-acento px-5 text-sm font-semibold text-superficie-alta shadow-[0_4px_12px_-6px_var(--color-acento)] transition-all hover:brightness-110"
           >
             Ir para a calculadora
           </Link>

@@ -118,7 +118,7 @@ export function ModoAgregado({
       : clave === 'contra' || clave === 'temprano_contra'
         ? 'border-negativo/30 bg-negativo/10 text-negativo'
         : clave === 'no_distinguible'
-          ? 'border-borde bg-fondo/40 text-tenue'
+          ? 'border-borde bg-superficie text-tenue'
           : 'border-aviso/30 bg-aviso/10 text-aviso';
 
   const metrica = (etiqueta: string, valor: string) => (
@@ -160,7 +160,7 @@ export function ModoAgregado({
         <div className="flex gap-2">
           <button
             type="submit"
-            className="min-h-11 flex-1 rounded-xl bg-acento px-4 text-sm font-semibold text-fondo transition-opacity hover:opacity-90"
+            className="min-h-11 flex-1 rounded-xl bg-acento px-4 text-sm font-semibold text-superficie-alta shadow-[0_4px_12px_-6px_var(--color-acento)] transition-all hover:brightness-110"
           >
             {t.analizar}
           </button>

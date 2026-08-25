@@ -26,7 +26,7 @@ export function AccesoPanel({ etiqueta }: { etiqueta: string }) {
   return (
     <Link
       href="/panel"
-      className="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl bg-acento px-4 text-sm font-semibold text-fondo transition-opacity hover:opacity-90"
+      className="inline-flex min-h-10 shrink-0 items-center gap-2 rounded-xl bg-acento px-4 text-sm font-semibold text-superficie-alta shadow-[0_4px_12px_-6px_var(--color-acento)] transition-all hover:brightness-110"
     >
       <span aria-hidden="true">+</span>
       {etiqueta}

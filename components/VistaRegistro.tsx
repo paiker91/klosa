@@ -169,7 +169,7 @@ export function VistaRegistro({
             <div className="tarjeta p-5 sm:p-6">
 
               {/* Las dos preguntas, ANTES de los números que las responden. */}
-              <div className="rounded-xl border border-borde bg-fondo/40 p-4">
+              <div className="rounded-xl border border-borde bg-superficie p-4">
                 <p className="etiqueta-dato">{t.dosPreguntas.titulo}</p>
                 <p className="mt-2 text-xs leading-relaxed text-tenue">
                   <strong className="text-tinta">{t.etiquetas.clvBruto}.</strong>{' '}
@@ -227,7 +227,7 @@ export function VistaRegistro({
                   */
                   <div
                     key={etiqueta}
-                    className="rounded-xl border border-borde/70 bg-fondo/30 p-3.5 transition-colors hover:border-borde-fuerte"
+                    className="rounded-xl border border-borde/70 bg-superficie p-3.5 transition-colors hover:border-borde-fuerte"
                   >
                     <dt className="etiqueta-dato">{etiqueta}</dt>
                     <dd
@@ -525,7 +525,7 @@ export function VistaRegistro({
           <a
             href={urls.repo}
             rel="noopener"
-            className="inline-flex min-h-10 items-center rounded-xl bg-acento px-4 text-sm font-semibold text-fondo transition-opacity hover:opacity-90"
+            className="inline-flex min-h-10 items-center rounded-xl bg-acento px-4 text-sm font-semibold text-superficie-alta shadow-[0_4px_12px_-6px_var(--color-acento)] transition-all hover:brightness-110"
           >
             {t.verificar.enlaceRepo}
           </a>
@@ -556,7 +556,7 @@ function Titulo({ t, publicar }: { t: TextosRegistro; publicar: string }) {
           después de que se haya formado esa idea es corregirle, y decírselo
           antes es informarle.
         */}
-        <div className="mt-5 rounded-xl border border-borde bg-fondo/40 p-4">
+        <div className="mt-5 rounded-xl border border-borde bg-superficie p-4">
           <p className="etiqueta-dato">{t.naturaleza.titulo}</p>
           <p className="mt-2 text-xs leading-relaxed text-tenue">{t.naturaleza.texto}</p>
         </div>
@@ -630,7 +630,7 @@ function Veredicto({
     : contra
       ? 'border-negativo/30 bg-negativo/10 text-negativo'
       : neutro
-        ? 'border-borde bg-fondo/40 text-tenue'
+        ? 'border-borde bg-superficie text-tenue'
         : 'border-aviso/30 bg-aviso/10 text-aviso';
 
   if (!destacado) {

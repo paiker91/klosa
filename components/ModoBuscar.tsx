@@ -268,7 +268,7 @@ export function ModoBuscar({ locale, textos: t }: { locale: Locale; textos: Text
         </div>
 
         {/* La cobertura y la definición de cierre, siempre visibles y no en un desplegable. */}
-        <p className="rounded-xl border border-borde bg-fondo/40 p-3.5 text-xs leading-relaxed text-apagado">
+        <p className="rounded-xl border border-borde bg-superficie p-3.5 text-xs leading-relaxed text-apagado">
           {t.buscar.cobertura}
         </p>
       </form>

@@ -134,7 +134,7 @@ export default async function Pagina({
             */}
             <section className="grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_26rem] lg:gap-14">
               <div className="max-w-3xl">
-              <p className="inline-flex items-center gap-2 rounded-full border border-borde bg-superficie/80 px-3 py-1 text-xs text-tenue backdrop-blur-sm">
+              <p className="inline-flex items-center gap-2 rounded-full border border-borde bg-superficie-alta px-3 py-1 text-xs text-tenue">
                 {/* El punto late: sugiere que hay datos vivos detrás, que los hay. */}
                 <span aria-hidden="true" className="relative flex h-1.5 w-1.5">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-dato opacity-70" />
@@ -149,7 +149,13 @@ export default async function Pagina({
               <p className="mt-7">
                 <Link
                   href={urlRegistro(idioma)}
-                  className="group inline-flex min-h-11 items-center gap-2 rounded-xl border border-acento/30 bg-acento/10 px-4.5 text-sm font-semibold text-tinta transition-all hover:border-acento/60 hover:bg-acento/15"
+                  /*
+                    Botón sólido, no un recuadro con el acento al 10 %. Es la
+                    única llamada a la acción de la página y sobre papel un
+                    tinte pálido no se lee como algo pulsable: se lee como otro
+                    recuadro de aviso.
+                  */
+                  className="group inline-flex min-h-11 items-center gap-2 rounded-xl bg-acento px-5 text-sm font-semibold text-superficie-alta shadow-[0_6px_16px_-8px_var(--color-acento)] transition-all hover:brightness-110 hover:shadow-[0_10px_22px_-8px_var(--color-acento)]"
                 >
                   {tm.hero.verRegistro}
                   <span
