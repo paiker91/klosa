@@ -21,6 +21,7 @@ import { CalculadoraCLV } from '@/components/CalculadoraCLV';
 import { VistaRegistro } from '@/components/VistaRegistro';
 import { Cabecera } from '@/components/Cabecera';
 import { PiePagina } from '@/components/PiePagina';
+import { FiguraCLV } from '@/components/FiguraCLV';
 import { leerRegistroPublico, URL_REPO, type RegistroPublico } from '@/lib/picks/remoto';
 
 const SITIO = process.env.NEXT_PUBLIC_SITE_URL ?? 'https://klosa-five.vercel.app';
@@ -131,7 +132,8 @@ export default async function Pagina({
               desde un enlace de Telegram o Reddit: si lo primero que se ve es
               un bloque de texto, el visitante se va antes de usar la herramienta.
             */}
-            <section className="max-w-3xl">
+            <section className="grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_26rem] lg:gap-14">
+              <div className="max-w-3xl">
               <p className="inline-flex items-center gap-2 rounded-full border border-borde bg-superficie/80 px-3 py-1 text-xs text-tenue backdrop-blur-sm">
                 {/* El punto late: sugiere que hay datos vivos detrás, que los hay. */}
                 <span aria-hidden="true" className="relative flex h-1.5 w-1.5">
@@ -140,7 +142,7 @@ export default async function Pagina({
                 </span>
                 {tm.hero.distintivo}
               </p>
-              <h1 className="titular-degradado mt-5 text-4xl font-semibold tracking-tight text-balance sm:text-6xl">
+              <h1 className="titular-degradado mt-5 text-[2.5rem] leading-[1.05] font-semibold tracking-tight text-balance sm:text-6xl lg:text-7xl">
                 {t.h1}
               </h1>
               <p className="mt-5 text-base leading-relaxed text-tenue sm:text-lg">{t.entradilla}</p>
@@ -158,6 +160,19 @@ export default async function Pagina({
                   </span>
                 </Link>
               </p>
+              </div>
+
+              {/*
+                También en móvil, aunque el comentario de arriba diga que entre
+                el titular y la calculadora no va nada. La regla era contra los
+                MUROS DE TEXTO, y una figura no lo es: se entiende de un vistazo
+                y explica para qué sirve la herramienta que viene justo debajo.
+                En pantalla estrecha va más baja para no empujar la calculadora
+                fuera del primer pantallazo.
+              */}
+              <div className="mx-auto w-full max-w-sm lg:max-w-none">
+                <FiguraCLV textos={tm} />
+              </div>
             </section>
 
             <CalculadoraCLV locale={idioma} textos={t} marco={tm} />

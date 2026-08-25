@@ -56,6 +56,20 @@ export interface TextosMarco {
     distintivo: string;
     verRegistro: string;
     comoFunciona: string;
+    /**
+     * Rótulos de la figura del hero.
+     *
+     * `ejemplo` no es adorno: la figura lleva cifras y sin decir que son un
+     * ejemplo se leerían como un dato del registro. En este producto esa
+     * confusión es exactamente la que no se puede permitir.
+     */
+    figura: {
+      ejemplo: string;
+      tuCuota: string;
+      cierre: string;
+      apertura: string;
+      ventaja: string;
+    };
   };
 }
 
@@ -108,6 +122,13 @@ const pt: TextosMarco = {
     distintivo: 'Grátis · sem cadastro · nada sai do seu navegador',
     verRegistro: 'Ver o registro público',
     comoFunciona: 'Como funciona',
+    figura: {
+      ejemplo: 'Exemplo',
+      tuCuota: 'sua odd',
+      cierre: 'fechamento',
+      apertura: 'abertura',
+      ventaja: 'você pegou valor',
+    },
   },
 };
 
@@ -160,6 +181,13 @@ const es: TextosMarco = {
     distintivo: 'Gratis · sin registro · nada sale de tu navegador',
     verRegistro: 'Ver el registro público',
     comoFunciona: 'Cómo funciona',
+    figura: {
+      ejemplo: 'Ejemplo',
+      tuCuota: 'tu cuota',
+      cierre: 'cierre',
+      apertura: 'apertura',
+      ventaja: 'cogiste valor',
+    },
   },
 };
 
@@ -212,6 +240,13 @@ const en: TextosMarco = {
     distintivo: 'Free · no sign-up · nothing leaves your browser',
     verRegistro: 'See the public record',
     comoFunciona: 'How it works',
+    figura: {
+      ejemplo: 'Example',
+      tuCuota: 'your odds',
+      cierre: 'close',
+      apertura: 'open',
+      ventaja: 'you got value',
+    },
   },
 };
 
