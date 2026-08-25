@@ -58,7 +58,7 @@ export function ResultadoCLV({
           signo, que aquí es la información y no decoración.
         */}
         <p
-          className={`cifra destello mt-1 text-6xl leading-none font-semibold sm:text-7xl ${
+          className={`cifra destello mt-1 text-6xl leading-none font-bold sm:text-7xl ${
             bien ? 'text-positivo' : 'text-negativo'
           }`}
         >

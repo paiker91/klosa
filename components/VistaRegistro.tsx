@@ -599,7 +599,7 @@ function Vistazo({
     <div className="px-5 py-5 sm:px-6">
       <p className="etiqueta-dato">{etiqueta}</p>
       <p
-        className={`cifra mt-1.5 text-3xl leading-none font-semibold sm:text-4xl ${tono} ${
+        className={`cifra mt-1.5 text-3xl leading-none font-bold sm:text-4xl ${tono} ${
           atenuado ? 'opacity-60' : ''
         }`}
       >

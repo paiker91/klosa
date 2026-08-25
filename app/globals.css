@@ -112,6 +112,20 @@ body {
   line-height: 1.6;
 
   /*
+   * Peso 500, no 400.
+   *
+   * Un escalón de grosor en TODO el texto es lo que más se nota sin tocar
+   * tamaños ni colores, y sobre fondo claro se agradece especialmente: la
+   * letra fina sobre papel se lava, que es de lo que venimos.
+   *
+   * 500 y no 700. Si todo va en negrita no hay negrita: los titulares, las
+   * cifras y los rótulos dejarían de destacar sobre el texto corriente y la
+   * página se aplanaría. Lo que se hace es subir el suelo y subir con él todo
+   * lo demás, manteniendo la distancia.
+   */
+  font-weight: 500;
+
+  /*
    * NADA de -webkit-font-smoothing: antialiased.
    *
    * Esa regla adelgaza los trazos y está pensada para texto claro sobre fondo
@@ -218,17 +232,24 @@ body::before {
  */
 @utility etiqueta-dato {
   font-size: 0.72rem;
-  font-weight: 600;
+  font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--color-apagado);
 }
 
-/* Número grande de dato. Mono y tabular: se comparan en columna. */
+/*
+ * Número de dato. Mono y tabular: se comparan en columna.
+ *
+ * Van a 600 por defecto. Las cifras son el producto —todo lo demás de esta
+ * página existe para explicarlas— así que su peso base es el de un titular,
+ * no el del texto que las rodea.
+ */
 @utility cifra {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
+  font-weight: 600;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -451,5 +472,6 @@ body::before {
 @utility texto-ayuda {
   font-size: 0.85rem;
   line-height: 1.55;
+  font-weight: 500;
   color: var(--color-tenue);
 }
