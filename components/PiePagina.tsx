@@ -19,10 +19,32 @@ export function PiePagina({
   textos: TextosMarco;
   urlRepoPicks: string;
 }) {
-  const enlace = 'text-tenue transition-colors hover:text-tinta';
+  /*
+   * La flecha aparece al pasar por encima. En una lista de enlaces sin
+   * subrayado, el cambio de color solo es un aviso muy flojo de que la línea
+   * es pulsable.
+   */
+  const enlace =
+    'group inline-flex items-center gap-1.5 text-tenue transition-colors hover:text-tinta';
+  const flecha = (
+    <span
+      aria-hidden="true"
+      className="text-acento opacity-0 transition-opacity group-hover:opacity-100"
+    >
+      →
+    </span>
+  );
 
   return (
-    <footer className="mt-24 border-t border-borde bg-superficie/40">
+    <footer className="relative mt-24 border-t border-borde bg-superficie/40">
+      {/*
+        Filo de luz sobre la línea del pie. Es el mismo recurso que llevan las
+        tarjetas y cierra la página en vez de dejarla cortada en seco.
+      */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none absolute inset-x-0 -top-px h-px bg-gradient-to-r from-transparent via-acento/40 to-transparent"
+      />
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6">
         <div className="grid gap-10 sm:grid-cols-[1.6fr_1fr_1fr]">
           <div>
@@ -36,11 +58,13 @@ export function PiePagina({
               <li>
                 <Link href={urlCalculadora(locale)} className={enlace}>
                   {t.nav.calculadora}
+                  {flecha}
                 </Link>
               </li>
               <li>
                 <Link href={urlRegistro(locale)} className={enlace}>
                   {t.nav.registro}
+                  {flecha}
                 </Link>
               </li>
             </ul>
@@ -52,11 +76,13 @@ export function PiePagina({
               <li>
                 <a href={REPO_CODIGO} className={enlace} rel="noopener">
                   {t.pie.codigo}
+                  {flecha}
                 </a>
               </li>
               <li>
                 <a href={urlRepoPicks} className={enlace} rel="noopener">
                   {t.pie.registro}
+                  {flecha}
                 </a>
               </li>
               {/*
@@ -68,13 +94,14 @@ export function PiePagina({
               <li>
                 <Link href="/panel" className={enlace} rel="nofollow">
                   {t.pie.panel}
+                  {flecha}
                 </Link>
               </li>
             </ul>
           </nav>
         </div>
 
-        <div className="mt-10 border-t border-borde pt-6">
+        <div className="mt-10 rounded-xl border border-borde bg-fondo/40 p-5">
           <h2 className="etiqueta-dato">{t.pie.legal}</h2>
           <p className="mt-2 max-w-3xl text-xs leading-relaxed text-apagado">{t.pie.aviso}</p>
           <p className="mt-3">

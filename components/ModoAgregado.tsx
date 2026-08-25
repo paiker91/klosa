@@ -153,7 +153,7 @@ export function ModoAgregado({
             rows={8}
             spellCheck={false}
             aria-describedby={`${id}-formato`}
-            className="cifra mt-2.5 w-full resize-y rounded-xl border border-borde bg-fondo/60 px-3.5 py-3 text-sm text-tinta transition-colors placeholder:text-apagado hover:border-borde-fuerte focus:border-acento"
+            className="campo cifra mt-2.5 resize-y py-3 text-sm"
           />
         </div>
 

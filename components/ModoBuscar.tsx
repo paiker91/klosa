@@ -139,7 +139,7 @@ export function ModoBuscar({ locale, textos: t }: { locale: Locale; textos: Text
     );
 
   const claseCampo =
-    'mt-2 min-h-11 w-full rounded-xl border border-borde bg-fondo/60 px-3 text-sm text-tinta transition-colors hover:border-borde-fuerte focus:border-acento';
+    'campo mt-2 text-sm';
 
   return (
     <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:items-start">
@@ -260,7 +260,7 @@ export function ModoBuscar({ locale, textos: t }: { locale: Locale; textos: Text
             value={tomada}
             onChange={(e) => setTomada(e.target.value)}
             aria-describedby={`${id}-tomada-ayuda`}
-            className="cifra mt-2 w-full rounded-xl border border-borde bg-fondo/60 px-3.5 py-3 text-lg text-tinta transition-colors placeholder:text-apagado hover:border-borde-fuerte focus:border-acento"
+            className="campo campo-cifra mt-2"
           />
           <p id={`${id}-tomada-ayuda`} className="mt-1.5 text-xs leading-relaxed text-apagado">
             {t.campos.cuotaTomadaAyuda}

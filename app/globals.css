@@ -283,3 +283,82 @@ body::before {
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
+
+/* ---------------------------------------------------------------------------
+ * Campos. Se definen aquí para que los tres formularios —la calculadora
+ * manual, la de buscar y el panel— se comporten igual sin repetir doce clases.
+ * ------------------------------------------------------------------------ */
+
+@utility campo {
+  width: 100%;
+  min-height: 3rem;
+  border-radius: var(--radius-xl);
+  border: 1px solid var(--color-borde);
+  background: color-mix(in oklab, var(--color-fondo) 60%, transparent);
+  padding-inline: 0.875rem;
+  color: var(--color-tinta);
+  transition:
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    background-color 0.16s ease;
+
+  &::placeholder {
+    color: var(--color-apagado);
+  }
+
+  &:hover {
+    border-color: var(--color-borde-fuerte);
+  }
+
+  /*
+   * Anillo de foco propio, y por eso se anula el genérico de :focus-visible:
+   * los dos a la vez dibujan dos rectángulos concéntricos.
+   *
+   * Se ve MÁS de lo que suele estilarse un campo porque aquí escribir una
+   * cuota es la acción principal de la página: quien llega no sabe qué es el
+   * CLV y el sitio tiene que empujarle a teclear algo.
+   */
+  &:focus {
+    outline: none;
+    border-color: var(--color-acento);
+    background: color-mix(in oklab, var(--color-acento) 6%, var(--color-fondo));
+    box-shadow: 0 0 0 3px color-mix(in oklab, var(--color-acento) 22%, transparent);
+  }
+
+  &:focus-visible {
+    outline: none;
+  }
+}
+
+/* Campo de cuota: la cifra manda, así que va en mono y grande. */
+@utility campo-cifra {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+/*
+ * Barra dentro de una celda de tabla.
+ *
+ * Cincuenta y seis filas de porcentajes se leen de una en una; con la barra
+ * detrás, la columna entera se lee de un vistazo y se ve dónde están los
+ * picks que se salen. El ancho lo pone `--peso` desde el componente.
+ */
+@utility celda-barra {
+  position: relative;
+
+  &::before {
+    content: '';
+    position: absolute;
+    inset-block: 0.45rem;
+    right: 0.25rem;
+    width: calc(var(--peso) * 1%);
+    max-width: calc(100% - 0.5rem);
+    border-radius: 3px;
+    background: currentColor;
+    opacity: 0.14;
+    pointer-events: none;
+  }
+}

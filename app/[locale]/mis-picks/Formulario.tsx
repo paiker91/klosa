@@ -17,7 +17,7 @@ interface Partido {
 }
 
 const CAMPO =
-  'mt-2 min-h-12 w-full rounded-xl border border-borde bg-fondo/60 px-3.5 text-tinta transition-colors hover:border-borde-fuerte focus:border-acento';
+  'campo mt-2';
 
 function Boton({ children }: { children: string }) {
   const { pending } = useFormStatus();
@@ -171,7 +171,7 @@ export function FormularioPick({
             placeholder="2,10"
             value={cuota}
             onChange={(e) => setCuota(e.target.value)}
-            className={`${CAMPO} cifra text-lg`}
+            className={`${CAMPO} campo-cifra`}
           />
         </div>
 
@@ -185,7 +185,7 @@ export function FormularioPick({
             inputMode="decimal"
             autoComplete="off"
             placeholder="1"
-            className={`${CAMPO} cifra text-lg`}
+            className={`${CAMPO} campo-cifra`}
           />
         </div>
 

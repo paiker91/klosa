@@ -89,6 +89,20 @@ export function VistaRegistro({
     .map((e) => e.analisis?.clvBruto)
     .filter((v): v is number => v !== undefined);
 
+  /*
+   * Escala de las barras de la tabla. Es común a las dos columnas de
+   * porcentaje: con una escala por columna, un -0,5 % del bruto y un -0,5 % de
+   * la ventaja dibujarían barras de distinto tamaño y la comparación entre
+   * columnas —que es justo la que hay que hacer— saldría falseada.
+   */
+  const extremo = Math.max(
+    0.01,
+    ...entradas.flatMap((e) =>
+      e.analisis ? [Math.abs(e.analisis.clvBruto), Math.abs(e.analisis.ventaja)] : [],
+    ),
+  );
+  const peso = (v: number) => Math.round((Math.abs(v) / extremo) * 100);
+
   const fecha = (iso: string) =>
     new Date(iso).toLocaleDateString(
       locale === 'pt' ? 'pt-BR' : locale === 'es' ? 'es-ES' : 'en-US',
@@ -346,10 +360,14 @@ export function VistaRegistro({
             </section>
           )}
 
-          <section className="tarjeta mt-6 overflow-x-auto p-1.5 sm:p-2">
+          {/*
+            `max-h` y cabecera pegajosa. Con más de cincuenta filas, al llegar
+            abajo ya no se sabe qué columna es cuál y hay que subir a mirar.
+          */}
+          <section className="tarjeta mt-6 max-h-[38rem] overflow-auto p-1.5 sm:p-2">
             <table className="w-full border-collapse text-sm">
               <caption className="sr-only">{t.h1}</caption>
-              <thead>
+              <thead className="sticky top-0 z-10 bg-superficie-alta/95 backdrop-blur-sm">
                 <tr className="border-b border-borde text-left">
                   <th scope="col" className="etiqueta-dato hidden px-3 py-3 md:table-cell">
                     {t.tabla.fecha}
@@ -438,22 +456,38 @@ export function VistaRegistro({
                     <td className="cifra hidden px-3 py-3.5 text-right text-dato md:table-cell">
                       {analisis ? decimal(analisis.cuotaJustaCierre, locale, 2) : '—'}
                     </td>
-                    <td className="cifra hidden px-3 py-3.5 text-right sm:table-cell">
-                      {analisis ? (
-                        <span className={analisis.clvBruto >= 0 ? 'text-positivo' : 'text-negativo'}>
-                          {porcentaje(analisis.clvBruto, locale)}
-                        </span>
-                      ) : (
-                        <span className="text-apagado">—</span>
-                      )}
+                    <td
+                      className={`cifra celda-barra hidden px-3 py-3.5 text-right sm:table-cell ${
+                        analisis
+                          ? analisis.clvBruto >= 0
+                            ? 'text-positivo'
+                            : 'text-negativo'
+                          : 'text-apagado'
+                      }`}
+                      style={
+                        analisis
+                          ? ({ '--peso': peso(analisis.clvBruto) } as React.CSSProperties)
+                          : undefined
+                      }
+                    >
+                      {analisis ? porcentaje(analisis.clvBruto, locale) : '—'}
                     </td>
-                    <td className="cifra px-3 py-3.5 text-right">
+                    <td
+                      className={`cifra px-3 py-3.5 text-right font-semibold ${
+                        analisis
+                          ? `celda-barra ${analisis.ventaja >= 0 ? 'text-positivo' : 'text-negativo'}`
+                          : ''
+                      }`}
+                      style={
+                        analisis
+                          ? ({ '--peso': peso(analisis.ventaja) } as React.CSSProperties)
+                          : undefined
+                      }
+                    >
                       {!auditoria.valido ? (
-                        <span className="text-xs text-negativo">{t.tabla.invalido}</span>
+                        <span className="text-xs font-normal text-negativo">{t.tabla.invalido}</span>
                       ) : analisis ? (
-                        <span className={analisis.ventaja >= 0 ? 'text-positivo' : 'text-negativo'}>
-                          {porcentaje(analisis.ventaja, locale)}
-                        </span>
+                        porcentaje(analisis.ventaja, locale)
                       ) : sinCierre ? (
                         /*
                          * «Sin cierre medible», no «esperando». El pick existe
@@ -461,11 +495,11 @@ export function VistaRegistro({
                          * mercado y ese CLV no se puede calcular. Dejarlo en
                          * «esperando» prometía un dato que no iba a llegar.
                          */
-                        <span className="text-xs text-aviso" title={sinCierre.detalle}>
+                        <span className="text-xs font-normal text-aviso" title={sinCierre.detalle}>
                           {t.tabla.sinCierre}
                         </span>
                       ) : (
-                        <span className="text-xs text-apagado">{t.tabla.esperando}</span>
+                        <span className="text-xs font-normal text-apagado">{t.tabla.esperando}</span>
                       )}
                     </td>
                     <td className="px-3 py-3.5 text-right">

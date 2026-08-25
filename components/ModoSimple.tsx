@@ -73,7 +73,7 @@ export function ModoSimple({ locale, textos: t }: { locale: Locale; textos: Text
         value={valor}
         onChange={(e) => set(e.target.value)}
         aria-describedby={`${id}-${clave}-ayuda`}
-        className="cifra mt-2 w-full rounded-xl border border-borde bg-fondo/60 px-3.5 py-3 text-lg text-tinta transition-colors placeholder:text-apagado hover:border-borde-fuerte focus:border-acento"
+        className="campo campo-cifra mt-2"
       />
       <p id={`${id}-${clave}-ayuda`} className="mt-1.5 text-xs leading-relaxed text-apagado">
         {ayuda}

@@ -14,7 +14,7 @@ const NOMBRE_MERCADO: Record<Mercado, string> = {
 };
 
 const CAMPO =
-  'w-full rounded-xl border border-borde bg-fondo/60 px-3.5 py-3 text-tinta transition-colors hover:border-borde-fuerte focus:border-acento';
+  'campo';
 
 function Boton({ children }: { children: string }) {
   const { pending } = useFormStatus();
@@ -253,7 +253,7 @@ export function FormularioPick({
           autoComplete="off"
           value={cuota}
           onChange={(e) => setCuota(e.target.value)}
-          className={`${CAMPO} cifra text-lg`}
+          className={`${CAMPO} campo-cifra`}
         />
         <p className="mt-1.5 text-xs leading-relaxed text-apagado">
           Se rellena con el precio de la casa elegida. Cámbiala si cogiste otra — el pick guarda
@@ -271,7 +271,7 @@ export function FormularioPick({
           inputMode="decimal"
           placeholder="1"
           autoComplete="off"
-          className={`${CAMPO} cifra text-lg`}
+          className={`${CAMPO} campo-cifra`}
         />
         <p className="mt-1.5 text-xs leading-relaxed text-apagado">
           Queda registrado y sellado, pero el CLV no se pondera por stake: mide la ventaja por
