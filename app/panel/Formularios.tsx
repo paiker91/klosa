@@ -231,7 +231,7 @@ export function FormularioPick({
           ))}
         </select>
         {disponibles.length > 0 && (
-          <p className="mt-1.5 text-xs leading-relaxed text-apagado">
+          <p className="mt-1.5 texto-ayuda">
             Todas las casas, de mejor precio a peor, con su margen al lado. Lo que se publica es
             una <strong className="text-tinta">referencia de mercado</strong>, no lo que pagaste
             con tu dinero: el registro mide la calidad del pick para que lo pueda seguir alguien
@@ -255,7 +255,7 @@ export function FormularioPick({
           onChange={(e) => setCuota(e.target.value)}
           className={`${CAMPO} campo-cifra`}
         />
-        <p className="mt-1.5 text-xs leading-relaxed text-apagado">
+        <p className="mt-1.5 texto-ayuda">
           Se rellena con el precio de la casa elegida. Cámbiala si cogiste otra — el pick guarda
           las dos, la tuya y la referencia del mercado, para que se pueda auditar.
         </p>
@@ -273,7 +273,7 @@ export function FormularioPick({
           autoComplete="off"
           className={`${CAMPO} campo-cifra`}
         />
-        <p className="mt-1.5 text-xs leading-relaxed text-apagado">
+        <p className="mt-1.5 texto-ayuda">
           Queda registrado y sellado, pero el CLV no se pondera por stake: mide la ventaja por
           apuesta, no por unidad arriesgada.
         </p>

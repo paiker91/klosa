@@ -64,7 +64,7 @@ export function ResultadoCLV({
         >
           {porcentaje(r.ventaja, locale)}
         </p>
-        <p className="mt-3 text-xs leading-relaxed text-apagado">{t.resultado.ventajaExplicacion}</p>
+        <p className="mt-3 texto-ayuda">{t.resultado.ventajaExplicacion}</p>
 
         <ComparadorCuotas
           tomada={r.cuotaTomada}
@@ -92,10 +92,10 @@ export function ResultadoCLV({
 
         <div className="mt-5 space-y-2 border-t border-borde pt-4">
           {procedencia !== undefined && (
-            <p className="text-xs leading-relaxed text-tenue">{procedencia}</p>
+            <p className="texto-ayuda">{procedencia}</p>
           )}
-          <p className="text-xs leading-relaxed text-apagado">{t.resultado.clvBrutoExplicacion}</p>
-          <p className="text-xs leading-relaxed text-apagado">{t.resultado.supuesto}</p>
+          <p className="texto-ayuda">{t.resultado.clvBrutoExplicacion}</p>
+          <p className="texto-ayuda">{t.resultado.supuesto}</p>
           {r.justas.aviso !== undefined && (
             <p className="text-xs leading-relaxed text-negativo">{r.justas.aviso}</p>
           )}

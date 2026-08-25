@@ -17,7 +17,7 @@ export const metadata: Metadata = {
 export default function LayoutPanel({ children }: { children: ReactNode }) {
   return (
     <html lang="es">
-      <body className="min-h-dvh bg-fondo text-tinta antialiased">{children}</body>
+      <body className="min-h-dvh bg-fondo text-tinta">{children}</body>
     </html>
   );
 }

@@ -156,7 +156,7 @@ export default async function Panel({
         <Simbolo className="h-8 w-8" />
         <div>
           <h1 className="text-xl font-semibold tracking-tight">Panel de picks</h1>
-          {subtitulo && <p className="text-xs text-apagado">{subtitulo}</p>}
+          {subtitulo && <p className="texto-ayuda">{subtitulo}</p>}
         </div>
       </div>
       {contenido}
@@ -168,7 +168,7 @@ export default async function Panel({
       <div className="tarjeta mt-6 border-negativo/50 p-5 text-sm">
         <p className="font-semibold text-negativo">El panel no está configurado.</p>
         <p className="mt-2 text-tenue">Faltan estas variables de entorno en Vercel:</p>
-        <ul className="cifra mt-2 text-xs text-tenue">
+        <ul className="cifra mt-2 texto-ayuda">
           {faltan.map((f) => (
             <li key={f}>{f}</li>
           ))}

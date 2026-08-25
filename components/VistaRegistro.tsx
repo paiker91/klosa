@@ -171,11 +171,11 @@ export function VistaRegistro({
               {/* Las dos preguntas, ANTES de los números que las responden. */}
               <div className="rounded-xl border border-borde bg-superficie p-4">
                 <p className="etiqueta-dato">{t.dosPreguntas.titulo}</p>
-                <p className="mt-2 text-xs leading-relaxed text-tenue">
+                <p className="mt-2 texto-ayuda">
                   <strong className="text-tinta">{t.etiquetas.clvBruto}.</strong>{' '}
                   {t.dosPreguntas.bruto}
                 </p>
-                <p className="mt-2 text-xs leading-relaxed text-tenue">
+                <p className="mt-2 texto-ayuda">
                   <strong className="text-tinta">{t.etiquetas.ventajaMedia}.</strong>{' '}
                   {t.dosPreguntas.ventaja}
                 </p>
@@ -235,13 +235,13 @@ export function VistaRegistro({
                     >
                       {valor}
                     </dd>
-                    <p className="mt-2 text-xs leading-relaxed text-apagado">{ayuda}</p>
+                    <p className="mt-2 texto-ayuda">{ayuda}</p>
                   </div>
                 ))}
               </dl>
 
               {conteos.pendientes > 0 && (
-                <p className="mt-5 border-t border-borde pt-4 text-xs text-apagado">
+                <p className="mt-5 border-t border-borde pt-4 texto-ayuda">
                   {t.etiquetas.pendientes}: {entero(conteos.pendientes, locale)}
                 </p>
               )}
@@ -321,7 +321,7 @@ export function VistaRegistro({
                         locale={locale}
                         textos={tm}
                       />
-                      <p className="mt-3 text-xs leading-relaxed text-apagado">
+                      <p className="mt-3 texto-ayuda">
                         {t.resultados.necesarias
                           .replace('{n}', entero(resultados.apuestasNecesarias, locale))
                           .replace('{clv}', entero(N_MINIMO, locale))}
@@ -428,7 +428,7 @@ export function VistaRegistro({
                         calculada no se puede auditar, y auditar es el punto.
                       */}
                       {(pick.casa || pick.nota || pick.stake) && (
-                        <span className="mt-0.5 block text-xs text-apagado">
+                        <span className="mt-0.5 block texto-ayuda">
                           {[pick.casa, pick.stake ? `stake ${pick.stake}` : null, pick.nota]
                             .filter(Boolean)
                             .join(' · ')}
@@ -539,7 +539,7 @@ export function VistaRegistro({
         </p>
       </section>
 
-      <p className="mt-6 text-xs leading-relaxed text-apagado">{t.aviso}</p>
+      <p className="mt-6 texto-ayuda">{t.aviso}</p>
     </>
   );
 }
@@ -558,7 +558,7 @@ function Titulo({ t, publicar }: { t: TextosRegistro; publicar: string }) {
         */}
         <div className="mt-5 rounded-xl border border-borde bg-superficie p-4">
           <p className="etiqueta-dato">{t.naturaleza.titulo}</p>
-          <p className="mt-2 text-xs leading-relaxed text-tenue">{t.naturaleza.texto}</p>
+          <p className="mt-2 texto-ayuda">{t.naturaleza.texto}</p>
         </div>
       </div>
       {/* Solo lo ve quien ya entró al panel; publicar sigue pidiendo contraseña. */}
@@ -605,7 +605,7 @@ function Vistazo({
       >
         {valor}
       </p>
-      {pie !== undefined && <p className="mt-2 text-xs text-apagado">{pie}</p>}
+      {pie !== undefined && <p className="mt-2 texto-ayuda">{pie}</p>}
     </div>
   );
 }

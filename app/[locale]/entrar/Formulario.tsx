@@ -116,7 +116,7 @@ export function FormularioCuenta({
             autoComplete={crear ? 'new-password' : 'current-password'}
             className={CAMPO}
           />
-          {crear && <p className="mt-1.5 text-xs text-apagado">{t.entrar.passwordAyuda}</p>}
+          {crear && <p className="mt-1.5 texto-ayuda">{t.entrar.passwordAyuda}</p>}
         </div>
 
         <Boton>{crear ? t.entrar.botonCrear : t.entrar.botonEntrar}</Boton>
@@ -128,7 +128,7 @@ export function FormularioCuenta({
         </p>
       )}
 
-      <p className="mt-5 border-t border-borde pt-4 text-xs leading-relaxed text-apagado">
+      <p className="mt-5 border-t border-borde pt-4 texto-ayuda">
         {t.entrar.privacidad}
       </p>
     </div>

@@ -160,7 +160,7 @@ export function Dispersion({
           {t.grafico.mejor}
         </text>
       </svg>
-      <figcaption className="mt-2 text-xs leading-relaxed text-apagado">{t.grafico.pie}</figcaption>
+      <figcaption className="mt-2 texto-ayuda">{t.grafico.pie}</figcaption>
     </figure>
   );
 }

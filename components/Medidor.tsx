@@ -87,7 +87,7 @@ export function CosteDeLaMuestra({
           style={{ width: `${Math.max(1.5, (valor / maximo) * 100)}%` }}
         />
       </div>
-      <span className="cifra text-xs text-tenue">{entero(valor, locale)}</span>
+      <span className="cifra texto-ayuda">{entero(valor, locale)}</span>
     </div>
   );
 
@@ -99,7 +99,7 @@ export function CosteDeLaMuestra({
         {barra(t.coste.yield, necesariasYield, 'text-aviso')}
       </div>
       {Number.isFinite(veces) && veces > 1 && (
-        <p className="mt-3 text-xs text-tenue">
+        <p className="mt-3 texto-ayuda">
           {t.coste.conclusion.replace('{veces}', entero(veces, locale))}
         </p>
       )}

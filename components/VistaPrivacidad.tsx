@@ -16,7 +16,7 @@ export function VistaPrivacidad({ textos: t }: { textos: TextosPrivacidad }) {
         {t.h1}
       </h1>
       <p className="mt-4 text-lg leading-relaxed text-tinta">{t.entradilla}</p>
-      <p className="mt-3 text-xs text-apagado">
+      <p className="mt-3 texto-ayuda">
         {t.actualizado} {ACTUALIZADO}
       </p>
 

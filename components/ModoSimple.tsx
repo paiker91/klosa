@@ -75,7 +75,7 @@ export function ModoSimple({ locale, textos: t }: { locale: Locale; textos: Text
         aria-describedby={`${id}-${clave}-ayuda`}
         className="campo campo-cifra mt-2"
       />
-      <p id={`${id}-${clave}-ayuda`} className="mt-1.5 text-xs leading-relaxed text-apagado">
+      <p id={`${id}-${clave}-ayuda`} className="mt-1.5 texto-ayuda">
         {ayuda}
       </p>
     </div>

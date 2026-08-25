@@ -9,7 +9,7 @@ import './globals.css';
 export default function NoEncontrado() {
   return (
     <html lang={HTML_LANG[LOCALE_POR_DEFECTO]}>
-      <body className="min-h-dvh bg-fondo text-tinta antialiased">
+      <body className="min-h-dvh bg-fondo text-tinta">
         <main className="mx-auto flex min-h-dvh max-w-2xl flex-col justify-center px-5 py-16">
           <p className="cifra text-sm text-apagado">404</p>
           <h1 className="mt-2 text-3xl font-semibold tracking-tight">Página não encontrada</h1>

@@ -134,7 +134,7 @@ export default async function Pagina({
             */}
             <section className="grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_26rem] lg:gap-14">
               <div className="max-w-3xl">
-              <p className="inline-flex items-center gap-2 rounded-full border border-borde bg-superficie-alta px-3 py-1 text-xs text-tenue">
+              <p className="inline-flex items-center gap-2 rounded-full border border-borde bg-superficie-alta px-3 py-1 texto-ayuda">
                 {/* El punto late: sugiere que hay datos vivos detrás, que los hay. */}
                 <span aria-hidden="true" className="relative flex h-1.5 w-1.5">
                   <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-dato opacity-70" />

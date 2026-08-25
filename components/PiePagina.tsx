@@ -103,7 +103,7 @@ export function PiePagina({
 
         <div className="mt-10 rounded-xl border border-borde bg-superficie p-5">
           <h2 className="etiqueta-dato">{t.pie.legal}</h2>
-          <p className="mt-2 max-w-3xl text-xs leading-relaxed text-apagado">{t.pie.aviso}</p>
+          <p className="mt-2 max-w-3xl texto-ayuda">{t.pie.aviso}</p>
           <p className="mt-3">
             <Link href={urlPrivacidad(locale)} className={`text-xs ${enlace}`}>
               {t.pie.privacidad}

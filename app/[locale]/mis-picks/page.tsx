@@ -107,7 +107,7 @@ export default async function MisPicks({ params }: { params: Promise<{ locale: s
               {t.panel.titulo}
             </h1>
             <p className="mt-3 leading-relaxed text-tenue">{t.panel.entradilla}</p>
-            <p className="mt-2 text-xs text-apagado">{usuario.email}</p>
+            <p className="mt-2 texto-ayuda">{usuario.email}</p>
           </div>
           <form action={salir}>
             <input type="hidden" name="locale" value={locale} />
@@ -222,7 +222,7 @@ export default async function MisPicks({ params }: { params: Promise<{ locale: s
                         <span className="font-medium">{p.visitante}</span>
                         <span className="text-apagado"> @ </span>
                         <span className="font-medium">{p.local}</span>
-                        <span className="mt-0.5 block text-xs text-apagado">
+                        <span className="mt-0.5 block texto-ayuda">
                           {[NOMBRE_DEPORTE[p.deporte], p.stake ? `stake ${p.stake}` : null, p.nota]
                             .filter(Boolean)
                             .join(' · ')}
@@ -238,7 +238,7 @@ export default async function MisPicks({ params }: { params: Promise<{ locale: s
                             {porcentaje(a.ventaja, locale)}
                           </span>
                         ) : (
-                          <span className="text-xs text-apagado">
+                          <span className="texto-ayuda">
                             {empezado ? t.panel.esperando : t.panel.esperandoPartido}
                           </span>
                         )}
@@ -251,7 +251,7 @@ export default async function MisPicks({ params }: { params: Promise<{ locale: s
                             <input type="hidden" name="id" value={p.id} />
                             <button
                               type="submit"
-                              className="text-xs text-apagado transition-colors hover:text-negativo"
+                              className="texto-ayuda transition-colors hover:text-negativo"
                             >
                               {t.panel.borrar}
                             </button>
@@ -268,7 +268,7 @@ export default async function MisPicks({ params }: { params: Promise<{ locale: s
 
         <section className="mt-10 border-t border-borde pt-5">
           <h2 className="etiqueta-dato">{t.panel.cuenta}</h2>
-          <p className="mt-2 text-xs leading-relaxed text-apagado">{t.panel.borrarCuentaAviso}</p>
+          <p className="mt-2 texto-ayuda">{t.panel.borrarCuentaAviso}</p>
           <form action={borrarCuenta} className="mt-3">
             <input type="hidden" name="locale" value={locale} />
             <button

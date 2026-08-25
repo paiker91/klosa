@@ -142,7 +142,7 @@ export function ModoAgregado({
           <label htmlFor={`${id}-tabla`} className="block text-sm font-medium text-tinta">
             {t.instrucciones}
           </label>
-          <p id={`${id}-formato`} className="mt-1.5 font-mono text-xs text-apagado">
+          <p id={`${id}-formato`} className="mt-1.5 font-mono texto-ayuda">
             {t.formato}
           </p>
           <textarea
@@ -227,7 +227,7 @@ export function ModoAgregado({
                 pequeña. Enseñar la tabla sin decirlo invita a leer patrones en
                 el ruido — que es lo contrario de lo que hace este producto.
               */}
-              <p className="mt-2 text-xs leading-relaxed text-apagado">{t.desglose.aviso}</p>
+              <p className="mt-2 texto-ayuda">{t.desglose.aviso}</p>
               <TablaGrupos
                 grupos={analisis.porDeporte}
                 locale={locale}
@@ -241,7 +241,7 @@ export function ModoAgregado({
             </div>
           )}
 
-          <div className="space-y-1 text-xs text-apagado">
+          <div className="space-y-1 texto-ayuda">
             <p>{t.detectado(NOMBRE_DELIMITADOR[locale][analisis.delimitador])}</p>
             {analisis.cabeceraOmitida && <p>{t.cabeceraOmitida}</p>}
           </div>

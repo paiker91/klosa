@@ -210,7 +210,7 @@ export function ModoBuscar({ locale, textos: t }: { locale: Locale; textos: Text
             <div className="mt-2 space-y-1">
               <p className="text-xs text-aviso">{t.buscar.sinPartidos}</p>
               {proximo !== null && (
-                <p className="text-xs leading-relaxed text-apagado">
+                <p className="texto-ayuda">
                   {t.buscar.proximo.replace('{fecha}', fechaCorta(proximo))}
                 </p>
               )}
@@ -262,13 +262,13 @@ export function ModoBuscar({ locale, textos: t }: { locale: Locale; textos: Text
             aria-describedby={`${id}-tomada-ayuda`}
             className="campo campo-cifra mt-2"
           />
-          <p id={`${id}-tomada-ayuda`} className="mt-1.5 text-xs leading-relaxed text-apagado">
+          <p id={`${id}-tomada-ayuda`} className="mt-1.5 texto-ayuda">
             {t.campos.cuotaTomadaAyuda}
           </p>
         </div>
 
         {/* La cobertura y la definición de cierre, siempre visibles y no en un desplegable. */}
-        <p className="rounded-xl border border-borde bg-superficie p-3.5 text-xs leading-relaxed text-apagado">
+        <p className="rounded-xl border border-borde bg-superficie p-3.5 texto-ayuda">
           {t.buscar.cobertura}
         </p>
       </form>
@@ -287,7 +287,7 @@ export function ModoBuscar({ locale, textos: t }: { locale: Locale; textos: Text
                 </span>
               ))}
             </div>
-            <p className="mt-2 text-xs text-apagado">
+            <p className="mt-2 texto-ayuda">
               {t.buscar.fuente
                 .replace('{n}', String(cierre.datos.casas))
                 .replace('{fecha}', fechaCorta(cierre.datos.capturadoEn))}

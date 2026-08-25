@@ -124,7 +124,7 @@ export function FiguraCLV({ textos: t }: { textos: TextosMarco }) {
         </span>
       </figcaption>
 
-      <p className="mt-1 flex justify-between text-xs text-tenue">
+      <p className="mt-1 flex justify-between texto-ayuda">
         <span>
           {f.tuCuota} <span className="cifra text-acento">2,10</span>
         </span>

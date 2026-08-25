@@ -28,7 +28,7 @@ export default async function LayoutIdioma({
         */}
         <meta name="theme-color" content="#f6f7fb" />
       </head>
-      <body className="flex min-h-dvh flex-col bg-fondo text-tinta antialiased">
+      <body className="flex min-h-dvh flex-col bg-fondo text-tinta">
         {children}
         {/*
           Contador de visitas, solo en las páginas públicas.

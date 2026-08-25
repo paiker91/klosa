@@ -88,6 +88,35 @@ body {
   font-family: var(--font-sans);
   /* Cifras de la misma anchura en todas partes: las tablas no bailan al cambiar. */
   font-variant-numeric: tabular-nums;
+
+  /*
+   * 17 px de base, no 16.
+   *
+   * El sitio se lee de pie y en el móvil, y todo lo que hay aquí son cifras y
+   * explicaciones de por qué esas cifras no significan lo que parece. Un punto
+   * más de tamaño cuesta nada y se nota en un párrafo largo.
+   */
+  font-size: 1.0625rem;
+  line-height: 1.6;
+
+  /*
+   * NADA de -webkit-font-smoothing: antialiased.
+   *
+   * Esa regla adelgaza los trazos y está pensada para texto claro sobre fondo
+   * oscuro, donde el texto tiende a engordar. Sobre fondo claro hace lo
+   * contrario de lo que hace falta: deja la letra fina y lavada. Venía del
+   * tema oscuro y aquí trabajaba en contra.
+   */
+  -webkit-font-smoothing: auto;
+}
+
+/*
+ * Los párrafos parten mejor las líneas. `pretty` evita la palabra huérfana al
+ * final, que en columnas estrechas —el móvil— sale constantemente.
+ */
+p,
+li {
+  text-wrap: pretty;
 }
 
 /*
@@ -170,10 +199,15 @@ body::before {
   }
 }
 
+/*
+ * Rótulo de una cifra. Va en mayúsculas y espaciado, y por eso necesita un
+ * punto más de tamaño que el texto normal: en versalitas apretadas 11 px se
+ * leen peor que 11 px en caja baja, aunque el número sea el mismo.
+ */
 @utility etiqueta-dato {
-  font-size: 0.6875rem;
+  font-size: 0.72rem;
   font-weight: 600;
-  letter-spacing: 0.07em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--color-apagado);
 }
@@ -391,4 +425,19 @@ body::before {
     opacity: 0.16;
     pointer-events: none;
   }
+}
+
+/*
+ * Texto de ayuda: la letra pequeña que explica cada cifra.
+ *
+ * Había treinta y un sitios con `text-xs text-apagado`, o sea 12 px en el
+ * color de menos contraste de la paleta. Y no es texto accesorio: es
+ * literalmente donde el producto explica por qué un número no significa lo que
+ * parece, que es su razón de existir. Sube a 13,6 px y al color `tenue`, que
+ * pasa de 4,6 a 6,5 de contraste.
+ */
+@utility texto-ayuda {
+  font-size: 0.85rem;
+  line-height: 1.55;
+  color: var(--color-tenue);
 }
