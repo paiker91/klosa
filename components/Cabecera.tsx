@@ -33,10 +33,15 @@ export function Cabecera({
     <Link
       href={href}
       aria-current={activo ? 'page' : undefined}
-      className={`flex min-h-9 items-center rounded-lg px-3 text-sm font-medium transition-colors ${
+      className={`relative flex min-h-9 items-center rounded-lg px-3 text-sm font-medium transition-colors ${
         activo
-          ? 'bg-superficie-alta text-tinta shadow-[inset_0_0_0_1px_var(--color-borde)]'
-          : 'text-tenue hover:text-tinta'
+          ? /*
+             * La página activa lleva el acento, no otro gris. Antes se marcaba
+             * solo con un fondo un punto más claro y en una cabecera de tres
+             * enlaces eso no se ve: había que fijarse para saber dónde estabas.
+             */
+            'bg-acento/12 text-tinta shadow-[inset_0_0_0_1px_var(--color-acento)]/40'
+          : 'text-tenue hover:bg-superficie-alta/60 hover:text-tinta'
       }`}
     >
       {etiqueta}
@@ -44,7 +49,7 @@ export function Cabecera({
   );
 
   return (
-    <header className="sticky top-0 z-30 border-b border-borde/80 bg-fondo/80 backdrop-blur-md">
+    <header className="sticky top-0 z-30 border-b border-borde/80 bg-fondo/75 shadow-[0_1px_0_0_rgb(255_255_255/0.04)] backdrop-blur-xl">
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2.5 sm:h-16 sm:flex-nowrap sm:py-0 sm:px-6">
         <Link
           href={urlCalculadora(locale)}
@@ -68,7 +73,7 @@ export function Cabecera({
               <span
                 key={l}
                 aria-current="page"
-                className="flex h-8 min-w-10 items-center justify-center rounded-[0.4rem] bg-superficie-alta px-2 font-mono text-xs font-semibold text-tinta shadow-[inset_0_0_0_1px_var(--color-borde-fuerte)]"
+                className="flex h-8 min-w-10 items-center justify-center rounded-[0.4rem] bg-acento/15 px-2 font-mono text-xs font-semibold text-tinta shadow-[inset_0_0_0_1px_var(--color-acento)]"
               >
                 {l.toUpperCase()}
               </span>

@@ -31,8 +31,8 @@ export function Simbolo({ className = 'h-7 w-7' }: { className?: string }) {
       <circle cx="11.5" cy="10" r="3" fill="var(--color-acento)" />
       <defs>
         <linearGradient id="klosa-fondo" x1="0" y1="0" x2="32" y2="32">
-          <stop stopColor="#1b2133" />
-          <stop offset="1" stopColor="#10131a" />
+          <stop stopColor="#2a3157" />
+          <stop offset="1" stopColor="#141935" />
         </linearGradient>
       </defs>
     </svg>

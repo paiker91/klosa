@@ -12,15 +12,22 @@ const REPO_CODIGO = 'https://github.com/paiker91/klosa';
 export function VistaPrivacidad({ textos: t }: { textos: TextosPrivacidad }) {
   return (
     <article className="mx-auto max-w-2xl">
-      <h1 className="text-4xl font-semibold tracking-tight text-balance">{t.h1}</h1>
+      <h1 className="titular-degradado text-4xl font-semibold tracking-tight text-balance sm:text-5xl">
+        {t.h1}
+      </h1>
       <p className="mt-4 text-lg leading-relaxed text-tinta">{t.entradilla}</p>
       <p className="mt-3 text-xs text-apagado">
         {t.actualizado} {ACTUALIZADO}
       </p>
 
-      <div className="mt-12 space-y-10">
+      <div className="mt-12 space-y-5">
         {t.secciones.map((s) => (
-          <section key={s.titulo}>
+          /*
+            Cada apartado en su tarjeta. Una política de privacidad se recorre
+            buscando UN apartado, no se lee de arriba abajo, y en una columna
+            continua de párrafos encontrarlo cuesta.
+          */
+          <section key={s.titulo} className="tarjeta p-5 sm:p-6">
             <h2 className="text-xl font-semibold tracking-tight text-balance">{s.titulo}</h2>
             {s.parrafos.map((p) => (
               <p key={p.slice(0, 40)} className="mt-3 leading-relaxed text-tenue">
@@ -31,7 +38,7 @@ export function VistaPrivacidad({ textos: t }: { textos: TextosPrivacidad }) {
               <ul className="mt-3 space-y-2">
                 {s.lista.map((li) => (
                   <li key={li.slice(0, 40)} className="flex gap-3 leading-relaxed text-tenue">
-                    <span aria-hidden="true" className="mt-2.5 h-1 w-1 shrink-0 rounded-full bg-borde-fuerte" />
+                    <span aria-hidden="true" className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-dato/70" />
                     {li}
                   </li>
                 ))}
