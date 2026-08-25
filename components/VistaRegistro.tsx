@@ -327,6 +327,21 @@ export function VistaRegistro({
                   <th scope="col" className="etiqueta-dato hidden px-3 py-3 text-right sm:table-cell">
                     {t.tabla.cierre}
                   </th>
+                  {/*
+                    La justa va JUNTO a la ventaja, no escondida.
+                    Antes la tabla enseñaba la cuota de cierre y, al lado, un
+                    porcentaje calculado contra la justa —que no aparecía por
+                    ninguna parte—. Quien leía «1,94 · 1,95 · −4,46 %» hacía la
+                    resta evidente, le salía −0,5 % y concluía, con razón, que
+                    algo estaba mal. El número era correcto; la columna que lo
+                    explicaba faltaba.
+                  */}
+                  <th scope="col" className="etiqueta-dato hidden px-3 py-3 text-right md:table-cell">
+                    {t.tabla.justa}
+                  </th>
+                  <th scope="col" className="etiqueta-dato hidden px-3 py-3 text-right sm:table-cell">
+                    {t.tabla.bruto}
+                  </th>
                   <th scope="col" className="etiqueta-dato px-3 py-3 text-right">
                     {t.tabla.ventaja}
                   </th>
@@ -375,6 +390,23 @@ export function VistaRegistro({
                     </td>
                     <td className="cifra hidden px-3 py-3.5 text-right text-tenue sm:table-cell">
                       {cerrada === undefined ? '—' : decimal(cerrada, locale, 2)}
+                    </td>
+                    {/*
+                      La cuota justa: el cierre sin el margen de la casa. Es
+                      contra ESTE número contra el que se calcula la ventaja, y
+                      por eso va en la fila y no en una nota al pie.
+                    */}
+                    <td className="cifra hidden px-3 py-3.5 text-right text-dato md:table-cell">
+                      {analisis ? decimal(analisis.cuotaJustaCierre, locale, 2) : '—'}
+                    </td>
+                    <td className="cifra hidden px-3 py-3.5 text-right sm:table-cell">
+                      {analisis ? (
+                        <span className={analisis.clvBruto >= 0 ? 'text-positivo' : 'text-negativo'}>
+                          {porcentaje(analisis.clvBruto, locale)}
+                        </span>
+                      ) : (
+                        <span className="text-apagado">—</span>
+                      )}
                     </td>
                     <td className="cifra px-3 py-3.5 text-right">
                       {!auditoria.valido ? (

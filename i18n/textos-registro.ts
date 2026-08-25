@@ -57,6 +57,10 @@ export interface TextosRegistro {
     lado: string;
     tomada: string;
     cierre: string;
+    /** El cierre sin el margen. Es el número contra el que se mide la ventaja. */
+    justa: string;
+    /** Precio contra precio, la resta que hace el ojo al mirar la fila. */
+    bruto: string;
     ventaja: string;
     esperando: string;
     /**
@@ -183,6 +187,8 @@ const pt: TextosRegistro = {
     lado: 'Lado',
     tomada: 'Odd pega',
     cierre: 'Fechamento',
+    justa: 'Odd justa',
+    bruto: 'Bate o fecham.',
     ventaja: 'Vantagem',
     esperando: 'aguardando',
     sinCierre: 'linha moveu, sem fechamento',
@@ -312,6 +318,8 @@ const es: TextosRegistro = {
     lado: 'Lado',
     tomada: 'Cuota cogida',
     cierre: 'Cierre',
+    justa: 'Cuota justa',
+    bruto: 'Bate el cierre',
     ventaja: 'Ventaja',
     esperando: 'esperando',
     sinCierre: 'línea movida, sin cierre',
@@ -441,6 +449,8 @@ const en: TextosRegistro = {
     lado: 'Side',
     tomada: 'Odds taken',
     cierre: 'Close',
+    justa: 'Fair odds',
+    bruto: 'Beat close',
     ventaja: 'Edge',
     esperando: 'awaiting',
     sinCierre: 'line moved, no close',
