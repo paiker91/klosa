@@ -113,6 +113,52 @@ export const DEPORTES: readonly Deporte[] = [
 export const MERCADOS: readonly Mercado[] = ['moneyline', 'handicap', 'totales'];
 
 /**
+ * Agrupación de las competiciones para los desplegables.
+ *
+ * Con más de cuarenta opciones, una lista plana obliga a leerla entera para
+ * encontrar la Süper Lig. Los grupos son geográficos y por tipo porque así
+ * busca la gente («¿dónde está lo de Alemania?»), no por el orden en que se
+ * fueron añadiendo.
+ *
+ * La etiqueta de cada grupo se traduce en i18n/grupos.ts; aquí solo hay
+ * claves. Y hay un test que exige que TODA competición esté en exactamente un
+ * grupo: sin él, añadir una competición y olvidar agruparla la haría
+ * desaparecer de los formularios sin que nada avisara.
+ */
+export const GRUPOS_DEPORTES = [
+  { clave: 'copasEuropa', deportes: ['Champions', 'EuropaLeague', 'Conference'] },
+  {
+    clave: 'inglaterra',
+    deportes: ['PremierLeague', 'Championship', 'LeagueOne', 'LeagueTwo', 'FACup', 'EFLCup'],
+  },
+  { clave: 'espana', deportes: ['LaLiga', 'Segunda', 'CopaDelRey'] },
+  { clave: 'italia', deportes: ['SerieA', 'SerieB', 'CoppaItalia'] },
+  { clave: 'alemania', deportes: ['Bundesliga', 'Bundesliga2', 'DFBPokal'] },
+  { clave: 'francia', deportes: ['Ligue1', 'Ligue2', 'CoupeDeFrance'] },
+  { clave: 'restoEuropa', deportes: ['Eredivisie', 'Primeira', 'Escocia', 'SuperLig', 'Belgica'] },
+  {
+    clave: 'america',
+    deportes: [
+      'Libertadores',
+      'Sudamericana',
+      'Brasileirao',
+      'BrasileiraoB',
+      'Argentina',
+      'MLS',
+      'LigaMX',
+    ],
+  },
+  {
+    clave: 'selecciones',
+    deportes: ['Mundial', 'ClasifMundialEuropa', 'ClasifMundialSudamerica', 'NationsLeague'],
+  },
+  { clave: 'baloncesto', deportes: ['NBA', 'WNBA', 'NCAAB', 'Euroliga'] },
+  { clave: 'beisbol', deportes: ['MLB'] },
+] as const satisfies readonly { clave: string; deportes: readonly Deporte[] }[];
+
+export type ClaveGrupo = (typeof GRUPOS_DEPORTES)[number]['clave'];
+
+/**
  * Salidas del mercado principal de cada competición.
  *
  * El fútbol es de tres vías y no es un detalle: quitar el margen suponiendo

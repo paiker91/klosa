@@ -3,13 +3,14 @@
 import { useEffect, useId, useMemo, useState } from 'react';
 import { analizarApuestaN, ErrorCuota, type AnalisisApuesta } from '@/lib/clv';
 import {
-  DEPORTES,
+  GRUPOS_DEPORTES,
   MERCADOS,
   NOMBRE_DEPORTE,
   type Deporte,
   type Mercado,
 } from '@/lib/cuotas/dominio';
-import { CIRCUITOS, NOMBRE_CIRCUITO, esCircuito } from '@/lib/cuotas/tenis';
+import { CIRCUITOS, esCircuito } from '@/lib/cuotas/tenis';
+import { NOMBRE_GRUPO } from '@/i18n/grupos';
 import { etiquetaLado } from '@/i18n/lados';
 import type { Locale } from '@/i18n/config';
 import type { Textos } from '@/i18n/textos';
@@ -165,16 +166,22 @@ export function ModoBuscar({ locale, textos: t }: { locale: Locale; textos: Text
               className={claseCampo}
             >
               <option value="">{t.buscar.elegir}</option>
-              {DEPORTES.map((d) => (
-                <option key={d} value={d}>
-                  {NOMBRE_DEPORTE[d]}
-                </option>
+              {GRUPOS_DEPORTES.map((g) => (
+                <optgroup key={g.clave} label={NOMBRE_GRUPO[locale][g.clave]}>
+                  {g.deportes.map((d) => (
+                    <option key={d} value={d}>
+                      {NOMBRE_DEPORTE[d]}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
-              {CIRCUITOS.map((c) => (
-                <option key={c} value={c}>
-                  {NOMBRE_CIRCUITO[c]}
-                </option>
-              ))}
+              <optgroup label={NOMBRE_GRUPO[locale].tenis}>
+                {CIRCUITOS.map((c) => (
+                  <option key={c} value={c}>
+                    {c}
+                  </option>
+                ))}
+              </optgroup>
             </select>
           </div>
 

@@ -3,7 +3,8 @@
 import { useActionState, useEffect, useId, useState } from 'react';
 import { useFormStatus } from 'react-dom';
 import { anotarPick, type Resultado } from './acciones';
-import { DEPORTES, NOMBRE_DEPORTE, type Deporte } from '@/lib/cuotas/dominio';
+import { GRUPOS_DEPORTES, NOMBRE_DEPORTE, type Deporte } from '@/lib/cuotas/dominio';
+import { NOMBRE_GRUPO } from '@/i18n/grupos';
 import { etiquetaLado } from '@/i18n/lados';
 import type { Locale } from '@/i18n/config';
 import type { TextosCuenta } from '@/i18n/textos-cuenta';
@@ -108,10 +109,14 @@ export function FormularioPick({
             className={CAMPO}
           >
             <option value="">{t.panel.elegir}</option>
-            {DEPORTES.map((d) => (
-              <option key={d} value={d}>
-                {NOMBRE_DEPORTE[d]}
-              </option>
+            {GRUPOS_DEPORTES.map((g) => (
+              <optgroup key={g.clave} label={NOMBRE_GRUPO[locale][g.clave]}>
+                {g.deportes.map((d) => (
+                  <option key={d} value={d}>
+                    {NOMBRE_DEPORTE[d]}
+                  </option>
+                ))}
+              </optgroup>
             ))}
           </select>
         </div>

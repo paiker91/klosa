@@ -1,5 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
+  DEPORTES,
+  GRUPOS_DEPORTES,
   validarCuotasDeCierre,
   viasDe,
   ErrorProveedor,
@@ -605,5 +607,19 @@ describe('casas distintas con el mismo nombre', () => {
       'Matchbook',
       'Pinnacle',
     ]);
+  });
+});
+
+/*
+ * La agrupación de los desplegables es una PARTICIÓN de DEPORTES: todo está
+ * en un grupo y en solo uno. Sin este test, añadir una competición y olvidar
+ * agruparla la haría desaparecer de los tres formularios sin ningún aviso —
+ * el catálogo diría 43 y el desplegable enseñaría 42.
+ */
+describe('los grupos del desplegable parten el catálogo entero', () => {
+  it('toda competición está en exactamente un grupo', () => {
+    const agrupados = GRUPOS_DEPORTES.flatMap((g) => g.deportes);
+    expect([...agrupados].sort()).toEqual([...DEPORTES].sort());
+    expect(new Set(agrupados).size).toBe(agrupados.length);
   });
 });

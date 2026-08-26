@@ -4,7 +4,8 @@ import { useActionState, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useFormStatus } from 'react-dom';
 import { anotarPick, entrar, type Resultado } from './acciones';
-import { DEPORTES, MERCADOS, NOMBRE_DEPORTE, type Deporte, type Mercado } from '@/lib/cuotas/dominio';
+import { GRUPOS_DEPORTES, MERCADOS, NOMBRE_DEPORTE, type Deporte, type Mercado } from '@/lib/cuotas/dominio';
+import { NOMBRE_GRUPO } from '@/i18n/grupos';
 
 /** Cómo se llaman los mercados en el panel. En español, que es privado. */
 const NOMBRE_MERCADO: Record<Mercado, string> = {
@@ -120,10 +121,14 @@ export function SelectorCompeticion({
           onChange={(e) => ir(e.target.value, mercado)}
           className={`${CAMPO} min-h-12 ${pendiente ? 'opacity-70' : ''}`}
         >
-          {DEPORTES.map((d) => (
-            <option key={d} value={d}>
-              {NOMBRE_DEPORTE[d]}
-            </option>
+          {GRUPOS_DEPORTES.map((g) => (
+            <optgroup key={g.clave} label={NOMBRE_GRUPO.es[g.clave]}>
+              {g.deportes.map((d) => (
+                <option key={d} value={d}>
+                  {NOMBRE_DEPORTE[d]}
+                </option>
+              ))}
+            </optgroup>
           ))}
         </select>
       </div>
