@@ -12,6 +12,7 @@ import {
   type Locale,
   type Pagina,
 } from '@/i18n/config';
+import { DEPORTES, MERCADOS } from '@/lib/cuotas/dominio';
 import { TEXTOS } from '@/i18n/textos';
 import { TEXTOS_REGISTRO } from '@/i18n/textos-registro';
 import { TEXTOS_MARCO } from '@/i18n/textos-marco';
@@ -124,9 +125,32 @@ export default async function Pagina({
     <>
       <Cabecera locale={idioma} pagina={pagina} textos={tm} />
 
-      <main className="mx-auto max-w-6xl px-4 pt-10 pb-4 sm:px-6 sm:pt-14">
+      <main id="contenido" className="mx-auto max-w-6xl px-4 pt-10 pb-4 sm:px-6 sm:pt-14">
         {pagina === 'calculadora' ? (
           <>
+            {/*
+              Datos estructurados. Le dicen a Google que esto es una
+              herramienta gratuita, no un artículo — con suerte, el resultado
+              sale con más señas. Todo lo declarado es verificable en la
+              propia página; schema.org exige `price` para que la ficha sea
+              válida y aquí ese cero es verdad.
+            */}
+            <script
+              type="application/ld+json"
+              dangerouslySetInnerHTML={{
+                __html: JSON.stringify({
+                  '@context': 'https://schema.org',
+                  '@type': 'WebApplication',
+                  name: 'Klosa',
+                  url: `https://klosa-five.vercel.app${urlDe(pagina, idioma)}`,
+                  description: t.meta.descripcion,
+                  applicationCategory: 'UtilitiesApplication',
+                  operatingSystem: 'Web',
+                  inLanguage: HREFLANG[idioma],
+                  offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
+                }),
+              }}
+            />
             {/*
               El titular y la calculadora, sin nada en medio. La página se abre
               desde un enlace de Telegram o Reddit: si lo primero que se ve es
@@ -166,6 +190,28 @@ export default async function Pagina({
                   </span>
                 </Link>
               </p>
+              {/*
+                Franja de datos. Es el patrón de «prueba social» de cualquier
+                landing, pero sin inventar nada: las tres cifras salen de
+                constantes del código (DEPORTES.length, MERCADOS.length,
+                LOCALES.length) y se actualizan solas si aquello cambia. «Miles
+                de usuarios» no hay, así que no se dice.
+              */}
+              <dl className="mt-9 flex flex-wrap gap-x-8 gap-y-3">
+                {(
+                  [
+                    [DEPORTES.length, tm.hero.datos.competiciones],
+                    [MERCADOS.length, tm.hero.datos.mercados],
+                    [LOCALES.length, tm.hero.datos.idiomas],
+                  ] as const
+                ).map(([cifra, etiqueta]) => (
+                  <div key={etiqueta} className="flex items-baseline gap-2">
+                    <dt className="sr-only">{etiqueta}</dt>
+                    <dd className="cifra text-2xl font-bold text-tinta">{cifra}</dd>
+                    <dd className="etiqueta-dato">{etiqueta}</dd>
+                  </div>
+                ))}
+              </dl>
               </div>
 
               {/*
@@ -220,6 +266,35 @@ export default async function Pagina({
                 </section>
               ))}
             </div>
+
+            {/*
+              Banda de cierre. Una landing que se acaba en la letra pequeña
+              deja al lector sin siguiente paso; esta lo manda al registro, que
+              es donde el producto se juega la credibilidad. El texto promete
+              exactamente lo que la herramienta hace — la misma vara para
+              nosotros que para él — y nada más.
+            */}
+            <section className="tarjeta relative mt-16 overflow-hidden p-7 text-center sm:p-10">
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 bg-[radial-gradient(70%_100%_at_50%_0%,rgb(68_87_216/0.08),transparent_70%)]"
+              />
+              <h2 className="titular-degradado mx-auto max-w-xl text-2xl font-semibold tracking-tight text-balance sm:text-3xl">
+                {tm.bandaCierre.titulo}
+              </h2>
+              <p className="mx-auto mt-3 max-w-xl leading-relaxed text-tenue">
+                {tm.bandaCierre.texto}
+              </p>
+              <p className="mt-6">
+                <Link
+                  href={urlRegistro(idioma)}
+                  className="inline-flex min-h-11 items-center gap-2 rounded-xl bg-acento px-5 text-sm font-semibold text-superficie-alta shadow-[0_6px_16px_-8px_var(--color-acento)] transition-all hover:brightness-110"
+                >
+                  {tm.bandaCierre.boton}
+                  <span aria-hidden="true">→</span>
+                </Link>
+              </p>
+            </section>
           </>
         ) : pagina === 'registro' ? (
           <VistaRegistro

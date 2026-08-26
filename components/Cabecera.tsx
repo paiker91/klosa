@@ -50,6 +50,17 @@ export function Cabecera({
 
   return (
     <header className="sticky top-0 z-30 border-b border-borde/80 bg-fondo/80 shadow-[0_1px_12px_-6px_rgb(16_20_44/0.35)] backdrop-blur-xl">
+      {/*
+        Primer elemento enfocable de la página. Invisible hasta que recibe el
+        foco: quien navega con teclado o lector de pantalla se ahorra tabular
+        por toda la cabecera en cada página, y nadie más lo ve.
+      */}
+      <a
+        href="#contenido"
+        className="sr-only rounded-lg bg-acento px-4 py-2 text-sm font-semibold text-superficie-alta focus:not-sr-only focus:absolute focus:top-2 focus:left-2 focus:z-50"
+      >
+        {t.saltar}
+      </a>
       <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-3 gap-y-2 px-4 py-2.5 sm:h-16 sm:flex-nowrap sm:py-0 sm:px-6">
         <Link
           href={urlCalculadora(locale)}

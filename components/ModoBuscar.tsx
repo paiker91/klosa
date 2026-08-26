@@ -302,11 +302,32 @@ export function ModoBuscar({ locale, textos: t }: { locale: Locale; textos: Text
         )}
 
         {analisis === null ? (
-          <div className="tarjeta flex min-h-[15rem] items-center justify-center p-8 text-center">
-            <p className="max-w-xs text-sm leading-relaxed text-apagado">
-              {cierre.estado === 'cargando' ? t.buscar.cargando : t.buscar.incompleto}
-            </p>
-          </div>
+          cierre.estado === 'cargando' ? (
+            /*
+             * Esqueleto con la MISMA silueta que la tarjeta de resultado:
+             * franja de veredicto, cifra grande, comparador y rejilla de
+             * datos. Reservar la forma exacta evita el salto de altura al
+             * llegar el dato, y dice «esto se está calculando» sin que haya
+             * que leer nada.
+             */
+            <div className="tarjeta overflow-hidden" aria-busy="true" aria-live="polite">
+              <div className="esqueleto h-14 rounded-none" />
+              <div className="p-5 sm:p-6">
+                <div className="esqueleto h-3 w-24" />
+                <div className="esqueleto mt-3 h-14 w-44" />
+                <div className="esqueleto mt-8 h-2 w-full" />
+                <div className="mt-8 grid grid-cols-3 gap-4">
+                  <div className="esqueleto h-12" />
+                  <div className="esqueleto h-12" />
+                  <div className="esqueleto h-12" />
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="tarjeta flex min-h-[15rem] items-center justify-center p-8 text-center">
+              <p className="max-w-xs text-sm leading-relaxed text-apagado">{t.buscar.incompleto}</p>
+            </div>
+          )
         ) : 'error' in analisis ? (
           <div role="alert" className="tarjeta border-negativo/60 p-5">
             <p className="text-sm font-semibold text-negativo">{t.errores.titulo}</p>

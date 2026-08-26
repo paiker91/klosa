@@ -491,3 +491,32 @@ body::before {
   font-weight: 500;
   color: var(--color-tenue);
 }
+
+/*
+ * Esqueleto de carga.
+ *
+ * Un «Buscando…» de texto obliga a leer para saber que algo se mueve; una
+ * franja que respira lo dice sin palabras y reserva el hueco exacto, así que
+ * nada salta cuando llega el dato. Respeta prefers-reduced-motion por la
+ * regla global de arriba.
+ */
+@keyframes respirar {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+@utility esqueleto {
+  border-radius: var(--radius-xl);
+  background: linear-gradient(
+    90deg,
+    var(--color-superficie),
+    color-mix(in oklab, var(--color-borde) 45%, var(--color-superficie)),
+    var(--color-superficie)
+  );
+  animation: respirar 1.4s ease-in-out infinite;
+}

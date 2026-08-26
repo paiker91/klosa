@@ -51,6 +51,10 @@ export interface TextosMarco {
     pie: string;
     vacio: string;
   };
+  /** Banda de cierre de la calculadora, antes del pie. */
+  bandaCierre: { titulo: string; texto: string; boton: string };
+  /** Enlace de salto para teclado y lectores de pantalla. */
+  saltar: string;
   hero: {
     /** Píldora sobre el titular. */
     distintivo: string;
@@ -70,6 +74,11 @@ export interface TextosMarco {
       apertura: string;
       ventaja: string;
     };
+    /**
+     * Franja de datos bajo el hero. Solo afirmaciones que salen del código:
+     * DEPORTES tiene 13 entradas y MERCADOS 3. Nada de «miles de usuarios».
+     */
+    datos: { competiciones: string; mercados: string; idiomas: string };
   };
 }
 
@@ -118,6 +127,13 @@ const pt: TextosMarco = {
     pie: 'Cada ponto é um pick. O que importa não é a média: é a largura da nuvem. Quanto mais espalhada, mais picks são necessários para distinguir vantagem de sorte.',
     vacio: 'Ainda não há nenhum pick com fechamento capturado. A nuvem aparece assim que os jogos terminarem.',
   },
+  bandaCierre: {
+    titulo: 'A régua é a mesma para todo mundo',
+    texto:
+      'O registro público mede os nossos picks com a mesma matemática que esta calculadora aplica aos seus. Sem amostra suficiente, é o que a página diz — inclusive sobre nós.',
+    boton: 'Ver o registro público',
+  },
+  saltar: 'Pular para o conteúdo',
   hero: {
     distintivo: 'Grátis · sem cadastro · nada sai do seu navegador',
     verRegistro: 'Ver o registro público',
@@ -129,6 +145,7 @@ const pt: TextosMarco = {
       apertura: 'abertura',
       ventaja: 'você pegou valor',
     },
+    datos: { competiciones: 'competições', mercados: 'mercados', idiomas: 'idiomas' },
   },
 };
 
@@ -177,6 +194,13 @@ const es: TextosMarco = {
     pie: 'Cada punto es un pick. Lo que importa no es la media: es lo ancha que sea la nube. Cuanto más dispersa, más picks hacen falta para distinguir ventaja de suerte.',
     vacio: 'Todavía no hay ningún pick con cierre capturado. La nube aparece en cuanto terminen los partidos.',
   },
+  bandaCierre: {
+    titulo: 'La vara de medir es la misma para todos',
+    texto:
+      'El registro público mide nuestros picks con la misma matemática que esta calculadora aplica a los tuyos. Si la muestra no da para concluir, la página lo dice — también de nosotros.',
+    boton: 'Ver el registro público',
+  },
+  saltar: 'Saltar al contenido',
   hero: {
     distintivo: 'Gratis · sin registro · nada sale de tu navegador',
     verRegistro: 'Ver el registro público',
@@ -188,6 +212,7 @@ const es: TextosMarco = {
       apertura: 'apertura',
       ventaja: 'cogiste valor',
     },
+    datos: { competiciones: 'competiciones', mercados: 'mercados', idiomas: 'idiomas' },
   },
 };
 
@@ -236,6 +261,13 @@ const en: TextosMarco = {
     pie: 'Each dot is one pick. What matters is not the mean: it is how wide the cloud is. The more spread out, the more picks are needed to tell edge from luck.',
     vacio: 'No picks with a captured close yet. The cloud appears once the games finish.',
   },
+  bandaCierre: {
+    titulo: 'The same yardstick for everyone',
+    texto:
+      'The public record measures our picks with the same math this calculator applies to yours. When the sample proves nothing, the page says so — about us too.',
+    boton: 'See the public record',
+  },
+  saltar: 'Skip to content',
   hero: {
     distintivo: 'Free · no sign-up · nothing leaves your browser',
     verRegistro: 'See the public record',
@@ -247,6 +279,7 @@ const en: TextosMarco = {
       apertura: 'open',
       ventaja: 'you got value',
     },
+    datos: { competiciones: 'competitions', mercados: 'markets', idiomas: 'languages' },
   },
 };
 
