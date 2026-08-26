@@ -94,9 +94,16 @@ export async function generateMetadata({
     description: meta.descripcion,
     alternates: {
       canonical: `${SITIO}${urlDe(pagina, idioma)}`,
-      languages: Object.fromEntries(
-        LOCALES.map((l) => [HREFLANG[l], `${SITIO}${urlDe(pagina, l)}`]),
-      ),
+      languages: {
+        ...Object.fromEntries(LOCALES.map((l) => [HREFLANG[l], `${SITIO}${urlDe(pagina, l)}`])),
+        /*
+         * Quien no encaje en ninguno de los tres idiomas cae en el inglés.
+         * Sin x-default, Google elige él la versión para el resto del mundo —
+         * y con el histórico del sitio elegiría la portuguesa, que era la
+         * principal cuando el proyecto miraba solo a Brasil.
+         */
+        'x-default': `${SITIO}${urlDe(pagina, 'en')}`,
+      },
     },
     // Explícito a propósito: el fallo silencioso que se quiere evitar es justo lo contrario.
     robots: { index: true, follow: true },

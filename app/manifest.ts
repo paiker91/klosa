@@ -15,7 +15,7 @@ export default function manifest(): MetadataRoute.Manifest {
   return {
     name: 'Klosa',
     short_name: 'Klosa',
-    description: 'CLV: la métrica que separa la ventaja de la suerte.',
+    description: 'CLV: the metric that separates real edge from luck.',
     start_url: '/',
     display: 'standalone',
     background_color: '#e9edf7',

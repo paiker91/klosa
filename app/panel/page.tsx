@@ -237,7 +237,7 @@ export default async function Panel({
       </div>
 
       <div className="mt-8 flex items-center justify-between border-t border-borde pt-4">
-        <Link href={urlRegistro('pt')} className="text-sm text-tenue hover:text-tinta">
+        <Link href={urlRegistro('es')} className="text-sm text-tenue hover:text-tinta">
           Ver el registro público
         </Link>
         <form action={salir}>

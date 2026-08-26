@@ -14,7 +14,8 @@ const PAGINAS: readonly Pagina[] = ['calculadora', 'registro', 'privacidad'];
 export default function sitemap(): MetadataRoute.Sitemap {
   return PAGINAS.flatMap((pagina) => {
     const alternativas = Object.fromEntries(
-      LOCALES.map((l) => [HREFLANG[l], `${SITIO}${urlDe(pagina, l)}`]),
+      [...LOCALES.map((l): [string, string] => [HREFLANG[l], `${SITIO}${urlDe(pagina, l)}`]),
+       ['x-default', `${SITIO}${urlDe(pagina, 'en')}`]],
     );
     return LOCALES.map((locale) => ({
       url: `${SITIO}${urlDe(pagina, locale)}`,

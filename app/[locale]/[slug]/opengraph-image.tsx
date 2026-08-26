@@ -15,7 +15,7 @@ import { TEXTOS_REGISTRO } from '@/i18n/textos-registro';
  */
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
-export const alt = 'Klosa · Calculadora de CLV';
+export const alt = 'Klosa · CLV';
 
 export function generateStaticParams() {
   return LOCALES.flatMap((locale) =>

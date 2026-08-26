@@ -12,7 +12,13 @@
  * el idioma del usuario posiciona mejor que un prefijo sobre una ruta ajena.
  */
 
-export const LOCALES = ['pt', 'es', 'en'] as const;
+/*
+ * El inglés primero. El orden se ve en el selector de la cabecera y dice a
+ * qué público habla el sitio: cuando miraba solo a Brasil, el portugués iba
+ * delante; con alcance mundial la puerta de entrada es el inglés, y pt y es
+ * son los mercados donde más se apuesta de los que cubrimos.
+ */
+export const LOCALES = ['en', 'pt', 'es'] as const;
 export type Locale = (typeof LOCALES)[number];
 
 export const LOCALE_POR_DEFECTO: Locale = 'en';
