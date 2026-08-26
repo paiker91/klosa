@@ -4,6 +4,7 @@ import { Analytics } from '@vercel/analytics/next';
 import { LOCALES, HTML_LANG, esLocale } from '@/i18n/config';
 import '../globals.css';
 import { claseFuentes } from '../fuentes';
+import { ScriptTema } from '@/components/Tema';
 
 export function generateStaticParams() {
   return LOCALES.map((locale) => ({ locale }));
@@ -28,6 +29,8 @@ export default async function LayoutIdioma({
           página clara, que es exactamente el remiendo que se ve mal.
         */}
         <meta name="theme-color" content="#e9edf7" />
+        <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#151b38" />
+        <ScriptTema />
       </head>
       <body className="flex min-h-dvh flex-col bg-fondo text-tinta">
         {children}

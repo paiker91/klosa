@@ -55,6 +55,8 @@ export interface TextosMarco {
   bandaCierre: { titulo: string; texto: string; boton: string };
   /** Enlace de salto para teclado y lectores de pantalla. */
   saltar: string;
+  /** Botón que alterna claro y oscuro. */
+  tema: string;
   hero: {
     /** Píldora sobre el titular. */
     distintivo: string;
@@ -134,6 +136,7 @@ const pt: TextosMarco = {
     boton: 'Ver o registro público',
   },
   saltar: 'Pular para o conteúdo',
+  tema: 'Alternar tema claro/escuro',
   hero: {
     distintivo: 'Grátis · sem cadastro · nada sai do seu navegador',
     verRegistro: 'Ver o registro público',
@@ -201,6 +204,7 @@ const es: TextosMarco = {
     boton: 'Ver el registro público',
   },
   saltar: 'Saltar al contenido',
+  tema: 'Cambiar entre tema claro y oscuro',
   hero: {
     distintivo: 'Gratis · sin registro · nada sale de tu navegador',
     verRegistro: 'Ver el registro público',
@@ -268,6 +272,7 @@ const en: TextosMarco = {
     boton: 'See the public record',
   },
   saltar: 'Skip to content',
+  tema: 'Toggle light/dark theme',
   hero: {
     distintivo: 'Free · no sign-up · nothing leaves your browser',
     verRegistro: 'See the public record',

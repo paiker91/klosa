@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import type { Metadata } from 'next';
 import '../globals.css';
 import { claseFuentes } from '../fuentes';
+import { ScriptTema } from '@/components/Tema';
 
 /**
  * El panel es privado y nunca debe indexarse.
@@ -18,6 +19,9 @@ export const metadata: Metadata = {
 export default function LayoutPanel({ children }: { children: ReactNode }) {
   return (
     <html lang="es" className={claseFuentes}>
+      <head>
+        <ScriptTema />
+      </head>
       <body className="min-h-dvh bg-fondo text-tinta">{children}</body>
     </html>
   );

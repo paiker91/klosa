@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { LOCALE_POR_DEFECTO, HTML_LANG, urlCalculadora } from '@/i18n/config';
 import './globals.css';
 import { claseFuentes } from './fuentes';
+import { ScriptTema } from '@/components/Tema';
 
 /**
  * 404 global. Emite documento completo porque el layout raíz es de paso y no
@@ -10,6 +11,9 @@ import { claseFuentes } from './fuentes';
 export default function NoEncontrado() {
   return (
     <html lang={HTML_LANG[LOCALE_POR_DEFECTO]} className={claseFuentes}>
+      <head>
+        <ScriptTema />
+      </head>
       <body className="min-h-dvh bg-fondo text-tinta">
         <main className="mx-auto flex min-h-dvh max-w-2xl flex-col justify-center px-5 py-16">
           <p className="cifra text-sm text-apagado">404</p>

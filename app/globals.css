@@ -110,6 +110,79 @@ html {
   -webkit-text-size-adjust: 100%;
 }
 
+/*
+ * Tema oscuro.
+ *
+ * No es un tinte del claro: es la paleta que este sitio tuvo de serie, la de
+ * la tercera iteración, con los contrastes ya medidos sobre sus dos
+ * superficies (el peor caso era `apagado` sobre tarjeta con 4,91). Cuando el
+ * tema pasó a claro, aquella paleta no se tiró — se quedó esperando esto.
+ *
+ * Se activa con `data-tema="oscuro"` en el html, que pone un script inline
+ * ANTES de la primera pintura leyendo la elección guardada o, en su defecto,
+ * la preferencia del sistema. Sin ese orden habría un fogonazo claro en cada
+ * carga para quien usa oscuro.
+ */
+html[data-tema='oscuro'] {
+  color-scheme: dark;
+
+  --color-fondo: #151b38;
+  --color-superficie: #1e2649;
+  --color-superficie-alta: #28315b;
+  --color-borde: #39437a;
+  --color-borde-fuerte: #4f5b9e;
+
+  --color-tinta: #f4f6ff;
+  --color-tenue: #b4bee3;
+  --color-apagado: #96a1cb;
+
+  --color-positivo: #2fe3a0;
+  --color-negativo: #ff7b7c;
+  --color-aviso: #ffc85c;
+
+  --color-acento: #8fa0ff;
+  --color-acento-suave: #3c4885;
+  --color-dato: #3ce0d2;
+
+  /* El logotipo: en claro su caja es lavanda; en oscuro, azul marino. */
+  --logo-a: #3a4577;
+  --logo-b: #1d2547;
+}
+
+/*
+ * Lo que no se resuelve solo con los tokens: el ambiente y las sombras.
+ *
+ * La rejilla del fondo es de líneas OSCURAS en claro — sobre azul marino
+ * desaparece — y los halos necesitan el doble de opacidad porque sobre
+ * oscuro un tinte ilumina en vez de manchar. Y las sombras de las tarjetas,
+ * afinadas para papel, en oscuro apenas se ven: vuelven las profundas.
+ */
+html[data-tema='oscuro'] body::before {
+  background:
+    radial-gradient(64rem 36rem at 6% -12%, rgb(143 160 255 / 0.2), transparent 62%),
+    radial-gradient(52rem 34rem at 98% 0%, rgb(60 224 210 / 0.12), transparent 64%),
+    radial-gradient(44rem 28rem at 52% -4%, rgb(186 140 255 / 0.13), transparent 66%),
+    radial-gradient(38rem 24rem at 88% 92%, rgb(255 165 125 / 0.07), transparent 70%),
+    linear-gradient(to bottom, rgb(255 255 255 / 0.045) 1px, transparent 1px),
+    linear-gradient(to right, rgb(255 255 255 / 0.045) 1px, transparent 1px);
+}
+
+html[data-tema='oscuro'] body::after {
+  opacity: 0.05;
+}
+
+html[data-tema='oscuro'] .tarjeta {
+  box-shadow:
+    0 1px 0 0 rgb(255 255 255 / 0.04) inset,
+    0 16px 40px -22px rgb(0 0 0 / 0.95);
+}
+
+html[data-tema='oscuro'] .tarjeta:hover {
+  box-shadow:
+    0 1px 0 0 rgb(255 255 255 / 0.05) inset,
+    0 20px 48px -24px rgb(0 0 0 / 1);
+}
+
 body {
   background: var(--color-fondo);
   color: var(--color-tinta);

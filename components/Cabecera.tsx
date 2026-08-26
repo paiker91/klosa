@@ -10,6 +10,7 @@ import {
 } from '@/i18n/config';
 import type { TextosMarco } from '@/i18n/textos-marco';
 import { Marca } from './Marca';
+import { CambioTema } from './Tema';
 
 /**
  * Cabecera fija. Sin JavaScript: son tres destinos y tres idiomas, así que un
@@ -75,9 +76,11 @@ export function Cabecera({
           idioma anterior eran tres siglas de 17 px: en un móvil es imposible
           acertar, y la mayoría del tráfico previsto es móvil.
         */}
+        <div className="ml-auto flex shrink-0 items-center gap-2 sm:order-last">
+        <CambioTema etiqueta={t.tema} />
         <nav
           aria-label={t.nav.idioma}
-          className="ml-auto flex shrink-0 items-center gap-0.5 rounded-lg border border-borde bg-superficie p-0.5 sm:order-last"
+          className="flex shrink-0 items-center gap-0.5 rounded-lg border border-borde bg-superficie p-0.5"
         >
           {LOCALES.map((l) =>
             l === locale ? (
@@ -100,6 +103,7 @@ export function Cabecera({
             ),
           )}
         </nav>
+        </div>
 
         <nav
           aria-label={t.nav.menu}
