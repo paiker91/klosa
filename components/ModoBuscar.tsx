@@ -9,6 +9,7 @@ import {
   type Deporte,
   type Mercado,
 } from '@/lib/cuotas/dominio';
+import { CIRCUITOS, NOMBRE_CIRCUITO, esCircuito } from '@/lib/cuotas/tenis';
 import { etiquetaLado } from '@/i18n/lados';
 import type { Locale } from '@/i18n/config';
 import type { Textos } from '@/i18n/textos';
@@ -45,7 +46,13 @@ type Carga<T> =
  * ese. Aquí solo tiene que decir qué apostó.
  */
 export function ModoBuscar({ locale, textos: t }: { locale: Locale; textos: Textos }) {
-  const [deporte, setDeporte] = useState<Deporte | ''>('');
+  const [deporte, setDeporte] = useState<Deporte | 'ATP' | 'WTA' | ''>('');
+  /*
+   * En tenis el único mercado es el de ganador: ni hándicap ni totales. Se
+   * fuerza aquí y el selector de mercado se reduce a esa opción — ofrecer un
+   * mercado que va a devolver «sin datos» sería un callejón sin salida.
+   */
+  const tenis = deporte !== '' && esCircuito(deporte);
   const [mercado, setMercado] = useState<Mercado>('moneyline');
   const [partidos, setPartidos] = useState<Carga<Partido[]>>({ estado: 'vacio' });
   const [eventoId, setEventoId] = useState('');
@@ -163,6 +170,11 @@ export function ModoBuscar({ locale, textos: t }: { locale: Locale; textos: Text
                   {NOMBRE_DEPORTE[d]}
                 </option>
               ))}
+              {CIRCUITOS.map((c) => (
+                <option key={c} value={c}>
+                  {NOMBRE_CIRCUITO[c]}
+                </option>
+              ))}
             </select>
           </div>
 
@@ -176,7 +188,7 @@ export function ModoBuscar({ locale, textos: t }: { locale: Locale; textos: Text
               onChange={(e) => setMercado(e.target.value as Mercado)}
               className={claseCampo}
             >
-              {MERCADOS.map((m) => (
+              {(tenis ? (['moneyline'] as const) : MERCADOS).map((m) => (
                 <option key={m} value={m}>
                   {t.buscar.mercados[m]}
                 </option>

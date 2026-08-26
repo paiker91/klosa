@@ -60,8 +60,13 @@ const DEPORTE_API: Record<Deporte, string> = {
   PremierLeague: 'soccer_epl',
   LaLiga: 'soccer_spain_la_liga',
   SerieA: 'soccer_italy_serie_a',
+  // Tanda del 2026-08-27, segunda parte: las cuatro activas ese día.
+  SerieB: 'soccer_italy_serie_b',
   Bundesliga: 'soccer_germany_bundesliga',
+  Bundesliga2: 'soccer_germany_bundesliga2',
   Ligue1: 'soccer_france_ligue_one',
+  Ligue2: 'soccer_france_ligue_two',
+  Eredivisie: 'soccer_netherlands_eredivisie',
   Champions: 'soccer_uefa_champs_league',
   /*
    * Tanda del 2026-08-27, verificada contra el listado real ese día:
@@ -330,14 +335,37 @@ export class TheOddsApi implements ProveedorDeCuotas {
    * llama a la API, y sin esto se quedaría sin saber cuánta cuota queda, que es
    * justo lo que hay que vigilar.
    */
+  /**
+   * Listado completo de deportes del proveedor, activos o no.
+   *
+   * Gratis — `x-requests-last: 0`, medido. Es lo que permite resolver los
+   * torneos de tenis del momento sin gastar cuota en preguntar.
+   */
+  async listarDeportes(): Promise<{ key: string; title: string; active: boolean }[]> {
+    return this.pedir<{ key: string; title: string; active: boolean }[]>('/sports/', {
+      all: 'true',
+    });
+  }
+
   async sondearCuota(): Promise<number | null> {
     await this.pedir<unknown[]>('/sports/', {});
     return this.cuotaRestante();
   }
 
   async resultados(deporte: Deporte, diasAtras: number): Promise<ResultadoEvento[]> {
+    return this.resultadosPorClave(DEPORTE_API[deporte], diasAtras);
+  }
+
+  /**
+   * Igual que `resultados`, pero con la clave del proveedor en crudo.
+   *
+   * Existe por el tenis: sus torneos no tienen entrada fija en `DEPORTE_API`
+   * porque rotan con el calendario, así que la calculadora los resuelve al
+   * vuelo y llega aquí con la clave ya en la mano.
+   */
+  async resultadosPorClave(claveDeporte: string, diasAtras: number): Promise<ResultadoEvento[]> {
     const brutos = await this.pedir<ResultadoAPI2[]>(
-      `/sports/${DEPORTE_API[deporte]}/scores/`,
+      `/sports/${claveDeporte}/scores/`,
       { daysFrom: String(Math.max(1, Math.min(3, diasAtras))) },
     );
 
@@ -441,8 +469,26 @@ export class TheOddsApi implements ProveedorDeCuotas {
     comienzo: Date,
     mercado: Mercado,
   ): Promise<Map<string, CuotasDeCierre>> {
+    return this.cierresDelMomentoPorClave(
+      DEPORTE_API[deporte],
+      comienzo,
+      mercado,
+      viasDe(deporte, mercado),
+    );
+  }
+
+  /**
+   * Igual que `cierresDelMomento`, con la clave del proveedor y las vías
+   * explícitas. El tenis llega por aquí: dos vías siempre, sin empate.
+   */
+  async cierresDelMomentoPorClave(
+    claveDeporte: string,
+    comienzo: Date,
+    mercado: Mercado,
+    vias: 2 | 3,
+  ): Promise<Map<string, CuotasDeCierre>> {
     const instantanea = await this.pedir<HistoricoAPI>(
-      `/historical/sports/${DEPORTE_API[deporte]}/odds/`,
+      `/historical/sports/${claveDeporte}/odds/`,
       {
         regions: this.regiones,
         markets: MERCADO_API[mercado],
@@ -453,7 +499,6 @@ export class TheOddsApi implements ProveedorDeCuotas {
       },
     );
 
-    const vias = viasDe(deporte, mercado);
     const salida = new Map<string, CuotasDeCierre>();
 
     for (const bruto of instantanea.data) {

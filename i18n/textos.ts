@@ -114,7 +114,7 @@ const pt: Textos = {
     intro:
       'Escolha o jogo e o lado, diga a odd que você pegou e nós buscamos a linha de fechamento. Você não precisa anotar nada nem procurar em lugar nenhum.',
     cobertura:
-      'Brasileirão (A e B), Libertadores, Sul-Americana, as grandes ligas europeias, NBA, Euroliga e MLB. Jogos dos últimos 3 dias, mercado de resultado. O fechamento é a mediana das casas, não a melhor odd: a melhor de trinta casas bate o fechamento quase sempre e daria vantagem de mentira.',
+      'Futebol da Europa e da América do Sul, NBA, Euroliga, MLB e tênis (ATP e WTA). Jogos dos últimos 3 dias, mercado de resultado. O fechamento é a mediana das casas, não a melhor odd: a melhor de trinta casas bate o fechamento quase sempre e daria vantagem de mentira.',
     deporte: 'Competição',
     mercado: 'Mercado',
     mercados: {
@@ -217,7 +217,7 @@ const es: Textos = {
     intro:
       'Elige el partido y el lado, di la cuota que cogiste y nosotros buscamos la línea de cierre. No tienes que apuntar nada ni buscarla en ningún sitio.',
     cobertura:
-      'Brasileirão (A y B), Libertadores, Sudamericana, las grandes ligas europeas, NBA, Euroliga y MLB. Partidos de los últimos 3 días, mercado de resultado. El cierre es la mediana de las casas, no la mejor cuota: la mejor de treinta casas bate al cierre casi siempre y daría una ventaja de mentira.',
+      'Fútbol de Europa y Sudamérica, NBA, Euroliga, MLB y tenis (ATP y WTA). Partidos de los últimos 3 días, mercado de resultado. El cierre es la mediana de las casas, no la mejor cuota: la mejor de treinta casas bate al cierre casi siempre y daría una ventaja de mentira.',
     deporte: 'Competición',
     mercado: 'Mercado',
     mercados: {
@@ -320,7 +320,7 @@ const en: Textos = {
     intro:
       'Pick the game and the side, tell us the odds you took and we fetch the closing line. You do not have to record anything or look it up anywhere.',
     cobertura:
-      'Brasileirão (A and B), Libertadores, Sudamericana, the big European leagues, NBA, Euroleague and MLB. Games from the last 3 days, match result market. The close is the median across bookmakers, not the best price: the best of thirty books beats the close almost always and would hand you a fake edge.',
+      'Football across Europe and South America, NBA, Euroleague, MLB and tennis (ATP and WTA). Games from the last 3 days, match result market. The close is the median across bookmakers, not the best price: the best of thirty books beats the close almost always and would hand you a fake edge.',
     deporte: 'Competition',
     mercado: 'Market',
     mercados: {

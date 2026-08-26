@@ -16,6 +16,14 @@
  */
 import { TheOddsApi } from './the-odds-api';
 import { EMPATE, esFutbol, ErrorProveedor, type Deporte, type Mercado } from './dominio';
+import { esCircuito, idCompuesto, separarId, torneosActivos, type Circuito } from './tenis';
+
+/**
+ * Lo que la calculadora puede consultar: las competiciones del dominio más
+ * los dos circuitos de tenis. Los circuitos NO son `Deporte` a propósito —
+ * ver lib/cuotas/tenis.ts — y por eso este tipo existe solo aquí.
+ */
+export type DeporteCalculadora = Deporte | Circuito;
 
 /**
  * Peticiones que NO se gastan en la web.
@@ -82,7 +90,7 @@ const cliente = (claveApi: string): TheOddsApi => clienteCacheado(claveApi);
 
 export interface PartidoPublico {
   id: string;
-  deporte: Deporte;
+  deporte: DeporteCalculadora;
   local: string;
   visitante: string;
   comienzo: string;
@@ -116,10 +124,48 @@ function clave(): string {
  * respuesta que ya se ha pedido.
  */
 export async function partidosCerrables(
-  deporte: Deporte,
+  deporte: DeporteCalculadora,
 ): Promise<{ partidos: PartidoPublico[]; proximo: string | null }> {
   const ahora = Date.now();
-  const todos = await cliente(clave()).resultados(deporte, 3);
+  const api = cliente(clave());
+
+  /*
+   * Tenis: el circuito se despliega en sus torneos activos. El listado es
+   * gratis; los marcadores cuestan 2 peticiones por torneo, y rara vez hay
+   * más de tres torneos a la vez por circuito. Cada partido viaja con su
+   * torneo dentro del identificador para que el cierre no tenga que
+   * redescubrirlo.
+   */
+  if (esCircuito(deporte)) {
+    const torneos = torneosActivos(await api.listarDeportes(), deporte);
+    const porTorneo = await Promise.all(
+      torneos.map(async (torneo) => {
+        const eventos = await api.resultadosPorClave(torneo, 3).catch(() => []);
+        return eventos.map((r) => ({ torneo, r }));
+      }),
+    );
+    const todos = porTorneo.flat();
+
+    const partidos = todos
+      .filter(({ r }) => r.comienzo.getTime() <= ahora)
+      .sort((a, b) => b.r.comienzo.getTime() - a.r.comienzo.getTime())
+      .map(({ torneo, r }) => ({
+        id: idCompuesto(torneo, r.eventoId),
+        deporte,
+        local: r.local,
+        visitante: r.visitante,
+        comienzo: r.comienzo.toISOString(),
+        terminado: r.terminado,
+      }));
+
+    const futuros = todos
+      .filter(({ r }) => r.comienzo.getTime() > ahora)
+      .sort((a, b) => a.r.comienzo.getTime() - b.r.comienzo.getTime());
+
+    return { partidos, proximo: futuros[0]?.r.comienzo.toISOString() ?? null };
+  }
+
+  const todos = await api.resultados(deporte, 3);
 
   const partidos = todos
     .filter((r) => r.comienzo.getTime() <= ahora)
@@ -148,11 +194,40 @@ export async function partidosCerrables(
  * vaciar la cuota en un rato — a 20 peticiones por consulta, en unos minutos.
  */
 export async function cierreDe(
-  deporte: Deporte,
+  deporte: DeporteCalculadora,
   eventoId: string,
   mercado: Mercado = 'moneyline',
 ): Promise<CierrePublico | null> {
   const api = cliente(clave());
+
+  if (esCircuito(deporte)) {
+    /*
+     * El identificador trae el torneo dentro. Se valida contra la lista real
+     * de ese torneo igual que en el camino normal: el comienzo NUNCA se
+     * acepta del cliente, porque aceptarlo permitiría pedir instantáneas
+     * arbitrarias del histórico y vaciar la cuota en minutos.
+     */
+    const partes = separarId(eventoId);
+    if (partes === null) return null;
+
+    const eventos = await api.resultadosPorClave(partes.torneo, 3).catch(() => []);
+    const evento = eventos.find((p) => p.eventoId === partes.eventoId);
+    if (!evento || evento.comienzo.getTime() > Date.now()) return null;
+
+    const restante = api.cuotaRestante();
+    if (restante !== null && restante - COSTE_HISTORICO < RESERVA) throw new SinCuota();
+
+    // Dos vías siempre: en tenis no hay empate, y el único mercado es ganador.
+    const todos = await api.cierresDelMomentoPorClave(partes.torneo, evento.comienzo, 'moneyline', 2);
+    const cierre = todos.get(partes.eventoId) ?? null;
+    if (cierre === null) return null;
+
+    return {
+      lados: cierre.lados,
+      casas: cierre.casas,
+      capturadoEn: cierre.capturadoEn.toISOString(),
+    };
+  }
 
   const partidos = await api.resultados(deporte, 3);
   const partido = partidos.find((p) => p.eventoId === eventoId);

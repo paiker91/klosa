@@ -27,8 +27,12 @@ export type Deporte =
   | 'PremierLeague'
   | 'LaLiga'
   | 'SerieA'
+  | 'SerieB'
   | 'Bundesliga'
+  | 'Bundesliga2'
   | 'Ligue1'
+  | 'Ligue2'
+  | 'Eredivisie'
   | 'Champions'
   | 'EuropaLeague'
   | 'Conference'
@@ -53,8 +57,12 @@ export const DEPORTES: readonly Deporte[] = [
   'LaLiga',
   'Segunda',
   'SerieA',
+  'SerieB',
   'Bundesliga',
+  'Bundesliga2',
   'Ligue1',
+  'Ligue2',
+  'Eredivisie',
   'Libertadores',
   'Sudamericana',
   'Brasileirao',
@@ -82,8 +90,12 @@ export const VIAS: Record<Deporte, 2 | 3> = {
   PremierLeague: 3,
   LaLiga: 3,
   SerieA: 3,
+  SerieB: 3,
   Bundesliga: 3,
+  Bundesliga2: 3,
   Ligue1: 3,
+  Ligue2: 3,
+  Eredivisie: 3,
   Champions: 3,
   EuropaLeague: 3,
   Conference: 3,
@@ -122,8 +134,12 @@ export const NOMBRE_DEPORTE: Record<Deporte, string> = {
   PremierLeague: 'Premier League',
   LaLiga: 'LaLiga',
   SerieA: 'Serie A',
+  SerieB: 'Serie B (Italia)',
   Bundesliga: 'Bundesliga',
+  Bundesliga2: '2. Bundesliga',
   Ligue1: 'Ligue 1',
+  Ligue2: 'Ligue 2',
+  Eredivisie: 'Eredivisie',
   Champions: 'Champions League',
   EuropaLeague: 'Europa League',
   Conference: 'Conference League',

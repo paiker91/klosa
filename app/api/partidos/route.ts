@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { DEPORTES, type Deporte } from '@/lib/cuotas/dominio';
-import { partidosCerrables } from '@/lib/cuotas/publico';
+import { esCircuito } from '@/lib/cuotas/tenis';
+import { partidosCerrables, type DeporteCalculadora } from '@/lib/cuotas/publico';
 
 /**
  * Partidos con línea de cierre disponible.
@@ -11,7 +12,8 @@ import { partidosCerrables } from '@/lib/cuotas/publico';
  */
 export const revalidate = 300;
 
-const esDeporte = (v: string | null): v is Deporte => DEPORTES.includes(v as Deporte);
+const esDeporte = (v: string | null): v is DeporteCalculadora =>
+  DEPORTES.includes(v as Deporte) || (v !== null && esCircuito(v));
 
 export async function GET(peticion: Request) {
   const deporte = new URL(peticion.url).searchParams.get('deporte');
