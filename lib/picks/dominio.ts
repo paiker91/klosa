@@ -202,8 +202,14 @@ export type Reparo = 'sello_no_verificable';
  * bastara con «no trae versión», cualquiera podría añadir mañana una línea sin
  * versión con un `id` inventado y se aceptaría. Con la fecha, todo lo nuevo
  * está obligado a traer sello verificable.
+ *
+ * Se movió al 2026-08-26, el día que se vació el registro de pruebas. Al otro
+ * lado de esa frontera ya no queda ningún pick, así que la excepción no cubre
+ * a nadie: de aquí en adelante, un sello que no se recalcula es un sello ROTO
+ * y el pick no pasa la auditoría. La concesión existía por dieciséis picks que
+ * ya no están, y mantenerla habría sido dejar una puerta abierta sin motivo.
  */
-export const SELLO_VERIFICABLE_DESDE = '2026-08-22T19:00:00.000Z';
+export const SELLO_VERIFICABLE_DESDE = '2026-08-26T00:00:00.000Z';
 
 export interface Auditoria {
   pick: Pick;
