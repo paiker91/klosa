@@ -63,6 +63,21 @@ const DEPORTE_API: Record<Deporte, string> = {
   Bundesliga: 'soccer_germany_bundesliga',
   Ligue1: 'soccer_france_ligue_one',
   Champions: 'soccer_uefa_champs_league',
+  /*
+   * Tanda del 2026-08-27, verificada contra el listado real ese día:
+   * Championship, FA Cup, EFL Cup y Segunda activas; las dos copas europeas
+   * inactivas en agosto, como todas las de su calendario. La ACB NO está en
+   * el proveedor — se pidió y no se pudo dar. El tenis existe pero con una
+   * clave por torneo que rota con el calendario, y este mapa exige clave
+   * fija: queda fuera hasta que el modelo soporte un deporte con varias
+   * claves.
+   */
+  EuropaLeague: 'soccer_uefa_europa_league',
+  Conference: 'soccer_uefa_europa_conference_league',
+  Championship: 'soccer_efl_champ',
+  FACup: 'soccer_fa_cup',
+  EFLCup: 'soccer_england_efl_cup',
+  Segunda: 'soccer_spain_segunda_division',
   NBA: 'basketball_nba',
   Euroliga: 'basketball_euroleague',
   MLB: 'baseball_mlb',

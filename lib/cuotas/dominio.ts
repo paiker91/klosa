@@ -30,6 +30,12 @@ export type Deporte =
   | 'Bundesliga'
   | 'Ligue1'
   | 'Champions'
+  | 'EuropaLeague'
+  | 'Conference'
+  | 'Championship'
+  | 'FACup'
+  | 'EFLCup'
+  | 'Segunda'
   | 'NBA'
   | 'Euroliga'
   | 'MLB';
@@ -38,8 +44,14 @@ export type Mercado = 'moneyline' | 'handicap' | 'totales';
 
 export const DEPORTES: readonly Deporte[] = [
   'Champions',
+  'EuropaLeague',
+  'Conference',
   'PremierLeague',
+  'Championship',
+  'FACup',
+  'EFLCup',
   'LaLiga',
+  'Segunda',
   'SerieA',
   'Bundesliga',
   'Ligue1',
@@ -73,6 +85,12 @@ export const VIAS: Record<Deporte, 2 | 3> = {
   Bundesliga: 3,
   Ligue1: 3,
   Champions: 3,
+  EuropaLeague: 3,
+  Conference: 3,
+  Championship: 3,
+  FACup: 3,
+  EFLCup: 3,
+  Segunda: 3,
   NBA: 2,
   Euroliga: 2,
   MLB: 2,
@@ -107,6 +125,12 @@ export const NOMBRE_DEPORTE: Record<Deporte, string> = {
   Bundesliga: 'Bundesliga',
   Ligue1: 'Ligue 1',
   Champions: 'Champions League',
+  EuropaLeague: 'Europa League',
+  Conference: 'Conference League',
+  Championship: 'Championship',
+  FACup: 'FA Cup',
+  EFLCup: 'EFL Cup (Carabao)',
+  Segunda: 'LaLiga 2 (Segunda)',
   NBA: 'NBA',
   Euroliga: 'Euroliga',
   MLB: 'MLB',
