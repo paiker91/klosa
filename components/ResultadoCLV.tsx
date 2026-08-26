@@ -2,6 +2,7 @@ import type { AnalisisApuesta } from '@/lib/clv';
 import type { Locale } from '@/i18n/config';
 import type { Textos } from '@/i18n/textos';
 import { porcentaje, porcentajeSinSigno, decimal } from './formato';
+import { CifraAnimada } from './CifraAnimada';
 import { ComparadorCuotas } from './ComparadorCuotas';
 
 /**
@@ -62,7 +63,7 @@ export function ResultadoCLV({
             bien ? 'text-positivo' : 'text-negativo'
           }`}
         >
-          {porcentaje(r.ventaja, locale)}
+          <CifraAnimada valor={r.ventaja} formato={(v) => porcentaje(v, locale)} />
         </p>
         <p className="mt-3 texto-ayuda">{t.resultado.ventajaExplicacion}</p>
 

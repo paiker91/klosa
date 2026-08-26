@@ -195,6 +195,27 @@ body::before {
   mask-image: linear-gradient(to bottom, #000 0%, #000 26rem, transparent 54rem);
 }
 
+/*
+ * Grano fotográfico, casi subliminal.
+ *
+ * Un fondo hecho solo de degradados perfectos se lee como plástico: uniforme
+ * de una manera en la que ninguna superficie real lo es. Este ruido al 2,5 %
+ * es la diferencia entre «render» y «papel», y cuesta cero peticiones — el
+ * SVG de turbulencia va incrustado como data URI y se tesela.
+ *
+ * Va en su propio pseudoelemento (::before ya lo ocupan los halos y la
+ * rejilla) y fijo, para que el patrón no «nade» al hacer scroll.
+ */
+body::after {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.025;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3C/svg%3E");
+}
+
 /* El foco tiene que verse siempre: se navega mucho con teclado en escritorio. */
 :focus-visible {
   outline: 2px solid var(--color-acento);
