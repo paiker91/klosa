@@ -42,7 +42,7 @@ export function FiguraCLV({ textos: t }: { textos: TextosMarco }) {
       >
         <defs>
           <linearGradient id="clv-area" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--color-dato)" stopOpacity="0.22" />
+            <stop offset="0%" stopColor="var(--color-dato)" stopOpacity="0.30" />
             <stop offset="100%" stopColor="var(--color-dato)" stopOpacity="0" />
           </linearGradient>
           <linearGradient id="clv-linea" x1="0" y1="0" x2="1" y2="0">
@@ -61,7 +61,7 @@ export function FiguraCLV({ textos: t }: { textos: TextosMarco }) {
             y2={y}
             stroke="var(--color-borde)"
             strokeWidth="1"
-            strokeOpacity="0.55"
+            strokeOpacity="0.9"
           />
         ))}
 
@@ -87,8 +87,8 @@ export function FiguraCLV({ textos: t }: { textos: TextosMarco }) {
           x2="248"
           y2="44"
           stroke="var(--color-positivo)"
-          strokeWidth="2"
-          strokeOpacity="0.5"
+          strokeWidth="2.5"
+          strokeOpacity="0.9"
           strokeDasharray="3 3"
         />
 

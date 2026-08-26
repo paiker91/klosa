@@ -46,7 +46,16 @@
   /* Lo hundido: recuadros dentro de una tarjeta, campos, tiras de pestañas. */
   --color-superficie: #f1f4fc;
   --color-superficie-alta: #ffffff;
-  --color-borde: #d3daea;
+  /*
+   * El borde sube de #d3daea a #c4cde3.
+   *
+   * Sobre blanco daba 1,40 y sobre el fondo de página 1,20, o sea que los
+   * separadores de una tabla dentro de una tarjeta prácticamente no existían.
+   * Y en varios sitios encima se diluía a /40 o /70, que lo dejaba en 1,05:
+   * invisible del todo. Ahora da 1,59 y 1,36, que es una línea que se ve sin
+   * convertirse en una reja.
+   */
+  --color-borde: #c4cde3;
   --color-borde-fuerte: #a9b3cd;
 
   /*

@@ -1,6 +1,6 @@
 'use client';
 
-import { useActionState, useState } from 'react';
+import { useActionState, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useFormStatus } from 'react-dom';
 import { anotarPick, entrar, type Resultado } from './acciones';
@@ -83,25 +83,42 @@ export function SelectorCompeticion({
   mercado: Mercado;
 }) {
   const router = useRouter();
-  const [cambiando, setCambiando] = useState(false);
+  /*
+   * `useTransition` y no un booleano propio.
+   *
+   * Antes esto era `setCambiando(true)` antes del push, y nada lo devolvía a
+   * false: `router.push` no vuelve a montar el componente, así que el estado
+   * sobrevivía a la navegación y los dos desplegables se quedaban
+   * deshabilitados PARA SIEMPRE. La única forma de volver a cambiar de liga
+   * era recargar la página a mano.
+   *
+   * `isPending` lo apaga solo cuando llega la respuesta del servidor, que es
+   * justo el hecho que hay que esperar. Y los selectores se quedan activos
+   * durante la espera: si te has equivocado de liga, poder corregir sin
+   * esperar al viaje de ida y vuelta es mejor que quedarte mirando.
+   */
+  const [pendiente, iniciar] = useTransition();
 
   const ir = (d: string, m: string) => {
-    setCambiando(true);
-    router.push(`/panel?deporte=${d}&mercado=${m}`);
+    iniciar(() => router.push(`/panel?deporte=${d}&mercado=${m}`));
   };
 
   return (
     <div className="grid gap-4 sm:grid-cols-2">
       <div>
-        <label htmlFor="competicion" className="mb-2 block text-sm font-medium">
+        <label htmlFor="competicion" className="mb-2 flex items-center gap-2 text-sm font-medium">
           Competición
+          {pendiente && (
+            <span className="text-xs font-normal text-acento" role="status">
+              actualizando…
+            </span>
+          )}
         </label>
         <select
           id="competicion"
           value={deporte}
-          disabled={cambiando}
           onChange={(e) => ir(e.target.value, mercado)}
-          className={`${CAMPO} min-h-12 disabled:opacity-60`}
+          className={`${CAMPO} min-h-12 ${pendiente ? 'opacity-70' : ''}`}
         >
           {DEPORTES.map((d) => (
             <option key={d} value={d}>
@@ -118,9 +135,8 @@ export function SelectorCompeticion({
         <select
           id="mercado"
           value={mercado}
-          disabled={cambiando}
           onChange={(e) => ir(deporte, e.target.value)}
-          className={`${CAMPO} min-h-12 disabled:opacity-60`}
+          className={`${CAMPO} min-h-12 ${pendiente ? 'opacity-70' : ''}`}
         >
           {MERCADOS.map((m) => (
             <option key={m} value={m}>

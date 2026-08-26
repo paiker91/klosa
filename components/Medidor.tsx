@@ -43,7 +43,7 @@ export function Medidor({
         aria-valuemin={0}
         aria-valuemax={total}
         aria-label={t.medidor.titulo}
-        className="mt-2 h-2 overflow-hidden rounded-full bg-borde/70 ring-1 ring-borde ring-inset"
+        className="mt-2 h-2 overflow-hidden rounded-full bg-borde ring-1 ring-borde ring-inset"
       >
         <div
           className={`barra-relleno h-full rounded-full transition-[width] duration-700 ease-out ${
@@ -81,7 +81,7 @@ export function CosteDeLaMuestra({
   const barra = (etiqueta: string, valor: number, color: string) => (
     <div className="grid grid-cols-[3.5rem_1fr_auto] items-center gap-3">
       <span className="text-xs font-medium text-tenue">{etiqueta}</span>
-      <div className="h-3 overflow-hidden rounded-full bg-borde/70 ring-1 ring-borde ring-inset">
+      <div className="h-3 overflow-hidden rounded-full bg-borde ring-1 ring-borde ring-inset">
         <div
           className={`barra-relleno h-full rounded-full ${color}`}
           style={{ width: `${Math.max(1.5, (valor / maximo) * 100)}%` }}

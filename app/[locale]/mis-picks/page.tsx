@@ -214,7 +214,7 @@ export default async function MisPicks({ params }: { params: Promise<{ locale: s
                   const a = analisis.get(p.id);
                   const empezado = new Date(p.comienzo).getTime() <= ahora;
                   return (
-                    <tr key={p.id} className="border-b border-borde/40 last:border-0">
+                    <tr key={p.id} className="border-b border-borde last:border-0">
                       <td className="cifra hidden px-3 py-3.5 text-xs whitespace-nowrap text-apagado md:table-cell">
                         {fecha(p.registrado_en)}
                       </td>

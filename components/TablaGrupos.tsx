@@ -63,11 +63,11 @@ export function TablaGrupos({
             const ancho = (Math.abs(r.clvMedio) / extremo) * 50;
 
             return (
-              <tr key={g.clave} className="border-b border-borde/50">
+              <tr key={g.clave} className="border-b border-borde">
                 <td className="py-3 pr-4 font-medium">{g.clave}</td>
                 <td className="cifra py-3 pr-4 text-right text-tenue">{entero(r.n, locale)}</td>
                 <td className="hidden w-40 py-3 pr-4 sm:table-cell">
-                  <div className="relative h-1.5 rounded-full bg-borde/70">
+                  <div className="relative h-1.5 rounded-full bg-borde">
                     <span className="absolute top-0 bottom-0 left-1/2 w-px bg-borde-fuerte" />
                     <span
                       className={`absolute top-0 h-full rounded-full ${

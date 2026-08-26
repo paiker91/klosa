@@ -114,9 +114,45 @@ export function VistaRegistro({
       <Titulo t={t} publicar={tm.nav.publicar} />
 
       {conteos.total === 0 ? (
-        <section className="tarjeta mt-10 p-6">
-          <h2 className="text-lg font-semibold">{t.vacio.titulo}</h2>
-          <p className="mt-2 text-tenue">{t.vacio.texto}</p>
+        /*
+         * El registro vacío no es una página de error, es la portada del
+         * producto durante sus primeras semanas: mientras no haya cien picks,
+         * esto es lo que ve todo el que entre. Así que enseña la forma que va
+         * a tener —el medidor a cero y las cuatro cifras en blanco— en vez de
+         * una línea de texto pidiendo que vuelvas.
+         *
+         * El medidor a 0 de 100 dice desde el primer día lo mismo que dirá con
+         * cuarenta picks: que no hay muestra. Empezar enseñándolo es coherente
+         * con el resto, y además fija la expectativa antes de que haya ningún
+         * número que presumir.
+         */
+        <section className="tarjeta mt-10 overflow-hidden">
+          <div className="p-5 sm:p-6">
+            <h2 className="text-xl font-semibold">{t.vacio.titulo}</h2>
+            <p className="mt-2 leading-relaxed text-tenue">{t.vacio.texto}</p>
+            <div className="mt-5">
+              <Medidor n={0} total={N_MINIMO} locale={locale} textos={tm} />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 divide-borde border-t border-borde sm:grid-cols-4 sm:divide-x">
+            {[t.vistazo.picks, t.etiquetas.clvBruto, t.etiquetas.ventajaMedia, t.resultados.yield].map(
+              (etiqueta) => (
+                <div key={etiqueta} className="px-5 py-5 sm:px-6">
+                  <p className="etiqueta-dato">{etiqueta}</p>
+                  <p className="cifra mt-1.5 text-3xl leading-none font-bold text-apagado sm:text-4xl">
+                    {SIN_DATO}
+                  </p>
+                </div>
+              ),
+            )}
+          </div>
+
+          <div className="border-t border-borde px-5 py-4 sm:px-6">
+            <a href={urlRepo} className="texto-ayuda text-acento hover:underline">
+              {t.verificar.enlaceRepo} →
+            </a>
+          </div>
         </section>
       ) : (
         <>
@@ -133,7 +169,7 @@ export function VistaRegistro({
           <section className="tarjeta mt-10 overflow-hidden">
             <Veredicto clave={clave} texto={t.veredictos[clave]} destacado />
 
-            <div className="grid grid-cols-2 divide-borde/70 border-t border-borde sm:grid-cols-4 sm:divide-x">
+            <div className="grid grid-cols-2 divide-borde border-t border-borde sm:grid-cols-4 sm:divide-x">
               <Vistazo
                 etiqueta={t.vistazo.picks}
                 valor={entero(conteos.conCierre, locale)}
@@ -227,7 +263,7 @@ export function VistaRegistro({
                   */
                   <div
                     key={etiqueta}
-                    className="rounded-xl border border-borde/70 bg-superficie p-3.5 transition-colors hover:border-borde-fuerte"
+                    className="rounded-xl border border-borde bg-superficie p-3.5 transition-colors hover:border-borde-fuerte"
                   >
                     <dt className="etiqueta-dato">{etiqueta}</dt>
                     <dd
