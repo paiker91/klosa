@@ -83,7 +83,33 @@ const DEPORTE_API: Record<Deporte, string> = {
   FACup: 'soccer_fa_cup',
   EFLCup: 'soccer_england_efl_cup',
   Segunda: 'soccer_spain_segunda_division',
+  /*
+   * Tercera tanda, 2026-08-27: las «medianas» que faltaban. Verificadas
+   * contra el listado ese día. Las copas nacionales y las citas de
+   * selecciones figuran inactivas fuera de sus fechas — el patrón conocido.
+   * Rusia se dejó fuera a propósito: media industria la tiene delistada y el
+   * mercado que queda es demasiado fino para que un cierre signifique algo.
+   */
+  LeagueOne: 'soccer_england_league1',
+  LeagueTwo: 'soccer_england_league2',
+  CopaDelRey: 'soccer_spain_copa_del_rey',
+  CoppaItalia: 'soccer_italy_coppa_italia',
+  DFBPokal: 'soccer_germany_dfb_pokal',
+  CoupeDeFrance: 'soccer_france_coupe_de_france',
+  Primeira: 'soccer_portugal_primeira_liga',
+  Escocia: 'soccer_spl',
+  SuperLig: 'soccer_turkey_super_league',
+  Belgica: 'soccer_belgium_first_div',
+  MLS: 'soccer_usa_mls',
+  LigaMX: 'soccer_mexico_ligamx',
+  Argentina: 'soccer_argentina_primera_division',
+  NationsLeague: 'soccer_uefa_nations_league',
+  Mundial: 'soccer_fifa_world_cup',
+  ClasifMundialEuropa: 'soccer_fifa_world_cup_qualifiers_europe',
+  ClasifMundialSudamerica: 'soccer_fifa_world_cup_qualifiers_south_america',
   NBA: 'basketball_nba',
+  WNBA: 'basketball_wnba',
+  NCAAB: 'basketball_ncaab',
   Euroliga: 'basketball_euroleague',
   MLB: 'baseball_mlb',
 };

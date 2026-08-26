@@ -39,8 +39,27 @@ export type Deporte =
   | 'Championship'
   | 'FACup'
   | 'EFLCup'
+  | 'LeagueOne'
+  | 'LeagueTwo'
   | 'Segunda'
+  | 'CopaDelRey'
+  | 'CoppaItalia'
+  | 'DFBPokal'
+  | 'CoupeDeFrance'
+  | 'Primeira'
+  | 'Escocia'
+  | 'SuperLig'
+  | 'Belgica'
+  | 'MLS'
+  | 'LigaMX'
+  | 'Argentina'
+  | 'NationsLeague'
+  | 'Mundial'
+  | 'ClasifMundialEuropa'
+  | 'ClasifMundialSudamerica'
   | 'NBA'
+  | 'WNBA'
+  | 'NCAAB'
   | 'Euroliga'
   | 'MLB';
 
@@ -54,20 +73,39 @@ export const DEPORTES: readonly Deporte[] = [
   'Championship',
   'FACup',
   'EFLCup',
+  'LeagueOne',
+  'LeagueTwo',
   'LaLiga',
   'Segunda',
+  'CopaDelRey',
   'SerieA',
   'SerieB',
+  'CoppaItalia',
   'Bundesliga',
   'Bundesliga2',
+  'DFBPokal',
   'Ligue1',
   'Ligue2',
+  'CoupeDeFrance',
   'Eredivisie',
+  'Primeira',
+  'Escocia',
+  'SuperLig',
+  'Belgica',
   'Libertadores',
   'Sudamericana',
   'Brasileirao',
   'BrasileiraoB',
+  'Argentina',
+  'MLS',
+  'LigaMX',
+  'NationsLeague',
+  'Mundial',
+  'ClasifMundialEuropa',
+  'ClasifMundialSudamerica',
   'NBA',
+  'WNBA',
+  'NCAAB',
   'Euroliga',
   'MLB',
 ];
@@ -103,7 +141,26 @@ export const VIAS: Record<Deporte, 2 | 3> = {
   FACup: 3,
   EFLCup: 3,
   Segunda: 3,
+  LeagueOne: 3,
+  LeagueTwo: 3,
+  CopaDelRey: 3,
+  CoppaItalia: 3,
+  DFBPokal: 3,
+  CoupeDeFrance: 3,
+  Primeira: 3,
+  Escocia: 3,
+  SuperLig: 3,
+  Belgica: 3,
+  MLS: 3,
+  LigaMX: 3,
+  Argentina: 3,
+  NationsLeague: 3,
+  Mundial: 3,
+  ClasifMundialEuropa: 3,
+  ClasifMundialSudamerica: 3,
   NBA: 2,
+  WNBA: 2,
+  NCAAB: 2,
   Euroliga: 2,
   MLB: 2,
 };
@@ -147,7 +204,26 @@ export const NOMBRE_DEPORTE: Record<Deporte, string> = {
   FACup: 'FA Cup',
   EFLCup: 'EFL Cup (Carabao)',
   Segunda: 'LaLiga 2 (Segunda)',
+  LeagueOne: 'League One',
+  LeagueTwo: 'League Two',
+  CopaDelRey: 'Copa del Rey',
+  CoppaItalia: 'Coppa Italia',
+  DFBPokal: 'DFB-Pokal',
+  CoupeDeFrance: 'Coupe de France',
+  Primeira: 'Primeira Liga',
+  Escocia: 'Scottish Premiership',
+  SuperLig: 'Süper Lig',
+  Belgica: 'Pro League (Bélgica)',
+  MLS: 'MLS',
+  LigaMX: 'Liga MX',
+  Argentina: 'Primera División (Argentina)',
+  NationsLeague: 'UEFA Nations League',
+  Mundial: 'Mundial 2026',
+  ClasifMundialEuropa: 'Clasificación Mundial (Europa)',
+  ClasifMundialSudamerica: 'Clasificación Mundial (Sudamérica)',
   NBA: 'NBA',
+  WNBA: 'WNBA',
+  NCAAB: 'NCAA (universitario)',
   Euroliga: 'Euroliga',
   MLB: 'MLB',
 };
