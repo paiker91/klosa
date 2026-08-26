@@ -87,12 +87,19 @@
   --color-acento-suave: #d6ddfa;
   --color-dato: #0b767b;
 
+  /*
+   * Geist delante, el sistema detrás. La variable la define `next/font` en el
+   * <html> (ver app/fuentes.ts); si por lo que sea no llega, la pila del
+   * sistema sigue siendo la de siempre y nada se rompe. La regla de «sin
+   * fuentes remotas» del encabezado sigue en pie: Geist se sirve desde este
+   * mismo dominio, empaquetada en el build.
+   */
   --font-sans:
-    ui-sans-serif, system-ui, -apple-system, 'Segoe UI Variable Text', 'Segoe UI', Roboto,
-    'Helvetica Neue', Arial, sans-serif;
+    var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, 'Segoe UI Variable Text',
+    'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   --font-mono:
-    ui-monospace, 'SF Mono', 'Cascadia Mono', 'Segoe UI Mono', 'Roboto Mono', Menlo, Consolas,
-    monospace;
+    var(--font-geist-mono), ui-monospace, 'SF Mono', 'Cascadia Mono', 'Segoe UI Mono',
+    'Roboto Mono', Menlo, Consolas, monospace;
 
   --radius-xl: 0.875rem;
   --radius-2xl: 1.125rem;

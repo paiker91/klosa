@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { Analytics } from '@vercel/analytics/next';
 import { LOCALES, HTML_LANG, esLocale } from '@/i18n/config';
 import '../globals.css';
+import { claseFuentes } from '../fuentes';
 
 export function generateStaticParams() {
   return LOCALES.map((locale) => ({ locale }));
@@ -19,14 +20,14 @@ export default async function LayoutIdioma({
   if (!esLocale(locale)) notFound();
 
   return (
-    <html lang={HTML_LANG[locale]}>
+    <html lang={HTML_LANG[locale]} className={claseFuentes}>
       <head>
         {/*
           Tiñe la barra del navegador en móvil. Sin esto, Chrome de Android
           pinta la suya oscura por defecto y quedaba una franja negra sobre una
           página clara, que es exactamente el remiendo que se ve mal.
         */}
-        <meta name="theme-color" content="#f6f7fb" />
+        <meta name="theme-color" content="#e9edf7" />
       </head>
       <body className="flex min-h-dvh flex-col bg-fondo text-tinta">
         {children}
