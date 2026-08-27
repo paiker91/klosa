@@ -24,7 +24,25 @@ export function ResultadoCLV({
   /** De dónde salió el cierre. Solo cuando no lo escribió el usuario. */
   procedencia?: string;
 }) {
-  const bien = r.cogioValor;
+  /*
+   * El veredicto y la cifra grande los manda el CLV BRUTO, no la ventaja.
+   *
+   * `ventaja` descuenta el margen del mercado de referencia, así que ponerse
+   * en positivo exige batir el cierre POR MÁS que el margen. Eso es el listón
+   * del beneficio y está bien medirlo — pero encabezar con él convierte
+   * «cogiste mejor precio que el mercado» en un rojo de «no cogiste valor», y
+   * el usuario lee que lo hizo mal cuando lo hizo bien.
+   *
+   * Medido sobre el registro propio (19 picks, mercado de referencia al
+   * 0,72 % de margen): 47 % batieron el cierre y 42 % tuvieron ventaja
+   * positiva. Solo un pick de diecinueve caía en la grieta — pero ese pick es
+   * justo el que se llevaba un rojo inmerecido.
+   *
+   * La ventaja NO se esconde: sigue en la rejilla de abajo, con su
+   * explicación. Cambia cuál es el titular, no qué se enseña. Y así la
+   * calculadora dice lo mismo que el registro, que ya juzgaba por el bruto.
+   */
+  const bien = r.clvBruto > 0;
 
   return (
     <section className="tarjeta aparece overflow-hidden">
@@ -63,7 +81,7 @@ export function ResultadoCLV({
             bien ? 'text-positivo' : 'text-negativo'
           }`}
         >
-          <CifraAnimada valor={r.ventaja} formato={(v) => porcentaje(v, locale)} />
+          <CifraAnimada valor={r.clvBruto} formato={(v) => porcentaje(v, locale)} />
         </p>
         <p className="mt-3 texto-ayuda">{t.resultado.ventajaExplicacion}</p>
 
@@ -78,7 +96,11 @@ export function ResultadoCLV({
         <dl className="grid grid-cols-2 gap-x-4 gap-y-4 border-t border-borde pt-5 sm:grid-cols-3">
           {(
             [
-              [t.resultado.clvBruto, porcentaje(r.clvBruto, locale), 'text-tinta'],
+              [
+                t.resultado.clvBruto,
+                porcentaje(r.ventaja, locale),
+                r.ventaja >= 0 ? 'text-positivo' : 'text-tinta',
+              ],
               [t.resultado.cuotaJusta, decimal(r.cuotaJustaCierre, locale), 'text-tinta'],
               /* El margen es de la casa, no una ganancia: nunca en verde. */
               [t.resultado.margen, porcentajeSinSigno(r.justas.margen, locale), 'text-tenue'],

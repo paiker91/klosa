@@ -30,6 +30,12 @@ export interface Textos {
   };
   metodos: { multiplicativo: string; power: string; aditivo: string };
   resultado: {
+    /**
+     * Veredicto de la tarjeta. Juzga el CLV BRUTO —precio contra precio— y no
+     * la ventaja: ver el comentario de ResultadoCLV. Los nombres conservan
+     * `cogioValor` para no tocar cien sitios, pero el texto ya no habla de
+     * «valor», habla de batir el cierre.
+     */
     cogioValor: string;
     noCogioValor: string;
     ventaja: string;
@@ -98,12 +104,12 @@ const pt: Textos = {
     aditivo: 'Aditivo (comparação)',
   },
   resultado: {
-    cogioValor: 'Você pegou valor',
-    noCogioValor: 'Você não pegou valor',
-    ventaja: 'Vantagem sobre o fechamento justo',
-    ventajaExplicacion: 'Essa é a métrica que estima a vantagem real.',
-    clvBruto: 'CLV bruto',
-    clvBrutoExplicacion: 'Compara com a odd de fechamento sem tirar a margem. Exagera o resultado.',
+    cogioValor: 'Você bateu o fechamento',
+    noCogioValor: 'Você não bateu o fechamento',
+    ventaja: 'Bate o fechamento',
+    ventajaExplicacion: 'Sua odd contra a de fechamento, preço contra preço. A margem está nas duas e se cancela: o que resta é se você pegou preço melhor do que o mercado acabou dando.',
+    clvBruto: 'Vantagem (sem margem)',
+    clvBrutoExplicacion: 'Vantagem: sua odd contra o preço JUSTO, já sem a margem. Ficar positivo aqui exige bater o fechamento por mais do que a margem — é o padrão do lucro, e quase ninguém o alcança de forma sustentada.',
     cuotaJusta: 'Odd justa de fechamento',
     margen: 'Margem da casa detectada',
     supuesto:
@@ -201,12 +207,12 @@ const es: Textos = {
     aditivo: 'Aditivo (comparación)',
   },
   resultado: {
-    cogioValor: 'Cogiste valor',
-    noCogioValor: 'No cogiste valor',
-    ventaja: 'Ventaja sobre el cierre justo',
-    ventajaExplicacion: 'Esta es la métrica que estima la ventaja real.',
-    clvBruto: 'CLV bruto',
-    clvBrutoExplicacion: 'Compara contra la cuota de cierre sin quitar el margen. Exagera el resultado.',
+    cogioValor: 'Batiste el cierre',
+    noCogioValor: 'No batiste el cierre',
+    ventaja: 'Bate el cierre',
+    ventajaExplicacion: 'Tu cuota contra la de cierre, precio contra precio. El margen está en las dos y se cancela: lo que queda es si cogiste mejor precio del que acabó dando el mercado.',
+    clvBruto: 'Ventaja (sin margen)',
+    clvBrutoExplicacion: 'Ventaja: tu cuota contra el precio JUSTO, ya sin el margen. Ponerse en positivo aquí exige batir el cierre por más que el margen — es el listón del beneficio, y casi nadie lo alcanza de forma sostenida.',
     cuotaJusta: 'Cuota justa de cierre',
     margen: 'Margen de la casa detectado',
     supuesto:
@@ -304,12 +310,12 @@ const en: Textos = {
     aditivo: 'Additive (for comparison)',
   },
   resultado: {
-    cogioValor: 'You beat the fair line',
-    noCogioValor: 'You did not beat the fair line',
-    ventaja: 'Edge over the fair closing line',
-    ventajaExplicacion: 'This is the metric that estimates your real edge.',
-    clvBruto: 'Raw CLV',
-    clvBrutoExplicacion: 'Compares against the closing odds with the margin left in. It overstates the result.',
+    cogioValor: 'You beat the close',
+    noCogioValor: 'You did not beat the close',
+    ventaja: 'Beat the close',
+    ventajaExplicacion: 'Your price against the closing price, like for like. The margin is in both and cancels out: what is left is whether you got a better price than the market ended up offering.',
+    clvBruto: 'Edge (no margin)',
+    clvBrutoExplicacion: 'Edge: your price against the FAIR price, margin removed. Going positive here means beating the close by more than the margin — that is the profit bar, and almost nobody clears it consistently.',
     cuotaJusta: 'Fair closing odds',
     margen: 'Detected bookmaker margin',
     supuesto:
