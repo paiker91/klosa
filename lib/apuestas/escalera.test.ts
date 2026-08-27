@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { escaleraDe, precioEnLinea, MAXIMA_EXTRAPOLACION } from './escalera';
+import { escaleraDe, precioEnLinea, contrarioEnLinea, MAXIMA_EXTRAPOLACION } from './escalera';
 
 /** El cierre real del Real Sociedad — Real Madrid del 2026-08-26. */
 const CIERRE_MADRID = [
@@ -114,5 +114,46 @@ describe('precio de una línea que no está', () => {
         -0.5,
       ),
     ).toBeNull();
+  });
+});
+
+describe('el par entero: dos salidas o no es un mercado', () => {
+  const CIERRE = [
+    { etiqueta: 'Real Madrid -2', cuota: 1.87 },
+    { etiqueta: 'Real Madrid -2.25', cuota: 2.13 },
+    { etiqueta: 'Real Sociedad +2', cuota: 2.02 },
+    { etiqueta: 'Real Sociedad +2.25', cuota: 1.8 },
+  ];
+
+  it('identifica el contrario de un hándicap con el nombre del proveedor', () => {
+    expect(contrarioEnLinea('Real Madrid -1.75', CIERRE)).toEqual({
+      equipo: 'Real Sociedad',
+      linea: 1.75,
+    });
+  });
+
+  it('en totales el contrario es el otro sentido, misma línea', () => {
+    expect(contrarioEnLinea('Over 2.5', [])).toEqual({ equipo: 'Under', linea: 2.5 });
+    expect(contrarioEnLinea('Under 3.5', [])).toEqual({ equipo: 'Over', linea: 3.5 });
+  });
+
+  /*
+   * La prueba que faltaba y que costó una cuota «justa» de 2,68. Deducir solo
+   * la pata apostada y dejarla junto al par original da tres salidas y un
+   * margen del 60 %. Deducir las dos da un mercado con margen de mercado.
+   */
+  it('las dos patas deducidas dan un margen creíble', () => {
+    const mio = precioEnLinea(escaleraDe(CIERRE, 'Real Madrid'), -1.75);
+    const suyo = precioEnLinea(escaleraDe(CIERRE, 'Real Sociedad'), 1.75);
+    expect(mio).not.toBeNull();
+    expect(suyo).not.toBeNull();
+
+    const margen = 1 / (mio as { cuota: number }).cuota + 1 / (suyo as { cuota: number }).cuota - 1;
+    expect(margen).toBeGreaterThan(0);
+    expect(margen).toBeLessThan(0.1);
+
+    // Y el error que se cometió: tres salidas.
+    const malo = 1 / (mio as { cuota: number }).cuota + 1 / 1.87 + 1 / 2.02 - 1;
+    expect(malo).toBeGreaterThan(0.5);
   });
 });

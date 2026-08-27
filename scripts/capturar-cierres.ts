@@ -56,7 +56,7 @@ import {
   ladoConservador,
   type Desenlace,
 } from '../lib/apuestas/handicap';
-import { escaleraDe, precioEnLinea } from '../lib/apuestas/escalera';
+import { escaleraDe, precioEnLinea, contrarioEnLinea } from '../lib/apuestas/escalera';
 
 const claveApi = process.env.THE_ODDS_API_KEY;
 if (!claveApi) {
@@ -231,41 +231,59 @@ const normal = (s: string) => s.trim().toLowerCase();
  */
 function resolverLado(
   ladoApostado: string,
-  lados: { etiqueta: string; cuota: number }[],
+  lados: readonly { etiqueta: string; cuota: number }[],
   porCasa: readonly { lados: readonly { etiqueta: string; cuota: number }[] }[],
-): { indice: number; estimacion?: EstimacionCierre } | null {
-  const exacto = lados.findIndex((l) => normal(l.etiqueta) === normal(ladoApostado));
-  if (exacto !== -1) return { indice: exacto };
+): {
+  lados: { etiqueta: string; cuota: number }[];
+  indice: number;
+  estimacion?: EstimacionCierre;
+} | null {
+  const copia = lados.map((l) => ({ ...l }));
+  const exacto = copia.findIndex((l) => normal(l.etiqueta) === normal(ladoApostado));
+  if (exacto !== -1) return { lados: copia, indice: exacto };
 
   const partes = separarLinea(ladoApostado);
-  if (partes !== null) {
-    const escalera = escaleraDe(
-      porCasa.flatMap((c) => c.lados),
-      partes.equipo,
-    );
-    const deducido = precioEnLinea(escalera, partes.linea);
-    if (deducido !== null && deducido.metodo !== 'exacto') {
-      lados.push({ etiqueta: ladoApostado, cuota: deducido.cuota });
-      return {
-        indice: lados.length - 1,
-        estimacion: {
-          pedida: ladoApostado,
-          metodo: deducido.metodo,
-          vecinas: deducido.vecinas,
-        },
-      };
+  const contrario = contrarioEnLinea(ladoApostado, lados);
+  if (partes !== null && contrario !== null) {
+    /*
+     * Se deducen las DOS patas y se sustituye el par entero. Deducir solo la
+     * apostada y dejarla junto al par original dejaba un mercado de tres
+     * salidas: el de-vig repartía sobre un margen del 60 % y devolvía una
+     * cuota «justa» de 2,68 donde el cierre bruto era 1,67. Un mercado de
+     * hándicap tiene dos salidas o no es un mercado.
+     */
+    const todos = porCasa.flatMap((c) => c.lados);
+    const mio = precioEnLinea(escaleraDe(todos, partes.equipo), partes.linea);
+    const suyo = precioEnLinea(escaleraDe(todos, contrario.equipo), contrario.linea);
+
+    if (mio !== null && suyo !== null && mio.metodo !== 'exacto') {
+      const signo = contrario.linea >= 0 ? '+' : '';
+      const par = [
+        { etiqueta: ladoApostado, cuota: mio.cuota },
+        { etiqueta: `${contrario.equipo} ${signo}${contrario.linea}`, cuota: suyo.cuota },
+      ];
+      /* Un margen imposible delata que la deducción no vale. */
+      const margen = par.reduce((s, l) => s + 1 / l.cuota, 0) - 1;
+      if (margen > 0.001 && margen < 0.25) {
+        return {
+          lados: par,
+          indice: 0,
+          estimacion: { pedida: ladoApostado, metodo: mio.metodo, vecinas: mio.vecinas },
+        };
+      }
     }
   }
 
   /* Último recurso: una línea igual o más difícil, que subestima el CLV. */
   const cota = ladoConservador(
     ladoApostado,
-    lados.map((l) => l.etiqueta),
+    copia.map((l) => l.etiqueta),
   );
   if (cota === null) return null;
-  const indice = lados.findIndex((l) => l.etiqueta === cota.lado);
+  const indice = copia.findIndex((l) => l.etiqueta === cota.lado);
   if (indice === -1) return null;
   return {
+    lados: copia,
     indice,
     estimacion: { pedida: ladoApostado, metodo: 'cota', vecinas: [] },
   };
@@ -374,8 +392,7 @@ for (const [clave, delGrupo] of grupos) {
     const suCasa = p.casa
       ? cierre.porCasa.find((c) => normal(c.casa) === normal(p.casa as string))
       : undefined;
-    const usados = suCasa ? suCasa.lados : cierre.lados;
-    const margen = usados.reduce((s, l) => s + 1 / l.cuota, 0) - 1;
+    const original = suCasa ? suCasa.lados : cierre.lados;
     const fuente: 'casa' | 'consenso' = suCasa ? 'casa' : 'consenso';
 
     const afilada = cierre.porCasa
@@ -408,14 +425,16 @@ for (const [clave, delGrupo] of grupos) {
      * Y si ninguno sirve, se renuncia. El orden no es negociable ni depende
      * del pick: se fija aquí, en el código, antes de ver ningún resultado.
      */
-    const resuelto = resolverLado(p.lado, usados, cierre.porCasa);
+    const resuelto = resolverLado(p.lado, original, cierre.porCasa);
     if (resuelto === null) {
-      const detalle = `"${p.lado}" no está entre ${usados.map((l) => `"${l.etiqueta}"`).join(', ')}`;
+      const detalle = `"${p.lado}" no está entre ${original.map((l) => `"${l.etiqueta}"`).join(', ')}`;
       await renunciar(p, 'linea_movida', detalle);
       renunciados.push(`${p.id}: ${detalle}`);
       continue;
     }
-    const { indice, estimacion } = resuelto;
+    const { lados: usados, indice, estimacion } = resuelto;
+    /* Sobre el mercado RESUELTO: si se dedujo el par, el margen es el suyo. */
+    const margen = usados.reduce((s, l) => s + 1 / l.cuota, 0) - 1;
 
     /*
      * La referencia se resuelve con el MISMO criterio: si el bruto se mide
@@ -425,13 +444,14 @@ for (const [clave, delGrupo] of grupos) {
     const refResuelto = afilada ? resolverLado(p.lado, afilada.lados, cierre.porCasa) : null;
     const refIndice = refResuelto ? refResuelto.indice : -1;
     const referencia =
-      afilada && refIndice !== -1
+      afilada && refResuelto && refIndice !== -1
         ? {
             casa: afilada.casa,
-            lados: afilada.lados.map((l) => l.etiqueta),
-            cuotas: afilada.lados.map((l) => l.cuota),
+            lados: refResuelto.lados.map((l) => l.etiqueta),
+            cuotas: refResuelto.lados.map((l) => l.cuota),
             indiceTomado: refIndice,
-            margen: afilada.margen,
+            /* Del mercado resuelto, por el mismo motivo que arriba. */
+            margen: refResuelto.lados.reduce((s, l) => s + 1 / l.cuota, 0) - 1,
           }
         : null;
 

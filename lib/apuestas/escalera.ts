@@ -139,3 +139,42 @@ export function precioEnLinea(
     ],
   };
 }
+
+/**
+ * El lado contrario de una apuesta, en la misma línea.
+ *
+ * Un hándicap y un total son mercados de DOS salidas. Si el precio de la
+ * línea apostada se deduce, el de su contrario también tiene que deducirse:
+ * el par entero se sustituye. Mezclar una línea deducida con el par original
+ * deja un mercado de tres salidas, y el de-vig reparte entonces sobre un
+ * margen inventado — pasó de verdad, y produjo una cuota «justa» de 2,68
+ * donde el cierre bruto era 1,67.
+ *
+ * `null` si no se puede identificar el contrario, y entonces no se deduce
+ * nada: sin las dos patas no hay mercado que medir.
+ */
+export function contrarioEnLinea(
+  ladoApostado: string,
+  lados: readonly { etiqueta: string; cuota: number }[],
+): { equipo: string; linea: number } | null {
+  const propio = separarLinea(ladoApostado);
+  if (propio === null) return null;
+
+  const bajo = propio.equipo.toLowerCase();
+  if (bajo === 'over') return { equipo: 'Under', linea: propio.linea };
+  if (bajo === 'under') return { equipo: 'Over', linea: propio.linea };
+
+  /*
+   * Hándicap: el contrario es el otro equipo con la línea de signo opuesto.
+   * El nombre se toma del propio mercado —no se construye— porque tiene que
+   * coincidir con la etiqueta del proveedor.
+   */
+  const otro = lados
+    .map((l) => separarLinea(l.etiqueta))
+    .find((p): p is { equipo: string; linea: number } =>
+      p !== null && p.equipo.toLowerCase() !== bajo,
+    );
+  return otro === null || otro === undefined
+    ? null
+    : { equipo: otro.equipo, linea: -propio.linea };
+}
