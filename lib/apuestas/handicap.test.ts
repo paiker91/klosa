@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { separarLinea, resolverHandicap, resolverTotal } from './handicap';
+import { separarLinea, resolverHandicap, resolverTotal, ladoConservador } from './handicap';
 
 /** Boston gana de 6: 110 a 104. Margen +6 para Boston, −6 para Detroit. */
 const PARTIDO = [
@@ -112,5 +112,52 @@ describe('totales', () => {
     expect(resolverTotal('Over', 214.25, PARTIDO)).toBe('media_perdida');
     // 213,75 son 213,5 y 214: la primera gana, la segunda empata.
     expect(resolverTotal('Over', 213.75, PARTIDO)).toBe('media_ganada');
+  });
+});
+
+describe('cota conservadora cuando la línea no sobrevive al cierre', () => {
+  it('el caso real del Madrid: −1.75 se mide contra −2, la más cercana y más difícil', () => {
+    const r = ladoConservador('Real Madrid -1.75', [
+      'Real Madrid -2',
+      'Real Sociedad +2',
+      'Real Madrid -2.25',
+      'Real Madrid -2.5',
+    ]);
+    expect(r).toEqual({ lado: 'Real Madrid -2', exacto: false });
+  });
+
+  /*
+   * La garantía entera del método. Si aceptara una línea MÁS FÁCIL, su cuota
+   * sería menor y el CLV saldría inflado: exactamente lo que un registro
+   * propio no se puede permitir.
+   */
+  it('nunca acepta una línea más fácil que la apostada', () => {
+    expect(ladoConservador('Real Madrid -2', ['Real Madrid -1.5', 'Real Sociedad +1.5'])).toBeNull();
+    expect(ladoConservador('Over 2.5', ['Over 2.25', 'Under 2.25'])).toBeNull();
+  });
+
+  it('en totales, Over y Under se endurecen en sentidos opuestos', () => {
+    // Over: más difícil cuanto MAYOR es la línea.
+    expect(ladoConservador('Over 2.5', ['Over 2.75', 'Over 3.5'])).toEqual({
+      lado: 'Over 2.75',
+      exacto: false,
+    });
+    // Under: más difícil cuanto MENOR.
+    expect(ladoConservador('Under 2.5', ['Under 2.25', 'Under 1.5'])).toEqual({
+      lado: 'Under 2.25',
+      exacto: false,
+    });
+  });
+
+  it('si la línea exacta está, se usa esa y se marca exacta', () => {
+    expect(ladoConservador('Over 2.5', ['Over 2.5', 'Under 2.5'])).toEqual({
+      lado: 'Over 2.5',
+      exacto: true,
+    });
+  });
+
+  it('no cruza equipos ni tipos de mercado', () => {
+    expect(ladoConservador('Real Madrid -1.75', ['Real Sociedad +2.5'])).toBeNull();
+    expect(ladoConservador('Over 2.5', ['Under 3.5'])).toBeNull();
   });
 });

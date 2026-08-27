@@ -470,6 +470,17 @@ export function VistaRegistro({
                             .join(' · ')}
                         </span>
                       )}
+                      {/*
+                        Un CLV medido contra una línea distinta se declara en
+                        la propia fila. Es una cota inferior, no una medición
+                        exacta, y quien lea la tabla tiene que saberlo sin
+                        buscar en ninguna nota al pie.
+                      */}
+                      {cierre?.cota && (
+                        <span className="mt-0.5 block text-xs text-aviso">
+                          {t.tabla.cota.replace('{usada}', cierre.cota.usada)}
+                        </span>
+                      )}
                       {/* Un sello que no se puede recalcular se declara, no se esconde. */}
                       {auditoria.reparos.includes('sello_no_verificable') && (
                         <span className="mt-0.5 block text-xs text-aviso">

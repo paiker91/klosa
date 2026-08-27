@@ -76,6 +76,8 @@ export interface TextosRegistro {
      * el cierre, así que no hay CLV que calcular — ni ahora ni nunca.
      */
     sinCierre: string;
+    /** Lleva {pedida} y {usada}. Marca un CLV medido como cota inferior. */
+    cota: string;
     invalido: string;
     /** El sello no se puede recalcular. No es lo mismo que estar roto. */
     selloIlegible: string;
@@ -139,7 +141,7 @@ const pt: TextosRegistro = {
   },
   etiquetas: {
     n: 'Picks com fechamento',
-    clvBruto: 'Bate o fechamento',
+    clvBruto: 'CLV',
     margen: 'Margem média',
     ventajaMedia: 'Vantagem média',
     tasaAcierto: 'Batem o fechamento',
@@ -201,10 +203,11 @@ const pt: TextosRegistro = {
     tomada: 'Odd pega',
     cierre: 'Fechamento',
     justa: 'Odd justa',
-    bruto: 'Bate o fecham.',
+    bruto: 'CLV',
     ventaja: 'Vantagem',
     esperando: 'aguardando',
     sinCierre: 'linha moveu, sem fechamento',
+    cota: 'linha moveu a {usada}: CLV medido por baixo',
     invalido: 'não passa na auditoria',
     selloIlegible: 'selo antigo, não verificável',
   },
@@ -286,7 +289,7 @@ const es: TextosRegistro = {
   },
   etiquetas: {
     n: 'Picks con cierre',
-    clvBruto: 'Bate el cierre',
+    clvBruto: 'CLV',
     margen: 'Margen medio',
     ventajaMedia: 'Ventaja media',
     tasaAcierto: 'Baten el cierre',
@@ -337,10 +340,11 @@ const es: TextosRegistro = {
     tomada: 'Cuota cogida',
     cierre: 'Cierre',
     justa: 'Cuota justa',
-    bruto: 'Bate el cierre',
+    bruto: 'CLV',
     ventaja: 'Ventaja',
     esperando: 'esperando',
     sinCierre: 'línea movida, sin cierre',
+    cota: 'línea movida a {usada}: CLV medido por lo bajo',
     invalido: 'no pasa la auditoría',
     selloIlegible: 'sello antiguo, no verificable',
   },
@@ -422,7 +426,7 @@ const en: TextosRegistro = {
   },
   etiquetas: {
     n: 'Picks with a close',
-    clvBruto: 'Beats the close',
+    clvBruto: 'CLV',
     margen: 'Average margin',
     ventajaMedia: 'Mean edge',
     tasaAcierto: 'Beat the close',
@@ -473,10 +477,11 @@ const en: TextosRegistro = {
     tomada: 'Odds taken',
     cierre: 'Close',
     justa: 'Fair odds',
-    bruto: 'Beat close',
+    bruto: 'CLV',
     ventaja: 'Edge',
     esperando: 'awaiting',
     sinCierre: 'line moved, no close',
+    cota: 'line moved to {usada}: CLV measured as a floor',
     invalido: 'fails audit',
     selloIlegible: 'old seal, not verifiable',
   },

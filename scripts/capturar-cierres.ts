@@ -47,6 +47,7 @@ import {
   separarLinea,
   resolverHandicap,
   resolverTotal,
+  ladoConservador,
   type Desenlace,
 } from '../lib/apuestas/handicap';
 
@@ -321,27 +322,47 @@ for (const [clave, delGrupo] of grupos) {
       /* Un margen nulo o negativo no es una casa barata: es un dato roto o dos
          momentos mezclados, y como referencia daría probabilidades imposibles. */
       .filter((c) => c.margen > 0.001)
-      .filter((c) => c.lados.some((l) => normal(l.etiqueta) === normal(p.lado)))
+      .filter((c) => ladoConservador(p.lado, c.lados.map((l) => l.etiqueta)) !== null)
       .sort((a, b) => a.margen - b.margen)[0];
 
-    // Emparejamiento estricto por etiqueta, nunca por posición: en fútbol son
-    // tres lados y las casas no los devuelven en un orden fijo.
-    const indice = usados.findIndex((l) => normal(l.etiqueta) === normal(p.lado));
-    if (indice === -1) {
-      /*
-       * La línea se movió y el lado apostado ya no existe en el cierre. La
-       * instantánea es inmutable, así que esto no va a cambiar nunca: se
-       * renuncia al primer intento en vez de reintentar cada dos horas.
-       */
+    /*
+     * Emparejamiento estricto por etiqueta, nunca por posición: en fútbol son
+     * tres lados y las casas no los devuelven en un orden fijo.
+     *
+     * Y si la línea exacta no sobrevivió al cierre —el mercado se movió— se
+     * cae a la COTA CONSERVADORA: una línea igual o más difícil, cuyo precio
+     * es mayor y por tanto produce un CLV que se queda corto antes que
+     * pasarse. Ver `ladoConservador`. Si no hay ninguna, se renuncia como
+     * siempre: la regla no se estira para salvar un pick.
+     */
+    const eleccion = ladoConservador(
+      p.lado,
+      usados.map((l) => l.etiqueta),
+    );
+    const indice = eleccion ? usados.findIndex((l) => l.etiqueta === eleccion.lado) : -1;
+    if (eleccion === null || indice === -1) {
       const detalle = `"${p.lado}" no está entre ${usados.map((l) => `"${l.etiqueta}"`).join(', ')}`;
       await renunciar(p, 'linea_movida', detalle);
       renunciados.push(`${p.id}: ${detalle}`);
       continue;
     }
+    const cota = eleccion.exacto ? undefined : { pedida: p.lado, usada: eleccion.lado };
 
-    const refIndice = afilada
-      ? afilada.lados.findIndex((l) => normal(l.etiqueta) === normal(p.lado))
-      : -1;
+    /*
+     * La referencia se resuelve con el MISMO criterio: si el bruto se mide
+     * contra −2, la ventaja también, o se estarían comparando dos apuestas
+     * distintas y el par dejaría de tener sentido.
+     */
+    const refEleccion = afilada
+      ? ladoConservador(
+          p.lado,
+          afilada.lados.map((l) => l.etiqueta),
+        )
+      : null;
+    const refIndice =
+      afilada && refEleccion
+        ? afilada.lados.findIndex((l) => l.etiqueta === refEleccion.lado)
+        : -1;
     const referencia =
       afilada && refIndice !== -1
         ? {
@@ -366,6 +387,7 @@ for (const [clave, delGrupo] of grupos) {
         casa: suCasa ? suCasa.casa : cierre.casa,
         fuente,
         margen,
+        ...(cota ? { cota } : {}),
         referencia,
         proveedor: api.nombre,
       });
@@ -379,6 +401,7 @@ for (const [clave, delGrupo] of grupos) {
         casa: suCasa ? suCasa.casa : cierre.casa,
         fuente,
         margen,
+        cota: cota ?? null,
         referencia,
         proveedor: api.nombre,
       });

@@ -85,6 +85,16 @@ export interface Cierre {
    * `casa` son los cierres antiguos, capturados contra la casa del pick.
    */
   fuente: 'afilada' | 'casa' | 'consenso';
+  /**
+   * La línea apostada no existía al cierre y se midió contra una IGUAL O MÁS
+   * DIFÍCIL, cuyo precio es mayor. El CLV resultante es por tanto una COTA
+   * INFERIOR del verdadero: puede quedarse corto, nunca pasarse.
+   *
+   * Se guarda qué línea se pidió y cuál se usó para que la cuenta se pueda
+   * rehacer desde fuera. Ausente cuando el emparejamiento fue exacto, que es
+   * el caso normal.
+   */
+  cota?: { pedida: string; usada: string };
   /** Margen del mercado que hay en `cuotas`. */
   margen: number;
   /**

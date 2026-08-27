@@ -129,3 +129,70 @@ export function resolverTotal(
   }
   return null;
 }
+
+/**
+ * Cuando la línea apostada ya no existe al cierre: la cota conservadora.
+ *
+ * El caso real que lo motiva: un «Real Madrid −1.75» a 1,97 cuyo mercado
+ * cerró en −2 / −2.25 / −2.5. La línea exacta desapareció porque el mercado
+ * se movió, y hasta ahora eso se declaraba «sin cierre medible» y el pick se
+ * quedaba fuera de las estadísticas.
+ *
+ * Interpolar la línea que falta sería inventar un precio. Esto NO interpola:
+ * elige una línea de cierre que sea IGUAL O MÁS DIFÍCIL que la apostada, y
+ * usa su precio tal cual. Y eso convierte el resultado en una desigualdad
+ * demostrable en vez de en una estimación:
+ *
+ *   una línea más difícil se paga MÁS caro (más cuota),
+ *   usar una cuota de cierre mayor produce un CLV MENOR,
+ *   luego el CLV que sale es una COTA INFERIOR del verdadero.
+ *
+ * O sea: el número puede quedarse corto, nunca pasarse. Es la única dirección
+ * del error que un registro propio se puede permitir, y por eso la regla se
+ * puede fijar de antemano y aplicar a todos los picks sin que nadie sospeche
+ * de quién la escribió.
+ *
+ * Entre las candidatas válidas se coge la MÁS CERCANA, que es la que menos
+ * subestima. Si no hay ninguna igual o más difícil, devuelve null y el pick
+ * sigue sin cierre: la regla no se estira para salvar un caso.
+ */
+export function ladoConservador(
+  ladoApostado: string,
+  disponibles: readonly string[],
+): { lado: string; exacto: boolean } | null {
+  const exacto = disponibles.find(
+    (d) => d.trim().toLowerCase() === ladoApostado.trim().toLowerCase(),
+  );
+  if (exacto !== undefined) return { lado: exacto, exacto: true };
+
+  const propio = separarLinea(ladoApostado);
+  if (propio === null) return null;
+
+  /*
+   * `dificultad` ordena las líneas de más fácil a más difícil de ganar para
+   * QUIEN APOSTÓ ese lado. En hándicap, el desenlace es `margen + linea`, así
+   * que una línea mayor es más fácil: −1.5 es más fácil que −2. En totales,
+   * «Over» es más difícil cuanto mayor es el número y «Under» al revés, y por
+   * eso el signo se invierte para el Under.
+   */
+  const bajo = propio.equipo.toLowerCase();
+  /*
+   * Solo el «Over» se endurece al SUBIR la línea. El «Under» y los hándicaps
+   * de equipo se endurecen al bajarla: en hándicap el desenlace es
+   * `margen + linea`, así que una línea mayor siempre es más fácil.
+   */
+  const dificultad = (linea: number) => (bajo === 'over' ? linea : -linea);
+
+  const candidatas = disponibles
+    .map((d) => ({ lado: d, partes: separarLinea(d) }))
+    .filter(
+      (c): c is { lado: string; partes: { equipo: string; linea: number } } =>
+        c.partes !== null && c.partes.equipo.toLowerCase() === bajo,
+    )
+    // Igual o MÁS difícil que la apostada: eso es lo que garantiza la cota.
+    .filter((c) => dificultad(c.partes.linea) >= dificultad(propio.linea))
+    .sort((a, b) => dificultad(a.partes.linea) - dificultad(b.partes.linea));
+
+  const mejor = candidatas[0];
+  return mejor === undefined ? null : { lado: mejor.lado, exacto: false };
+}
