@@ -476,9 +476,13 @@ export function VistaRegistro({
                         exacta, y quien lea la tabla tiene que saberlo sin
                         buscar en ninguna nota al pie.
                       */}
-                      {cierre?.cota && (
+                      {cierre?.estimacion && (
                         <span className="mt-0.5 block text-xs text-aviso">
-                          {t.tabla.cota.replace('{usada}', cierre.cota.usada)}
+                          {t.tabla[cierre.estimacion.metodo]}
+                          {cierre.estimacion.vecinas.length > 0 &&
+                            ` (${cierre.estimacion.vecinas
+                              .map((v) => `${decimal(v.linea, locale, 2)} → ${decimal(v.cuota, locale, 2)}`)
+                              .join(' · ')})`}
                         </span>
                       )}
                       {/* Un sello que no se puede recalcular se declara, no se esconde. */}

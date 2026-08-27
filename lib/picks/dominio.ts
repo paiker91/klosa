@@ -86,15 +86,23 @@ export interface Cierre {
    */
   fuente: 'afilada' | 'casa' | 'consenso';
   /**
-   * La línea apostada no existía al cierre y se midió contra una IGUAL O MÁS
-   * DIFÍCIL, cuyo precio es mayor. El CLV resultante es por tanto una COTA
-   * INFERIOR del verdadero: puede quedarse corto, nunca pasarse.
+   * La línea apostada no existía al cierre y su precio se dedujo de las que
+   * sí existían. Ausente cuando el emparejamiento fue exacto, que es el caso
+   * normal y el único que produce una medición.
    *
-   * Se guarda qué línea se pidió y cuál se usó para que la cuenta se pueda
-   * rehacer desde fuera. Ausente cuando el emparejamiento fue exacto, que es
-   * el caso normal.
+   * `interpolado` se apoya en dos líneas que abrazan la pedida; `extrapolado`
+   * estira la pendiente fuera del rango conocido y es más frágil; `cota` es
+   * el respaldo cuando no hay escalera suficiente y se usa el precio de una
+   * línea igual o más difícil, que da un CLV que se queda corto antes que
+   * pasarse.
+   *
+   * Las vecinas se guardan para que cualquiera rehaga la cuenta sin fiarse.
    */
-  cota?: { pedida: string; usada: string };
+  estimacion?: {
+    pedida: string;
+    metodo: 'interpolado' | 'extrapolado' | 'cota';
+    vecinas: { linea: number; cuota: number }[];
+  };
   /** Margen del mercado que hay en `cuotas`. */
   margen: number;
   /**

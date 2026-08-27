@@ -76,7 +76,9 @@ export interface TextosRegistro {
      * el cierre, así que no hay CLV que calcular — ni ahora ni nunca.
      */
     sinCierre: string;
-    /** Lleva {pedida} y {usada}. Marca un CLV medido como cota inferior. */
+    /** Cómo se dedujo un cierre cuya línea exacta no sobrevivió. */
+    interpolado: string;
+    extrapolado: string;
     cota: string;
     invalido: string;
     /** El sello no se puede recalcular. No es lo mismo que estar roto. */
@@ -207,7 +209,9 @@ const pt: TextosRegistro = {
     ventaja: 'Vantagem',
     esperando: 'aguardando',
     sinCierre: 'linha moveu, sem fechamento',
-    cota: 'linha moveu a {usada}: CLV medido por baixo',
+    interpolado: 'linha moveu: preço interpolado entre as vizinhas',
+    extrapolado: 'linha moveu: preço extrapolado das vizinhas',
+    cota: 'linha moveu: CLV medido por baixo',
     invalido: 'não passa na auditoria',
     selloIlegible: 'selo antigo, não verificável',
   },
@@ -344,7 +348,9 @@ const es: TextosRegistro = {
     ventaja: 'Ventaja',
     esperando: 'esperando',
     sinCierre: 'línea movida, sin cierre',
-    cota: 'línea movida a {usada}: CLV medido por lo bajo',
+    interpolado: 'línea movida: precio interpolado entre las vecinas',
+    extrapolado: 'línea movida: precio extrapolado de las vecinas',
+    cota: 'línea movida: CLV medido por lo bajo',
     invalido: 'no pasa la auditoría',
     selloIlegible: 'sello antiguo, no verificable',
   },
@@ -481,7 +487,9 @@ const en: TextosRegistro = {
     ventaja: 'Edge',
     esperando: 'awaiting',
     sinCierre: 'line moved, no close',
-    cota: 'line moved to {usada}: CLV measured as a floor',
+    interpolado: 'line moved: price interpolated between neighbours',
+    extrapolado: 'line moved: price extrapolated from neighbours',
+    cota: 'line moved: CLV measured as a floor',
     invalido: 'fails audit',
     selloIlegible: 'old seal, not verifiable',
   },

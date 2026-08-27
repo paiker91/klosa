@@ -40,7 +40,13 @@ import {
   leerResultados,
   resolverMoneyline,
 } from '../lib/picks/registro';
-import { ESPERA_ANTES_DE_RENUNCIAR, type SinCierre } from '../lib/picks/dominio';
+import {
+  ESPERA_ANTES_DE_RENUNCIAR,
+  type SinCierre,
+  type Cierre,
+} from '../lib/picks/dominio';
+
+type EstimacionCierre = NonNullable<Cierre['estimacion']>;
 import { clienteDeServicio } from '../lib/tracker/servicio';
 import { analizarApuestaN, analizarConReferencia } from '../lib/clv';
 import {
@@ -50,6 +56,7 @@ import {
   ladoConservador,
   type Desenlace,
 } from '../lib/apuestas/handicap';
+import { escaleraDe, precioEnLinea } from '../lib/apuestas/escalera';
 
 const claveApi = process.env.THE_ODDS_API_KEY;
 if (!claveApi) {
@@ -211,6 +218,60 @@ console.log(
 const normal = (s: string) => s.trim().toLowerCase();
 
 /**
+ * Resuelve qué lado del cierre corresponde al apostado, y cómo.
+ *
+ * Devuelve el índice dentro de `lados` y, si hubo que deducir el precio,
+ * cómo se dedujo. Cuando la línea exacta no está, la escalera se construye
+ * con TODAS las casas del mercado —no solo con la que se use para el precio—
+ * porque cada casa suele colgar una sola línea y la escalera solo existe al
+ * juntarlas.
+ *
+ * Si el precio se deduce, se DEVUELVE un lado sintético que el llamante
+ * inserta: por eso `lados` se recibe como array mutable.
+ */
+function resolverLado(
+  ladoApostado: string,
+  lados: { etiqueta: string; cuota: number }[],
+  porCasa: readonly { lados: readonly { etiqueta: string; cuota: number }[] }[],
+): { indice: number; estimacion?: EstimacionCierre } | null {
+  const exacto = lados.findIndex((l) => normal(l.etiqueta) === normal(ladoApostado));
+  if (exacto !== -1) return { indice: exacto };
+
+  const partes = separarLinea(ladoApostado);
+  if (partes !== null) {
+    const escalera = escaleraDe(
+      porCasa.flatMap((c) => c.lados),
+      partes.equipo,
+    );
+    const deducido = precioEnLinea(escalera, partes.linea);
+    if (deducido !== null && deducido.metodo !== 'exacto') {
+      lados.push({ etiqueta: ladoApostado, cuota: deducido.cuota });
+      return {
+        indice: lados.length - 1,
+        estimacion: {
+          pedida: ladoApostado,
+          metodo: deducido.metodo,
+          vecinas: deducido.vecinas,
+        },
+      };
+    }
+  }
+
+  /* Último recurso: una línea igual o más difícil, que subestima el CLV. */
+  const cota = ladoConservador(
+    ladoApostado,
+    lados.map((l) => l.etiqueta),
+  );
+  if (cota === null) return null;
+  const indice = lados.findIndex((l) => l.etiqueta === cota.lado);
+  if (indice === -1) return null;
+  return {
+    indice,
+    estimacion: { pedida: ladoApostado, metodo: 'cota', vecinas: [] },
+  };
+}
+
+/**
  * Da por perdido el cierre de un pick, en el origen que le toque.
  *
  * Devuelve si ha escrito algo, para no contar dos veces la misma renuncia
@@ -335,34 +396,34 @@ for (const [clave, delGrupo] of grupos) {
      * pasarse. Ver `ladoConservador`. Si no hay ninguna, se renuncia como
      * siempre: la regla no se estira para salvar un pick.
      */
-    const eleccion = ladoConservador(
-      p.lado,
-      usados.map((l) => l.etiqueta),
-    );
-    const indice = eleccion ? usados.findIndex((l) => l.etiqueta === eleccion.lado) : -1;
-    if (eleccion === null || indice === -1) {
+    /*
+     * Cuatro escalones, del más sólido al más frágil, y se para en el primero
+     * que sirva:
+     *
+     *   1. la línea exacta está en el cierre  -> medición
+     *   2. se interpola entre dos que la abrazan
+     *   3. se extrapola media línea como mucho
+     *   4. cota conservadora contra una línea igual o más difícil
+     *
+     * Y si ninguno sirve, se renuncia. El orden no es negociable ni depende
+     * del pick: se fija aquí, en el código, antes de ver ningún resultado.
+     */
+    const resuelto = resolverLado(p.lado, usados, cierre.porCasa);
+    if (resuelto === null) {
       const detalle = `"${p.lado}" no está entre ${usados.map((l) => `"${l.etiqueta}"`).join(', ')}`;
       await renunciar(p, 'linea_movida', detalle);
       renunciados.push(`${p.id}: ${detalle}`);
       continue;
     }
-    const cota = eleccion.exacto ? undefined : { pedida: p.lado, usada: eleccion.lado };
+    const { indice, estimacion } = resuelto;
 
     /*
      * La referencia se resuelve con el MISMO criterio: si el bruto se mide
      * contra −2, la ventaja también, o se estarían comparando dos apuestas
      * distintas y el par dejaría de tener sentido.
      */
-    const refEleccion = afilada
-      ? ladoConservador(
-          p.lado,
-          afilada.lados.map((l) => l.etiqueta),
-        )
-      : null;
-    const refIndice =
-      afilada && refEleccion
-        ? afilada.lados.findIndex((l) => l.etiqueta === refEleccion.lado)
-        : -1;
+    const refResuelto = afilada ? resolverLado(p.lado, afilada.lados, cierre.porCasa) : null;
+    const refIndice = refResuelto ? refResuelto.indice : -1;
     const referencia =
       afilada && refIndice !== -1
         ? {
@@ -387,7 +448,7 @@ for (const [clave, delGrupo] of grupos) {
         casa: suCasa ? suCasa.casa : cierre.casa,
         fuente,
         margen,
-        ...(cota ? { cota } : {}),
+        ...(estimacion ? { estimacion } : {}),
         referencia,
         proveedor: api.nombre,
       });
@@ -401,7 +462,7 @@ for (const [clave, delGrupo] of grupos) {
         casa: suCasa ? suCasa.casa : cierre.casa,
         fuente,
         margen,
-        cota: cota ?? null,
+        estimacion: estimacion ?? null,
         referencia,
         proveedor: api.nombre,
       });
