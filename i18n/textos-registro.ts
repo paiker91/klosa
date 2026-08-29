@@ -28,6 +28,17 @@ export interface TextosRegistro {
    * el veredicto va con ellas para que nunca se lean sueltas.
    */
   vistazo: { titulo: string; picks: string; resueltos: string };
+  /**
+   * El listón que hay que superar para que la ventaja sea positiva.
+   *
+   * `ventaja ≈ CLV − margen`, comprobado sobre datos reales: con un CLV de
+   * +1,01 % y un margen del 1,56 %, la ventaja salía −0,53 %. Sin decirlo, un
+   * número negativo se lee como suspenso cuando en realidad dice «te faltan
+   * 0,55 puntos», que es información accionable y muy distinta.
+   *
+   * Lleva {margen} y {clv}.
+   */
+  liston: { texto: string; alcanzado: string };
   vacio: { titulo: string; texto: string };
   noDisponible: { titulo: string; texto: string };
   etiquetas: {
@@ -130,6 +141,12 @@ const pt: TextosRegistro = {
     titulo: 'De relance',
     picks: 'picks com fechamento',
     resueltos: 'já liquidados',
+  },
+  liston: {
+    texto:
+      'Para a vantagem virar positiva, seu CLV precisa passar da margem média dos seus mercados: {margen}. Você está em {clv}.',
+    alcanzado:
+      'Seu CLV ({clv}) já passa da margem média dos seus mercados ({margen}): por isso a vantagem é positiva.',
   },
   vacio: {
     titulo: 'Ainda não há nenhum pick',
@@ -281,6 +298,12 @@ const es: TextosRegistro = {
     picks: 'picks con cierre',
     resueltos: 'ya liquidados',
   },
+  liston: {
+    texto:
+      'Para que la ventaja se ponga en positivo, tu CLV tiene que superar el margen medio de tus mercados: {margen}. Vas por {clv}.',
+    alcanzado:
+      'Tu CLV ({clv}) ya supera el margen medio de tus mercados ({margen}): por eso la ventaja es positiva.',
+  },
   vacio: {
     titulo: 'Todavía no hay ningún pick',
     texto:
@@ -419,6 +442,12 @@ const en: TextosRegistro = {
     titulo: 'At a glance',
     picks: 'picks with a close',
     resueltos: 'already settled',
+  },
+  liston: {
+    texto:
+      'For the edge to turn positive, your CLV has to clear the average margin of your markets: {margen}. You are at {clv}.',
+    alcanzado:
+      'Your CLV ({clv}) already clears the average margin of your markets ({margen}) — that is why the edge is positive.',
   },
   vacio: {
     titulo: 'No picks yet',

@@ -10,6 +10,7 @@ import {
   clvBruto,
   ventajaSobreCierre,
   analizarApuesta,
+  analizarApuestaN,
   agregar,
   agregarPorGrupo,
   desviacionMuestral,
@@ -388,5 +389,35 @@ describe('las dos métricas y sus significancias por separado', () => {
     const r = agregar(mejores);
     expect(r.bruto.media).toBeGreaterThan(0);
     expect(r.bruto.media).toBeGreaterThan(r.ventaja.media);
+  });
+});
+
+/*
+ * La identidad que sostiene el listón del registro: la ventaja es el CLV
+ * menos el margen, salvo un residuo de segundo orden. Si esto dejara de
+ * cumplirse, la frase «te faltan X puntos» estaría mintiendo.
+ */
+describe('ventaja ≈ CLV − margen', () => {
+  it('se cumple sobre un mercado real con margen bajo', () => {
+    // Cierre 1.91 / 2.06: margen 1,90 %. Cuota tomada 1.97.
+    const r = analizarApuestaN(1.97, [1.91, 2.06], 0);
+    const residuo = Math.abs(r.ventaja - (r.clvBruto - r.justas.margen));
+    expect(residuo).toBeLessThan(0.005);
+  });
+
+  it('con margen cero, ventaja y CLV coinciden', () => {
+    // Un mercado sin comisión: 2.00 / 2.00 suma exactamente 1.
+    const r = analizarApuestaN(2.2, [2, 2], 0);
+    expect(r.justas.margen).toBeCloseTo(0, 6);
+    expect(r.ventaja).toBeCloseTo(r.clvBruto, 6);
+  });
+
+  it('batir el cierre justo por el margen deja la ventaja en cero', () => {
+    const cierres = [1.91, 2.06];
+    const margen = cierres.reduce((s, x) => s + 1 / x, 0) - 1;
+    const cierre = cierres[0] as number;
+    // Tomar exactamente `cierre * (1 + margen)` es el punto de equilibrio.
+    const r = analizarApuestaN(cierre * (1 + margen), cierres, 0);
+    expect(Math.abs(r.ventaja)).toBeLessThan(0.005);
   });
 });

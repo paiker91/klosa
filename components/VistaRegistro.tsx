@@ -198,6 +198,24 @@ export function VistaRegistro({
             <div className="border-t border-borde px-5 py-4 sm:px-6">
               <Medidor n={resumen.n} total={N_MINIMO} locale={locale} textos={tm} />
             </div>
+
+            {/*
+              El listón. `ventaja ≈ CLV − margen`, así que una ventaja negativa
+              con CLV positivo no dice «vas mal»: dice cuánto te falta. Sin
+              esta frase el número se lee como suspenso, y con ella se lee como
+              objetivo — que además se puede atacar por dos lados, mejorando
+              los picks o bajando el margen de las casas donde se apuesta.
+            */}
+            {resumen.n > 0 && resumen.margenMedio > 0 && (
+              <div className="border-t border-borde px-5 py-4 sm:px-6">
+                <Liston
+                  clv={resumen.clvMedio}
+                  margen={resumen.margenMedio}
+                  locale={locale}
+                  textos={t}
+                />
+              </div>
+            )}
           </section>
 
           <section className="mt-5 grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:items-start">
@@ -657,6 +675,53 @@ function Vistazo({
         {valor}
       </p>
       {pie !== undefined && <p className="mt-2 texto-ayuda">{pie}</p>}
+    </div>
+  );
+}
+
+/**
+ * Cuánto le falta al CLV para cubrir el margen.
+ *
+ * La barra es el CLV sobre una escala que llega al margen: llena significa
+ * ventaja cero, y a partir de ahí positiva. Un CLV negativo deja la barra
+ * vacía en vez de dibujarse hacia atrás — la pregunta que responde es «cuánto
+ * llevas del camino», y de un CLV negativo la respuesta es «nada».
+ */
+function Liston({
+  clv,
+  margen,
+  locale,
+  textos: t,
+}: {
+  clv: number;
+  margen: number;
+  locale: Locale;
+  textos: TextosRegistro;
+}) {
+  const alcanzado = clv >= margen;
+  const avance = Math.max(0, Math.min(100, (clv / margen) * 100));
+  const frase = (alcanzado ? t.liston.alcanzado : t.liston.texto)
+    .replace('{margen}', porcentajeSinSigno(margen, locale))
+    .replace('{clv}', porcentaje(clv, locale));
+
+  return (
+    <div>
+      <div
+        role="progressbar"
+        aria-valuenow={Math.round(avance)}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-label={frase}
+        className="h-2 overflow-hidden rounded-full bg-borde/70 ring-1 ring-borde ring-inset"
+      >
+        <div
+          className={`barra-relleno h-full rounded-full transition-[width] duration-700 ease-out ${
+            alcanzado ? 'text-positivo' : 'text-acento'
+          }`}
+          style={{ width: `${clv <= 0 ? 0 : Math.max(2, avance)}%` }}
+        />
+      </div>
+      <p className="texto-ayuda mt-2">{frase}</p>
     </div>
   );
 }
