@@ -11,6 +11,7 @@ import {
   ventajaSobreCierre,
   analizarApuesta,
   analizarApuestaN,
+  analizarConReferencia,
   agregar,
   agregarPorGrupo,
   desviacionMuestral,
@@ -419,5 +420,38 @@ describe('ventaja ≈ CLV − margen', () => {
     // Tomar exactamente `cierre * (1 + margen)` es el punto de equilibrio.
     const r = analizarApuestaN(cierre * (1 + margen), cierres, 0);
     expect(Math.abs(r.ventaja)).toBeLessThan(0.005);
+  });
+});
+
+/*
+ * La referencia de la ventaja tiene que ser LA MISMA APUESTA que el pick.
+ *
+ * El caso real: un «Over 2.5» tomado a 1,99 cuyo cierre fue 1,74 y cuya
+ * referencia acabó siendo el «Over 2.75» de Pinnacle. Salía CLV +14,37 % y
+ * ventaja −0,50 %, dos números irreconciliables porque no hablaban de la
+ * misma apuesta. La cota conservadora vale para el CLV —subestimar es la
+ * dirección segura— pero no para la ventaja: cambiar la línea cambia la
+ * probabilidad, no solo el precio.
+ */
+describe('la ventaja se mide contra la misma apuesta', () => {
+  it('con la referencia correcta, CLV y ventaja son conciliables', () => {
+    // Over 2.5: cierre 1,74 / 2,10 (margen 5,1 %). Referencia en la MISMA línea.
+    const r = analizarConReferencia(1.99, [1.74, 2.1], 0, [1.8, 2.05], 0);
+    expect(r.clvBruto).toBeCloseTo(1.99 / 1.74 - 1, 6);
+    /*
+     * Las dos caen del MISMO lado y cerca: la distancia es el margen de la
+     * referencia (4,3 %) más el hueco entre los dos cierres, 1,74 y 1,80.
+     */
+    expect(r.ventaja).toBeGreaterThan(0);
+    expect(r.clvBruto - r.ventaja).toBeLessThan(0.09);
+  });
+
+  it('una referencia de otra línea produce justo el disparate observado', () => {
+    // Referencia del Over 2.75 (1,95 / 1,95): la justa se dispara a ~2,00.
+    const malo = analizarConReferencia(1.99, [1.74, 2.1], 0, [1.95, 1.95], 0);
+    expect(malo.clvBruto).toBeGreaterThan(0.14);
+    expect(malo.ventaja).toBeLessThan(0);
+    // Más de veinte puntos de separación: la señal de que algo no cuadra.
+    expect(malo.clvBruto - malo.ventaja).toBeGreaterThan(0.14);
   });
 });

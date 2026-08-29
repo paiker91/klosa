@@ -395,13 +395,30 @@ for (const [clave, delGrupo] of grupos) {
     const original = suCasa ? suCasa.lados : cierre.lados;
     const fuente: 'casa' | 'consenso' = suCasa ? 'casa' : 'consenso';
 
-    const afilada = cierre.porCasa
+    const porMargen = cierre.porCasa
       .map((c) => ({ ...c, margen: c.lados.reduce((s, l) => s + 1 / l.cuota, 0) - 1 }))
       /* Un margen nulo o negativo no es una casa barata: es un dato roto o dos
          momentos mezclados, y como referencia daría probabilidades imposibles. */
       .filter((c) => c.margen > 0.001)
-      .filter((c) => ladoConservador(p.lado, c.lados.map((l) => l.etiqueta)) !== null)
-      .sort((a, b) => a.margen - b.margen)[0];
+      .sort((a, b) => a.margen - b.margen);
+
+    /*
+     * La referencia tiene que ser LA MISMA APUESTA, sin excepción.
+     *
+     * Antes bastaba con que la casa tuviera una línea igual o más difícil, y
+     * eso colaba referencias de otra línea: un pick a «Over 2.5» acabó
+     * midiéndose contra el «Over 2.75» de Pinnacle. El CLV comparaba 2.5 con
+     * 2.5 y la ventaja comparaba 2.5 con 2.75, así que salía un +14,37 % de
+     * CLV junto a un -0,50 % de ventaja — dos números que no se pueden
+     * conciliar porque no hablaban de la misma apuesta.
+     *
+     * La cota conservadora vale para el CLV, donde subestimar es la dirección
+     * segura del error. Para la ventaja no vale: cambiar la línea cambia la
+     * probabilidad, no solo el precio.
+     */
+    const afilada = porMargen.find((c) =>
+      c.lados.some((l) => normal(l.etiqueta) === normal(p.lado)),
+    );
 
     /*
      * Emparejamiento estricto por etiqueta, nunca por posición: en fútbol son
@@ -441,17 +458,26 @@ for (const [clave, delGrupo] of grupos) {
      * contra −2, la ventaja también, o se estarían comparando dos apuestas
      * distintas y el par dejaría de tener sentido.
      */
-    const refResuelto = afilada ? resolverLado(p.lado, afilada.lados, cierre.porCasa) : null;
-    const refIndice = refResuelto ? refResuelto.indice : -1;
+    /*
+     * Si ninguna casa cuelga la línea exacta, la referencia se DEDUCE del
+     * mercado entero en esa misma línea — nunca se toma prestada la de otra.
+     * Es el caso del hándicap cuya línea se movió: la referencia entonces no
+     * es de una casa, es del consenso, y así se etiqueta.
+     */
+    const refDeducida = afilada ? null : resolverLado(p.lado, cierre.lados, cierre.porCasa);
+    const refLados = afilada ? afilada.lados : (refDeducida?.lados ?? []);
+    const refIndice = afilada
+      ? afilada.lados.findIndex((l) => normal(l.etiqueta) === normal(p.lado))
+      : (refDeducida?.indice ?? -1);
+
     const referencia =
-      afilada && refResuelto && refIndice !== -1
+      refIndice !== -1 && refLados.length > 0
         ? {
-            casa: afilada.casa,
-            lados: refResuelto.lados.map((l) => l.etiqueta),
-            cuotas: refResuelto.lados.map((l) => l.cuota),
+            casa: afilada ? afilada.casa : cierre.casa,
+            lados: refLados.map((l) => l.etiqueta),
+            cuotas: refLados.map((l) => l.cuota),
             indiceTomado: refIndice,
-            /* Del mercado resuelto, por el mismo motivo que arriba. */
-            margen: refResuelto.lados.reduce((s, l) => s + 1 / l.cuota, 0) - 1,
+            margen: refLados.reduce((s, l) => s + 1 / l.cuota, 0) - 1,
           }
         : null;
 
