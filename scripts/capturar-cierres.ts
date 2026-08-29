@@ -74,7 +74,15 @@ if (!claveApi) {
  * perdido no se recupera nunca, una consulta denegada se repite mañana.
  */
 const RESERVA = 300;
-/** El histórico cuesta esto por consulta. Medido contra la API, no supuesto. */
+/**
+ * El histórico cuesta esto por consulta. Medido contra la API, no supuesto.
+ *
+ * Y consultarlo NO es gratis aunque el dato sea inmutable: el 2026-08-28 se
+ * vació `cierres.jsonl` entero para corregir 2 referencias mal elegidas de 47,
+ * y rehacer las 39 instantáneas se llevó la clave de 1.900 a 935 en una sola
+ * pasada. Si hay que recapturar, se borran LAS LÍNEAS AFECTADAS, nunca el
+ * fichero.
+ */
 const COSTE = 20;
 /**
  * Tope de instantáneas por pasada. Existe para que un día raro —muchos
