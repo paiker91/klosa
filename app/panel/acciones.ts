@@ -3,7 +3,7 @@
 import { cookies } from 'next/headers';
 import { revalidatePath } from 'next/cache';
 import { parsearCuota } from '@/lib/clv';
-import { clienteCacheado } from '@/lib/cuotas/publico';
+import { clienteOddsPapi } from '@/lib/cuotas/publico';
 import { DEPORTES, MERCADOS, type Deporte, type Mercado } from '@/lib/cuotas/dominio';
 import { crearPick } from '@/lib/picks/dominio';
 import { anadirLinea } from '@/lib/github';
@@ -136,7 +136,7 @@ export async function anotarPick(_previo: Resultado | null, datos: FormData): Pr
      * que acaba de empezar se sigue rechazando aunque la lista tenga 59
      * segundos.
      */
-    const api = clienteCacheado(config.claveOdds, 60);
+    const api = clienteOddsPapi(config.claveOdds, 60);
     const evento = (await api.buscarEventos({ deporte, mercado })).find(
       (e) => e.id === seleccion.id,
     );

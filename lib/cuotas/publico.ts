@@ -15,6 +15,7 @@
  *      siempre; la primera consulta lo paga y las demás son gratis.
  */
 import { TheOddsApi } from './the-odds-api';
+import { OddsPapi } from './oddspapi';
 import { EMPATE, esFutbol, ErrorProveedor, type Deporte, type Mercado } from './dominio';
 import { esCircuito, idCompuesto, separarId, torneosActivos, type Circuito } from './tenis';
 
@@ -87,6 +88,25 @@ export function clienteCacheado(claveApi: string, frescura = 300): TheOddsApi {
 }
 
 const cliente = (claveApi: string): TheOddsApi => clienteCacheado(claveApi);
+
+/**
+ * Cliente de OddsPapi con la misma caché de Next.
+ *
+ * Se separa del otro porque los proveedores NO son intercambiables: sus
+ * identificadores de partido son distintos y sus nombres de equipo también
+ * («Real Sociedad San Sebastian» aquí). Cada uno cierra los picks que él mismo
+ * abrió, y mezclarlos produciría cierres creíbles y falsos.
+ */
+export function clienteOddsPapi(claveApi: string, frescura = 300): OddsPapi {
+  return new OddsPapi({
+    claveApi,
+    buscar: (url, init) =>
+      fetch(url, {
+        ...init,
+        next: { revalidate: String(url).includes('/historical-odds') ? false : frescura },
+      }),
+  });
+}
 
 export interface PartidoPublico {
   id: string;

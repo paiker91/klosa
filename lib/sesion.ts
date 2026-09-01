@@ -60,6 +60,15 @@ export interface ConfiguracionPanel {
   secreto: string;
   tokenGitHub: string;
   repo: string;
+  /**
+   * Clave de OddsPapi, no de The Odds API.
+   *
+   * El panel se movió el 2026-09-01, cuando la clave de The Odds API quedó
+   * desactivada por un cobro fallido y dejó de poder publicarse ningún pick.
+   * OddsPapi tiene cien mil peticiones al mes y su histórico da la serie
+   * temporal entera, así que el cierre pasa a ser el último precio antes del
+   * saque en vez de una foto del momento.
+   */
   claveOdds: string;
 }
 
@@ -72,7 +81,7 @@ export function configuracionPanel(): { config: ConfiguracionPanel | null; falta
     PANEL_PASSWORD: process.env.PANEL_PASSWORD,
     PANEL_SECRETO: process.env.PANEL_SECRETO,
     GITHUB_TOKEN: process.env.GITHUB_TOKEN,
-    THE_ODDS_API_KEY: process.env.THE_ODDS_API_KEY,
+    ODDSPAPI_KEY: process.env.ODDSPAPI_KEY,
   };
   const faltan = Object.entries(requeridas)
     .filter(([, v]) => !v)
@@ -86,7 +95,7 @@ export function configuracionPanel(): { config: ConfiguracionPanel | null; falta
       secreto: requeridas.PANEL_SECRETO as string,
       tokenGitHub: requeridas.GITHUB_TOKEN as string,
       repo: process.env.NEXT_PUBLIC_REPO_PICKS ?? 'paiker91/klosa-picks',
-      claveOdds: requeridas.THE_ODDS_API_KEY as string,
+      claveOdds: requeridas.ODDSPAPI_KEY as string,
     },
     faltan: [],
   };

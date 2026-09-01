@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers';
 import Link from 'next/link';
 import { COOKIE_SESION, configuracionPanel, tokenValido } from '@/lib/sesion';
-import { clienteCacheado } from '@/lib/cuotas/publico';
+import { clienteOddsPapi } from '@/lib/cuotas/publico';
 import {
   DEPORTES,
   MERCADOS,
@@ -45,16 +45,22 @@ async function opcionesDe(
      * hace gratis la navegación entre desplegables sin que el precio que se
      * ve deje de ser el de ahora mismo.
      */
-    const eventos = (await clienteCacheado(claveApi, 60).buscarEventos({ deporte, mercado }))
+    const eventos = (await clienteOddsPapi(claveApi, 60).buscarEventos({ deporte, mercado }))
       .filter((e) => e.comienzo > new Date())
       .sort((a, b) => a.comienzo.getTime() - b.comienzo.getTime());
 
-    if (eventos.length === 0) {
+    /*
+     * Sin partidos, o con partidos pero sin precios. Lo segundo pasa cuando el
+     * proveedor cubre la competición pero no ese mercado — y un desplegable
+     * vacío sin explicación es peor que un aviso.
+     */
+    const conPrecios = eventos.filter((e) => (e.porCasa?.length ?? 0) > 0);
+    if (conPrecios.length === 0) {
       return {
         opciones: [],
         casas: {},
         error:
-          `No hay partidos abiertos de ${NOMBRE_DEPORTE[deporte]} ahora mismo. ` +
+          `No hay cuotas abiertas de ${NOMBRE_DEPORTE[deporte]} ahora mismo. ` +
           'Puede estar fuera de temporada: prueba otra en el selector de arriba.',
       };
     }
@@ -71,7 +77,7 @@ async function opcionesDe(
      * cierre un 6 %; en una del 2 %, basta con un 2 %.
      */
     const todas: Record<string, { casa: string; cuota: number; margen: number }[]> = {};
-    for (const e of eventos) {
+    for (const e of conPrecios) {
       for (const c of e.porCasa ?? []) {
         const margen = c.lados.reduce((s, l) => s + 1 / l.cuota, 0) - 1;
         for (const l of c.lados) {
@@ -104,7 +110,7 @@ async function opcionesDe(
      * guarda: el cierre se empareja por ella, así que la línea no se puede
      * perder por el camino.
      */
-    const opciones = eventos.flatMap((e) => {
+    const opciones = conPrecios.flatMap((e) => {
       const horas = ((e.comienzo.getTime() - Date.now()) / 3_600_000).toFixed(1);
       const lados =
         mercado === 'moneyline'
@@ -133,6 +139,22 @@ async function opcionesDe(
     });
     return { opciones, casas, error: null };
   } catch (fallo) {
+    /*
+     * Dos competiciones del catálogo no existen en OddsPapi: los
+     * clasificatorios del Mundial de Europa y Sudamérica. Se dice con nombre y
+     * apellido en vez de dejar el error genérico del proveedor, que no ayuda a
+     * nadie a entender por qué justo esa no carga.
+     */
+    if (fallo instanceof Error && fallo.message.includes('competición no cubierta')) {
+      return {
+        opciones: [],
+        casas: {},
+        error:
+          `${NOMBRE_DEPORTE[deporte]} no está cubierta por el proveedor de cuotas actual. ` +
+          'Elige otra competición en el selector de arriba.',
+      };
+    }
+
     return {
       opciones: [],
       casas: {},
