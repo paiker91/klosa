@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { escaleraDe, precioEnLinea, contrarioEnLinea, MAXIMA_EXTRAPOLACION } from './escalera';
+import { escaleraDe, precioEnLinea, contrarioEnLinea, parDeLaLinea, MAXIMA_EXTRAPOLACION } from './escalera';
 
 /** El cierre real del Real Sociedad — Real Madrid del 2026-08-26. */
 const CIERRE_MADRID = [
@@ -155,5 +155,94 @@ describe('el par entero: dos salidas o no es un mercado', () => {
     // Y el error que se cometió: tres salidas.
     const malo = 1 / (mio as { cuota: number }).cuota + 1 / 1.87 + 1 / 2.02 - 1;
     expect(malo).toBeGreaterThan(0.5);
+  });
+});
+
+/*
+ * El cierre de OddsPapi trae la línea apostada Y sus vecinas, porque sin
+ * vecinas no hay escalera. Eso convirtió en trampa algo que antes era seguro:
+ * el margen se calcula sumando las probabilidades implícitas de todos los
+ * lados del cierre, y con tres líneas juntas salía un 202 % de margen y una
+ * ventaja de −72 %.
+ *
+ * Los seis precios eran correctos. No saltó nada: se escribieron cuatro
+ * cierres al registro antes de que el número absurdo apareciera en el log.
+ */
+describe('recortar un cierre de varias líneas a la del pick', () => {
+  const TRES_LINEAS = [
+    { etiqueta: 'Over 2.5', cuota: 1.87 },
+    { etiqueta: 'Under 2.5', cuota: 2.12 },
+    { etiqueta: 'Over 1.5', cuota: 1.28 },
+    { etiqueta: 'Under 1.5', cuota: 4.44 },
+    { etiqueta: 'Over 3.5', cuota: 3.22 },
+    { etiqueta: 'Under 3.5', cuota: 1.43 },
+  ];
+
+  it('deja solo el par de la línea apostada', () => {
+    const r = parDeLaLinea(TRES_LINEAS, 0);
+    expect(r?.lados).toEqual([
+      { etiqueta: 'Over 2.5', cuota: 1.87 },
+      { etiqueta: 'Under 2.5', cuota: 2.12 },
+    ]);
+    expect(r?.indice).toBe(0);
+  });
+
+  it('y con eso el margen vuelve a ser de mercado', () => {
+    const sinRecortar = TRES_LINEAS.reduce((s, l) => s + 1 / l.cuota, 0) - 1;
+    expect(sinRecortar).toBeGreaterThan(2);
+
+    const r = parDeLaLinea(TRES_LINEAS, 0);
+    const margen = (r?.lados ?? []).reduce((s, l) => s + 1 / l.cuota, 0) - 1;
+    expect(margen).toBeGreaterThan(0);
+    expect(margen).toBeLessThan(0.05);
+  });
+
+  it('el índice apunta al lado apostado, no al primero de la lista', () => {
+    const r = parDeLaLinea(TRES_LINEAS, 3); // Under 1.5
+    expect(r?.lados[r.indice]?.etiqueta).toBe('Under 1.5');
+  });
+
+  it('en hándicap empareja al otro equipo con el signo cambiado', () => {
+    const r = parDeLaLinea(
+      [
+        { etiqueta: 'Manchester City -2.25', cuota: 2.3 },
+        { etiqueta: 'Coventry City +2.25', cuota: 1.75 },
+        { etiqueta: 'Manchester City -2.5', cuota: 2.59 },
+        { etiqueta: 'Coventry City +2.5', cuota: 1.61 },
+      ],
+      0,
+    );
+    expect(r?.lados.map((l) => l.etiqueta)).toEqual([
+      'Manchester City -2.25',
+      'Coventry City +2.25',
+    ]);
+  });
+
+  it('un 1X2 no tiene línea y se devuelve entero', () => {
+    const tres = [
+      { etiqueta: 'Hull City', cuota: 4.1 },
+      { etiqueta: 'Draw', cuota: 3.75 },
+      { etiqueta: 'Aston Villa', cuota: 2.04 },
+    ];
+    const r = parDeLaLinea(tres, 1);
+    expect(r?.lados).toHaveLength(3);
+    expect(r?.indice).toBe(1);
+  });
+
+  it('media línea no vale: sin las dos patas no hay margen', () => {
+    expect(
+      parDeLaLinea(
+        [
+          { etiqueta: 'Over 2.5', cuota: 1.87 },
+          { etiqueta: 'Over 3.5', cuota: 3.22 },
+          { etiqueta: 'Under 3.5', cuota: 1.43 },
+        ],
+        0,
+      ),
+    ).toBeNull();
+  });
+
+  it('un índice fuera de rango no devuelve un mercado inventado', () => {
+    expect(parDeLaLinea(TRES_LINEAS, 99)).toBeNull();
   });
 });

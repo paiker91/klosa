@@ -57,7 +57,12 @@ import {
   ladoConservador,
   type Desenlace,
 } from '../lib/apuestas/handicap';
-import { escaleraDe, precioEnLinea, contrarioEnLinea } from '../lib/apuestas/escalera';
+import {
+  escaleraDe,
+  precioEnLinea,
+  contrarioEnLinea,
+  parDeLaLinea,
+} from '../lib/apuestas/escalera';
 
 /*
  * DOS proveedores, y cada pick se cierra con el suyo.
@@ -296,7 +301,16 @@ function resolverLado(
 } | null {
   const copia = lados.map((l) => ({ ...l }));
   const exacto = copia.findIndex((l) => normal(l.etiqueta) === normal(ladoApostado));
-  if (exacto !== -1) return { lados: copia, indice: exacto };
+  if (exacto !== -1) {
+    /*
+     * La línea está, pero puede venir acompañada de sus vecinas. Se recorta a
+     * su propio par: lo que se mide es una apuesta, no un puñado de líneas.
+     * Si el par no está entero se sigue bajando por los escalones en vez de
+     * devolver un mercado a medias.
+     */
+    const par = parDeLaLinea(copia, exacto);
+    if (par !== null) return par;
+  }
 
   const partes = separarLinea(ladoApostado);
   const contrario = contrarioEnLinea(ladoApostado, lados);
@@ -338,9 +352,11 @@ function resolverLado(
   if (cota === null) return null;
   const indice = copia.findIndex((l) => l.etiqueta === cota.lado);
   if (indice === -1) return null;
+  /* También aquí: el par de la línea de la cota, no todas las que vinieran. */
+  const par = parDeLaLinea(copia, indice);
+  if (par === null) return null;
   return {
-    lados: copia,
-    indice,
+    ...par,
     estimacion: { pedida: ladoApostado, metodo: 'cota', vecinas: [] },
   };
 }
@@ -476,6 +492,27 @@ async function guardarCierre(p: Pendiente, cierre: CuotasDeCierre): Promise<bool
     const margen = usados.reduce((s, l) => s + 1 / l.cuota, 0) - 1;
 
     /*
+     * Un margen fuera de lo que cobra cualquier casa del mundo no es un
+     * mercado caro: es un fallo de este código. Se para aquí y NO se escribe
+     * —ni se renuncia, que es permanente— porque lo que hay que arreglar es
+     * el programa, y el pick tiene que seguir pendiente para volver a
+     * intentarlo cuando esté arreglado.
+     *
+     * Existe porque ya pasó: al traer la línea apostada junto a sus vecinas,
+     * el margen se sumaba sobre los seis lados y salía un 202 %, con una
+     * ventaja de −72 %. Los precios eran todos correctos. Nada saltó, y se
+     * escribieron cuatro cierres al registro antes de verlo en el log.
+     */
+    if (!(margen > -0.001 && margen < 0.3)) {
+      console.error(
+        `  ${p.id}: margen de cierre del ${(margen * 100).toFixed(1)} % sobre ` +
+          `${usados.length} lado(s) [${usados.map((l) => l.etiqueta).join(', ')}]. ` +
+          'Eso es un fallo del capturador, no del mercado: no se escribe nada.',
+      );
+      return false;
+    }
+
+    /*
      * La referencia se resuelve con el MISMO criterio: si el bruto se mide
      * contra −2, la ventaja también, o se estarían comparando dos apuestas
      * distintas y el par dejaría de tener sentido.
@@ -486,16 +523,26 @@ async function guardarCierre(p: Pendiente, cierre: CuotasDeCierre): Promise<bool
      * Es el caso del hándicap cuya línea se movió: la referencia entonces no
      * es de una casa, es del consenso, y así se etiqueta.
      */
-    const refDeducida = afilada ? null : resolverLado(p.lado, cierre.lados, cierre.porCasa);
-    const refLados = afilada ? afilada.lados : (refDeducida?.lados ?? []);
-    const refIndice = afilada
-      ? afilada.lados.findIndex((l) => normal(l.etiqueta) === normal(p.lado))
-      : (refDeducida?.indice ?? -1);
+    /*
+     * Y la referencia se recorta igual que el mercado propio. Un cierre con
+     * la línea apostada y sus vecinas trae seis lados; sumarlos daba un
+     * margen del 200 % y una ventaja de −72 % con precios todos correctos.
+     */
+    const afiladaPar = afilada
+      ? parDeLaLinea(
+          afilada.lados.map((l) => ({ ...l })),
+          afilada.lados.findIndex((l) => normal(l.etiqueta) === normal(p.lado)),
+        )
+      : null;
+
+    const refDeducida = afiladaPar ? null : resolverLado(p.lado, cierre.lados, cierre.porCasa);
+    const refLados = afiladaPar ? afiladaPar.lados : (refDeducida?.lados ?? []);
+    const refIndice = afiladaPar ? afiladaPar.indice : (refDeducida?.indice ?? -1);
 
     const referencia =
       refIndice !== -1 && refLados.length > 0
         ? {
-            casa: afilada ? afilada.casa : cierre.casa,
+            casa: afiladaPar ? (afilada as { casa: string }).casa : cierre.casa,
             lados: refLados.map((l) => l.etiqueta),
             cuotas: refLados.map((l) => l.cuota),
             indiceTomado: refIndice,

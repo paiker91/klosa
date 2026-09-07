@@ -178,3 +178,44 @@ export function contrarioEnLinea(
     ? null
     : { equipo: otro.equipo, linea: -propio.linea };
 }
+
+/**
+ * Recorta un cierre de varias líneas al mercado de UNA sola.
+ *
+ * Un cierre puede traer varias líneas juntas —OddsPapi devuelve la apostada
+ * más sus vecinas, que es lo que hace posible interpolar— y el margen se
+ * calcula sumando las probabilidades implícitas de todos los lados. Sumar
+ * tres líneas da un margen del 200 % y una ventaja de −72 %: pasó de verdad,
+ * con un cierre cuyos precios eran todos correctos.
+ *
+ * `null` cuando el par no está entero. No se devuelve media línea: un mercado
+ * al que le falta un lado suma menos del 100 % y el de-vig repartiría sobre
+ * un margen inventado.
+ */
+export function parDeLaLinea(
+  lados: readonly { etiqueta: string; cuota: number }[],
+  indice: number,
+): { lados: { etiqueta: string; cuota: number }[]; indice: number } | null {
+  const propio = lados[indice];
+  if (propio === undefined) return null;
+
+  /* Sin línea es un 1X2: el mercado entero ya es el mercado. */
+  if (separarLinea(propio.etiqueta) === null) {
+    return { lados: lados.map((l) => ({ ...l })), indice };
+  }
+
+  const contrario = contrarioEnLinea(propio.etiqueta, lados);
+  if (contrario === null) return null;
+
+  const otro = lados.find((l) => {
+    const p = separarLinea(l.etiqueta);
+    return (
+      p !== null &&
+      p.equipo.trim().toLowerCase() === contrario.equipo.trim().toLowerCase() &&
+      Math.abs(p.linea - contrario.linea) < 1e-9
+    );
+  });
+  if (otro === undefined) return null;
+
+  return { lados: [{ ...propio }, { ...otro }], indice: 0 };
+}
