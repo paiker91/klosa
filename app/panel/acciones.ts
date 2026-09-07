@@ -160,6 +160,8 @@ export async function anotarPick(_previo: Resultado | null, datos: FormData): Pr
       registradoEn: new Date().toISOString(),
       deporte,
       eventoId: evento.id,
+      /* Quien abre el pick es quien lo puede cerrar: el eventoId es suyo. */
+      proveedor: api.nombre,
       local: evento.local,
       visitante: evento.visitante,
       comienzo: evento.comienzo.toISOString(),

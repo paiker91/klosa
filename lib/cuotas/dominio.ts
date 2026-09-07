@@ -400,8 +400,21 @@ export interface ProveedorDeCuotas {
   readonly nombre: string;
   capacidades(): Capacidades;
   buscarEventos(criterio: CriterioBusqueda): Promise<Evento[]>;
-  /** `null` cuando el proveedor no tiene ese cierre, que no es lo mismo que fallar. */
-  cuotasDeCierre(evento: ReferenciaEvento, mercado: Mercado): Promise<CuotasDeCierre | null>;
+  /**
+   * `null` cuando el proveedor no tiene ese cierre, que no es lo mismo que fallar.
+   *
+   * `linea` es la del pick, y es una PISTA, no un filtro: dice alrededor de
+   * qué línea interesa el cierre. Un proveedor que devuelve el mercado entero
+   * de una vez —The Odds API— puede ignorarla. Uno que pide línea a línea
+   * —OddsPapi— la necesita: sin ella no sabe cuál de las cincuenta y tantas
+   * líneas del hándicap traer, y traer «la principal» deja fuera justo la que
+   * se apostó.
+   */
+  cuotasDeCierre(
+    evento: ReferenciaEvento,
+    mercado: Mercado,
+    linea?: number | null,
+  ): Promise<CuotasDeCierre | null>;
   /**
    * Todos los cierres de una competición a una hora dada, por evento.
    *

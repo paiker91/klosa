@@ -51,6 +51,21 @@ export interface Pick {
   nota: string | null;
   /** Versión del sello. Ausente en los picks anteriores a que existiera. */
   version?: 1 | 2;
+  /**
+   * Qué proveedor abrió este pick. Ausente en los anteriores al cambio.
+   *
+   * Hace falta porque el `eventoId` es opaco y de quien lo emitió: un pick
+   * abierto con OddsPapi solo se puede cerrar con OddsPapi. Se dedujo durante
+   * un tiempo por la FORMA del identificador —los de OddsPapi empiezan por
+   * «id» y dígitos, los de The Odds API son hexadecimales— y funcionaba, pero
+   * es un truco que se rompe el día que un proveedor cambie su formato. Mejor
+   * declararlo.
+   *
+   * NO entra en el sello: los picks ya publicados no lo traen y añadirlo a la
+   * receta invalidaría los sesenta y cinco de golpe. Es metadato de captura,
+   * no parte del pronóstico.
+   */
+  proveedor?: string;
 }
 
 /**

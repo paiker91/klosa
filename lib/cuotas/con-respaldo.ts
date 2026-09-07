@@ -96,10 +96,14 @@ export class ProveedorConRespaldo implements ProveedorDeCuotas {
     return eventos ?? [];
   }
 
-  async cuotasDeCierre(evento: ReferenciaEvento, mercado: Mercado): Promise<CuotasDeCierre | null> {
+  async cuotasDeCierre(
+    evento: ReferenciaEvento,
+    mercado: Mercado,
+    linea?: number | null,
+  ): Promise<CuotasDeCierre | null> {
     return this.intentar(
       (c) => c.historico && c.mercados.includes(mercado),
-      (p) => p.cuotasDeCierre(evento, mercado),
+      (p) => p.cuotasDeCierre(evento, mercado, linea),
       (r) => r !== null,
     );
   }

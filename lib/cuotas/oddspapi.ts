@@ -59,6 +59,19 @@ const PAUSA_MS = 1500;
 /** Si aun así salta, se espera de verdad antes del único reintento. */
 const ESPERA_TRAS_LIMITE_MS = 20_000;
 
+/*
+ * Cuántas líneas del mercado se traen y cuántas se está dispuesto a probar.
+ *
+ * Aquí cada línea son dos peticiones al histórico, y con el freno puesto eso
+ * es tiempo real: los dos números son el presupuesto de una pasada, no una
+ * preferencia. Tres líneas bastan para tener la apostada y una vecina a cada
+ * lado, que es todo lo que `precioEnLinea` necesita para deducir; ocho
+ * intentos dan margen para saltarse las líneas muertas de alrededor sin
+ * recorrer las cincuenta y tantas de la tabla del hándicap.
+ */
+const LINEAS_DE_ESCALERA = 3;
+const MAXIMOS_INTENTOS = 8;
+
 const espera = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /** Precio de un resultado en un instante. */
@@ -91,6 +104,8 @@ interface PartidoAPI {
 export interface OpcionesOddsPapi {
   claveApi: string;
   buscar?: typeof fetch;
+  /** Solo para los tests: sin esto un cierre de tres líneas tarda diez segundos. */
+  pausaMs?: number;
 }
 
 export class OddsPapi implements ProveedorDeCuotas {
@@ -100,10 +115,12 @@ export class OddsPapi implements ProveedorDeCuotas {
   /** Los nombres de equipo son medio mega y no cambian: se piden una vez. */
   private participantes: Map<number, Record<string, string>> = new Map();
   private ultimaPeticion = 0;
+  private readonly pausaMs: number;
 
   constructor(opciones: OpcionesOddsPapi) {
     this.claveApi = opciones.claveApi;
     this.buscar = opciones.buscar ?? fetch;
+    this.pausaMs = opciones.pausaMs ?? PAUSA_MS;
   }
 
   capacidades(): Capacidades {
@@ -124,7 +141,7 @@ export class OddsPapi implements ProveedorDeCuotas {
    */
   private async conFreno<T>(hacer: () => Promise<T>): Promise<T> {
     const desde = Date.now() - this.ultimaPeticion;
-    if (desde < PAUSA_MS) await espera(PAUSA_MS - desde);
+    if (desde < this.pausaMs) await espera(this.pausaMs - desde);
     this.ultimaPeticion = Date.now();
     try {
       return await hacer();
@@ -400,7 +417,11 @@ export class OddsPapi implements ProveedorDeCuotas {
    * OddsPapi no admite pedir un mercado completo. Con cien mil al mes sobra,
    * pero conviene saberlo antes de meterlo en un bucle.
    */
-  async cuotasDeCierre(evento: ReferenciaEvento, mercado: Mercado): Promise<CuotasDeCierre | null> {
+  async cuotasDeCierre(
+    evento: ReferenciaEvento,
+    mercado: Mercado,
+    linea?: number | null,
+  ): Promise<CuotasDeCierre | null> {
     const { sportId } = this.torneo(evento.deporte);
     const nombres = await this.nombres(sportId);
 
@@ -419,38 +440,103 @@ export class OddsPapi implements ProveedorDeCuotas {
     const vias = viasDe(evento.deporte, mercado);
 
     /*
-     * Se prueban las líneas de la más central hacia fuera y se coge la PRIMERA
-     * con precio en los dos lados: esa es la línea principal, la que el
-     * mercado sostiene de verdad. Las de los extremos existen en la tabla pero
-     * suelen estar vacías.
+     * Las líneas se prueban ordenadas por cercanía a la del pick, y se
+     * ACUMULAN varias en vez de parar en la primera que tenga precio.
+     *
+     * Parar en la primera era el error que costó cinco renuncias falsas: la
+     * primera línea con precio de un total es casi siempre el 0.5, así que un
+     * pick a «Over 2.5» recibía un cierre de «Over 0.5» y se declaraba línea
+     * movida. La línea principal del mercado no tiene por qué ser la apostada,
+     * y la que importa es la apostada.
+     *
+     * Acumular vecinas tampoco es un lujo: es lo que da la escalera con la que
+     * `precioEnLinea` deduce un cierre cuando la línea del pick desapareció de
+     * verdad. Sin vecinas no hay pendiente y no hay nada que deducir.
      */
-    for (const grupo of this.candidatosDe(mercado, vias)) {
-      const lados: { etiqueta: string; cuota: number }[] = [];
-      let capturadoEn: Date | null = null;
+    const lados: { etiqueta: string; cuota: number }[] = [];
+    let capturadoEn: Date | null = null;
+    let conPrecio = 0;
+    let probados = 0;
+
+    for (const grupo of this.candidatosDe(mercado, vias, linea)) {
+      if (conPrecio >= LINEAS_DE_ESCALERA || probados >= MAXIMOS_INTENTOS) break;
+      probados++;
+
+      const delGrupo: { etiqueta: string; cuota: number }[] = [];
+      let cuandoGrupo: Date | null = null;
 
       for (const c of grupo) {
         const punto = await this.ultimoAntesDe(evento.id, c.outcomeId, c.idMercado, evento.comienzo);
         if (punto === null) break;
         const etiqueta = this.etiqueta(c.outcomeId, mercado, c.linea, local, visitante);
         if (etiqueta === null) break;
-        lados.push({ etiqueta, cuota: punto.price });
+        delGrupo.push({ etiqueta, cuota: punto.price });
         const cuando = new Date(punto.createdAt);
-        if (capturadoEn === null || cuando > capturadoEn) capturadoEn = cuando;
+        if (cuandoGrupo === null || cuando > cuandoGrupo) cuandoGrupo = cuando;
       }
 
-      if (lados.length !== vias) continue;
+      /*
+       * Media línea sin las dos patas no entra. Un mercado al que le falta un
+       * lado suma menos del 100 % y el de-vig repartiría sobre un margen
+       * inventado, que es exactamente el fallo que produjo una cuota «justa»
+       * de 2,68 donde el cierre bruto era 1,67.
+       */
+      if (delGrupo.length !== vias) continue;
 
-      return validarCuotasDeCierre(NOMBRE, {
-        eventoId: evento.id,
-        mercado,
-        lados,
-        capturadoEn: capturadoEn ?? evento.comienzo,
-        casa: CASA_LEGIBLE,
-        casas: 1,
-        porCasa: [{ casa: CASA_LEGIBLE, lados }],
-      });
+      conPrecio++;
+      lados.push(...delGrupo);
+      if (capturadoEn === null || (cuandoGrupo !== null && cuandoGrupo > capturadoEn)) {
+        capturadoEn = cuandoGrupo;
+      }
     }
-    return null;
+
+    if (lados.length === 0) return null;
+
+    return validarCuotasDeCierre(NOMBRE, {
+      eventoId: evento.id,
+      mercado,
+      lados,
+      capturadoEn: capturadoEn ?? evento.comienzo,
+      casa: CASA_LEGIBLE,
+      casas: 1,
+      porCasa: [{ casa: CASA_LEGIBLE, lados }],
+    });
+  }
+
+  /**
+   * Marcador final de un partido.
+   *
+   * `result` es el resultado bueno; `fulltime` es el de los noventa minutos y
+   * `p1` el del descanso. Se prefiere `result` y se cae a `fulltime`: en liga
+   * coinciden, y donde no coinciden —una eliminatoria con prórroga— el que
+   * decide la apuesta es el primero.
+   *
+   * Devuelve null si no hay marcador todavía, que NO es lo mismo que un 0-0.
+   * Confundirlos liquidaría como perdida una apuesta de un partido que aún no
+   * ha terminado, y eso no se arregla luego porque el fichero es de
+   * solo-añadir.
+   */
+  async marcadorDe(
+    fixtureId: string,
+    local: string,
+    visitante: string,
+  ): Promise<{ equipo: string; puntos: number }[] | null> {
+    const d = await this.pedir<{
+      scores?: {
+        periods?: Record<string, { participant1Score?: number; participant2Score?: number }>;
+      };
+    }>('/scores', { fixtureId });
+
+    const periodos = d.scores?.periods;
+    if (!periodos) return null;
+    const p = periodos['result'] ?? periodos['fulltime'];
+    if (!p || typeof p.participant1Score !== 'number' || typeof p.participant2Score !== 'number') {
+      return null;
+    }
+    return [
+      { equipo: local, puntos: p.participant1Score },
+      { equipo: visitante, puntos: p.participant2Score },
+    ];
   }
 
   /** El partido en el listado por fechas, que sí incluye los terminados. */
@@ -466,14 +552,17 @@ export class OddsPapi implements ProveedorDeCuotas {
   }
 
   /**
-   * Grupos de resultados a probar, del centro hacia fuera.
+   * Grupos de resultados a probar, ordenados por cercanía a la línea del pick.
    *
-   * El 1X2 tiene un solo grupo. En totales y hándicap se ordenan por línea más
-   * pequeña primero, que es donde vive casi siempre la principal.
+   * El 1X2 tiene un solo grupo y el orden da igual. En totales y hándicap el
+   * orden ES la decisión: ordenar por línea más pequeña —lo que se hacía
+   * antes— pone el 0.5 primero siempre, y como se paraba en la primera con
+   * precio, un pick a «Over 2.5» recibía el cierre del «Over 0.5».
    */
   private candidatosDe(
     mercado: Mercado,
     vias: 2 | 3,
+    linea?: number | null,
   ): { idMercado: string; outcomeId: string; linea: number | null }[][] {
     if (mercado === 'moneyline') {
       const ids =
@@ -483,13 +572,28 @@ export class OddsPapi implements ProveedorDeCuotas {
       return [ids.map((outcomeId) => ({ idMercado: MERCADO_1X2, outcomeId, linea: null }))];
     }
 
+    /*
+     * El centro del orden es la línea del pick. Sin ella se cae al cero, que
+     * es el comportamiento antiguo y solo sirve para no quedarse sin orden;
+     * quien llama debería pasarla siempre.
+     *
+     * Se compara en VALOR ABSOLUTO de la distancia porque la tabla del
+     * hándicap tiene el mismo número con los dos signos —«−2.25» es el
+     * mercado del favorito y «+2.25» el del otro— y las dos patas del par ya
+     * vienen dentro del mismo grupo.
+     */
+    const centro = linea ?? 0;
     const tabla = mercado === 'totales' ? TOTALES_PAPI : HANDICAP_PAPI;
     return Object.entries(tabla)
       .map(([idMercado, outcomes]) =>
-        Object.entries(outcomes).map(([outcomeId, linea]) => ({ idMercado, outcomeId, linea })),
+        Object.entries(outcomes).map(([outcomeId, l]) => ({ idMercado, outcomeId, linea: l })),
       )
       .filter((g) => g.length === 2)
-      .sort((a, b) => Math.abs(a[0]!.linea) - Math.abs(b[0]!.linea));
+      .sort(
+        (a, b) =>
+          Math.min(...a.map((c) => Math.abs(Math.abs(c.linea) - Math.abs(centro)))) -
+          Math.min(...b.map((c) => Math.abs(Math.abs(c.linea) - Math.abs(centro)))),
+      );
   }
 
 

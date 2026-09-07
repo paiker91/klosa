@@ -25,6 +25,7 @@
  */
 import { appendFileSync } from 'node:fs';
 import { TheOddsApi } from '../lib/cuotas/the-odds-api';
+import { OddsPapi } from '../lib/cuotas/oddspapi';
 import {
   ErrorCuotaAgotada,
   esFutbol,
@@ -58,9 +59,24 @@ import {
 } from '../lib/apuestas/handicap';
 import { escaleraDe, precioEnLinea, contrarioEnLinea } from '../lib/apuestas/escalera';
 
-const claveApi = process.env.THE_ODDS_API_KEY;
-if (!claveApi) {
-  console.error('Falta THE_ODDS_API_KEY. Cárgala desde .env.local antes de ejecutar.');
+/*
+ * DOS proveedores, y cada pick se cierra con el suyo.
+ *
+ * El `eventoId` de un pick pertenece a quien lo emitió: un partido de OddsPapi
+ * no existe en The Odds API ni al revés, y los nombres de equipo tampoco
+ * coinciden («Real Sociedad San Sebastian» frente a «Real Sociedad»).
+ * Emparejarlos por aproximación daría cierres creíbles y falsos, así que no se
+ * cruzan: si falta el proveedor que abrió un pick, ese pick se queda pendiente.
+ *
+ * Basta con que haya UNO configurado. Cuando la clave de The Odds API se
+ * desactivó, los cincuenta picks viejos se quedaron esperando mientras los
+ * quince nuevos seguían capturándose con normalidad — que es exactamente el
+ * comportamiento que se quiere.
+ */
+const claveOdds = process.env.THE_ODDS_API_KEY;
+const clavePapi = process.env.ODDSPAPI_KEY;
+if (!claveOdds && !clavePapi) {
+  console.error('Falta THE_ODDS_API_KEY y ODDSPAPI_KEY: sin ninguna no hay nada que capturar.');
   process.exit(1);
 }
 
@@ -100,7 +116,11 @@ const MAX_INSTANTANEAS = 12;
 const AVISO = 2500;
 const ALARMA = 1200;
 
-const api = new TheOddsApi({ claveApi });
+const api = claveOdds ? new TheOddsApi({ claveApi: claveOdds }) : null;
+const papi = clavePapi ? new OddsPapi({ claveApi: clavePapi }) : null;
+console.log(
+  `Proveedores: the-odds-api ${api ? 'sí' : 'NO'} · oddspapi ${papi ? 'sí' : 'NO'}`,
+);
 const supabase = clienteDeServicio();
 
 // ---------------------------------------------------------------------------
@@ -119,7 +139,18 @@ interface Pendiente {
   cuotaTomada: number;
   /** Casa donde se cogió. Si la hay, el cierre se busca en ESA casa. */
   casa: string | null;
+  /**
+   * Quién abrió el pick. Los publicados antes de que esto existiera no lo
+   * traen, y se deducen por la FORMA del identificador — los de OddsPapi
+   * empiezan por «id» y dígitos; los de The Odds API son hexadecimales.
+   * Comprobado sobre los 65 picks reales: separación limpia, cero solapes.
+   */
+  proveedor: string;
 }
+
+/** Deduce el proveedor de un pick antiguo por la forma de su identificador. */
+const proveedorDe = (eventoId: string, declarado?: string): string =>
+  declarado ?? (/^id\d+$/.test(eventoId) ? 'oddspapi' : 'the-odds-api');
 
 const estado = estadoDelRegistro();
 const pendientes: Pendiente[] = estado.pendientesDeCierre.map((p) => ({
@@ -132,6 +163,7 @@ const pendientes: Pendiente[] = estado.pendientesDeCierre.map((p) => ({
   lado: p.lado,
   cuotaTomada: p.cuotaTomada,
   casa: p.casa,
+  proveedor: proveedorDe(p.eventoId, p.proveedor),
 }));
 
 console.log(
@@ -186,6 +218,8 @@ if (supabase === null) {
         lado: p.lado as string,
         cuotaTomada: Number(p.cuota_tomada),
         casa: (p.casa as string | null) ?? null,
+        /* La tabla de usuarios aún no guarda proveedor: se deduce del id. */
+        proveedor: proveedorDe(p.evento_id as string),
       });
     }
   }
@@ -210,8 +244,21 @@ if (pendientes.length === 0) console.log('\nNingún cierre pendiente.');
 // Agrupar: una instantánea por competición, hora y mercado
 // ---------------------------------------------------------------------------
 
+/*
+ * Los dos proveedores se agrupan distinto porque cobran distinto.
+ *
+ * The Odds API vende INSTANTANEAS: una peticion de 20 trae todos los partidos
+ * de una competicion a una hora, asi que agrupar por (competicion, hora,
+ * mercado) reparte ese coste entre todos los picks del grupo.
+ *
+ * OddsPapi vende SERIES por partido y resultado: no existe la instantanea de
+ * competicion, asi que agrupar no ahorra nada y se va pick a pick.
+ */
+const dePapi = pendientes.filter((p) => p.proveedor === 'oddspapi');
+const deOdds = pendientes.filter((p) => p.proveedor !== 'oddspapi');
+
 const grupos = new Map<string, Pendiente[]>();
-for (const p of pendientes) {
+for (const p of deOdds) {
   // La hora de comienzo entra entera en la clave: la instantánea que sirve a
   // un partido de las 23:06 no es la del de las 23:10.
   const clave = `${p.deporte}|${p.comienzo.toISOString()}|${p.mercado}`;
@@ -219,8 +266,9 @@ for (const p of pendientes) {
 }
 
 console.log(
-  `\n${pendientes.length} pick(s) pendientes en ${grupos.size} instantánea(s). ` +
-    `Coste máximo: ${Math.min(grupos.size, MAX_INSTANTANEAS) * COSTE} peticiones.`,
+  `\n${pendientes.length} pick(s) pendientes: ` +
+    `${deOdds.length} de the-odds-api en ${grupos.size} instantánea(s), ` +
+    `${dePapi.length} de oddspapi pick a pick.`,
 );
 
 const normal = (s: string) => s.trim().toLowerCase();
@@ -313,7 +361,7 @@ async function renunciar(
     motivo,
     detalle,
     renunciadoEn: new Date().toISOString(),
-    proveedor: api.nombre,
+    proveedor: p.proveedor,
   };
   if (p.origen === 'registro') {
     anadirRenuncia(fila);
@@ -338,51 +386,17 @@ const sinDatos: string[] = [];
 /** Lo que se ha dado por perdido en esta pasada, para decirlo en voz alta. */
 const renunciados: string[] = [];
 
-for (const [clave, delGrupo] of grupos) {
-  if (instantaneas >= MAX_INSTANTANEAS) {
-    console.log(`\n⚠ Tope de ${MAX_INSTANTANEAS} instantáneas por pasada. ` +
-      `Quedan ${grupos.size - instantaneas} para la siguiente.`);
-    break;
-  }
-
-  const restante = api.cuotaRestante();
-  if (restante !== null && restante - COSTE < RESERVA) {
-    console.log(`\n⚠ Quedan ${restante} peticiones y la reserva es ${RESERVA}. Se para aquí.`);
-    break;
-  }
-
-  const primero = delGrupo[0] as Pendiente;
-  let cierres: Map<string, CuotasDeCierre>;
-  try {
-    cierres = await api.cierresDelMomento(primero.deporte, primero.comienzo, primero.mercado);
-    instantaneas++;
-  } catch (fallo) {
-    if (fallo instanceof ErrorCuotaAgotada) {
-      console.error('\nCuota del proveedor agotada. Se para aquí y se retoma en la próxima pasada.');
-      break;
-    }
-    console.error(`  ${clave}: ${fallo instanceof Error ? fallo.message : String(fallo)}`);
-    continue;
-  }
-
-  for (const p of delGrupo) {
-    const cierre = cierres.get(p.eventoId);
-    if (!cierre) {
-      /*
-       * Un fallo transitorio del proveedor y un partido que de verdad no está
-       * se ven igual desde aquí, así que este caso NO se abandona al primer
-       * intento: se le dan tres días de reintentos y solo entonces se cierra.
-       */
-      const antiguedad = Date.now() - p.comienzo.getTime();
-      if (antiguedad > ESPERA_ANTES_DE_RENUNCIAR) {
-        await renunciar(p, 'evento_ausente', `el evento ${p.eventoId} no está en la instantánea`);
-        renunciados.push(`${p.id} (${p.eventoId}): el partido no aparece tras 3 días`);
-      } else {
-        sinDatos.push(`${p.id} (${p.eventoId})`);
-      }
-      continue;
-    }
-
+/**
+ * Analiza un cierre ya descargado y lo guarda. Devuelve si se guardó.
+ *
+ * Vive aparte porque los dos proveedores llegan hasta aquí por caminos
+ * distintos —The Odds API con una instantánea de toda la competición, OddsPapi
+ * partido a partido— pero lo que se hace con el cierre es idéntico: elegir el
+ * mercado propio y la referencia, deducir la línea si se movió, calcular el
+ * margen y escribir. Duplicar esto habría garantizado que las dos copias se
+ * separaran a la primera corrección.
+ */
+async function guardarCierre(p: Pendiente, cierre: CuotasDeCierre): Promise<boolean> {
     /*
      * DOS mercados, cada uno para lo que sirve.
      *
@@ -455,7 +469,7 @@ for (const [clave, delGrupo] of grupos) {
       const detalle = `"${p.lado}" no está entre ${original.map((l) => `"${l.etiqueta}"`).join(', ')}`;
       await renunciar(p, 'linea_movida', detalle);
       renunciados.push(`${p.id}: ${detalle}`);
-      continue;
+      return false;
     }
     const { lados: usados, indice, estimacion } = resuelto;
     /* Sobre el mercado RESUELTO: si se dedujo el par, el margen es el suyo. */
@@ -504,7 +518,7 @@ for (const [clave, delGrupo] of grupos) {
         margen,
         ...(estimacion ? { estimacion } : {}),
         referencia,
-        proveedor: api.nombre,
+        proveedor: p.proveedor,
       });
     } else if (supabase) {
       const { error } = await supabase.from('cierres').insert({
@@ -518,31 +532,145 @@ for (const [clave, delGrupo] of grupos) {
         margen,
         estimacion: estimacion ?? null,
         referencia,
-        proveedor: api.nombre,
+        proveedor: p.proveedor,
       });
       if (error) {
         console.error(`  ${p.id}: no se pudo guardar el cierre — ${error.message}`);
-        continue;
+        return false;
       }
     }
 
-    capturados++;
-    const analisis = referencia
-      ? analizarConReferencia(
-          p.cuotaTomada, cuotas, indice, referencia.cuotas, referencia.indiceTomado,
-        )
-      : analizarApuestaN(p.cuotaTomada, cuotas, indice);
-    const signo = analisis.ventaja >= 0 ? '+' : '';
-    console.log(
-      `  ${p.origen === 'registro' ? '📄' : '👤'} ${p.lado} @ ${p.cuotaTomada} → ` +
-        `cierre ${cuotas[indice]} (${fuente === 'casa' ? suCasa?.casa : 'consenso'})` +
-        `${referencia ? ` · ref ${referencia.casa} ${(referencia.margen * 100).toFixed(1)}%` : ''} · ` +
-        `ventaja ${signo}${(analisis.ventaja * 100).toFixed(2)} %`,
-    );
+  const analisis = referencia
+    ? analizarConReferencia(
+        p.cuotaTomada, cuotas, indice, referencia.cuotas, referencia.indiceTomado,
+      )
+    : analizarApuestaN(p.cuotaTomada, cuotas, indice);
+  const signo = analisis.ventaja >= 0 ? '+' : '';
+  console.log(
+    `  ${p.origen === 'registro' ? '📄' : '👤'} ${p.lado} @ ${p.cuotaTomada} → ` +
+      `cierre ${cuotas[indice]} (${fuente === 'casa' ? suCasa?.casa : 'consenso'})` +
+      `${referencia ? ` · ref ${referencia.casa} ${(referencia.margen * 100).toFixed(1)}%` : ''} · ` +
+      `ventaja ${signo}${(analisis.ventaja * 100).toFixed(2)} %`,
+  );
+  return true;
+}
+
+for (const [clave, delGrupo] of grupos) {
+  if (api === null) {
+    console.error('  the-odds-api no configurada: sus picks se quedan pendientes.');
+    break;
+  }
+  if (instantaneas >= MAX_INSTANTANEAS) {
+    console.log(`\n⚠ Tope de ${MAX_INSTANTANEAS} instantáneas por pasada. ` +
+      `Quedan ${grupos.size - instantaneas} para la siguiente.`);
+    break;
+  }
+
+  const restante = api.cuotaRestante();
+  if (restante !== null && restante - COSTE < RESERVA) {
+    console.log(`\n⚠ Quedan ${restante} peticiones y la reserva es ${RESERVA}. Se para aquí.`);
+    break;
+  }
+
+  const primero = delGrupo[0] as Pendiente;
+  let cierres: Map<string, CuotasDeCierre>;
+  try {
+    cierres = await api.cierresDelMomento(primero.deporte, primero.comienzo, primero.mercado);
+    instantaneas++;
+  } catch (fallo) {
+    if (fallo instanceof ErrorCuotaAgotada) {
+      console.error('\nCuota del proveedor agotada. Se para aquí y se retoma en la próxima pasada.');
+      break;
+    }
+    console.error(`  ${clave}: ${fallo instanceof Error ? fallo.message : String(fallo)}`);
+    continue;
+  }
+
+  for (const p of delGrupo) {
+    const cierre = cierres.get(p.eventoId);
+    if (!cierre) {
+      /*
+       * Un fallo transitorio del proveedor y un partido que de verdad no está
+       * se ven igual desde aquí, así que este caso NO se abandona al primer
+       * intento: se le dan tres días de reintentos y solo entonces se cierra.
+       */
+      const antiguedad = Date.now() - p.comienzo.getTime();
+      if (antiguedad > ESPERA_ANTES_DE_RENUNCIAR) {
+        await renunciar(p, 'evento_ausente', `el evento ${p.eventoId} no está en la instantánea`);
+        renunciados.push(`${p.id} (${p.eventoId}): el partido no aparece tras 3 días`);
+      } else {
+        sinDatos.push(`${p.id} (${p.eventoId})`);
+      }
+      continue;
+    }
+
+    if (await guardarCierre(p, cierre)) capturados++;
   }
 }
 
-console.log(`\n${capturados} cierre(s) capturados en ${instantaneas} instantánea(s).`);
+/*
+ * OddsPapi, pick a pick.
+ *
+ * Su histórico va por partido y resultado, así que no hay instantánea de
+ * competición que repartir: cada pick cuesta sus dos o tres llamadas y no se
+ * ahorra agrupando. A cambio devuelve la serie temporal entera, y el cierre es
+ * el último precio ANTES del saque en vez de una foto del instante.
+ *
+ * El tope se aplica por pick: con cien mil peticiones al mes sobra, pero un
+ * día con cincuenta pendientes no debe tardar diez minutos con el freno
+ * puesto. Lo que se queda fuera se dice y se coge en la pasada siguiente.
+ */
+if (dePapi.length > 0) {
+  if (papi === null) {
+    console.error('  oddspapi no configurada: sus picks se quedan pendientes.');
+  } else {
+    let hechos = 0;
+    for (const p of dePapi) {
+      if (hechos >= MAX_INSTANTANEAS) {
+        console.log(
+          `
+⚠ Tope de ${MAX_INSTANTANEAS} picks de oddspapi por pasada. ` +
+            `Quedan ${dePapi.length - hechos} para la siguiente.`,
+        );
+        break;
+      }
+      hechos++;
+      try {
+        /*
+         * La línea del pick va como pista: OddsPapi pide el histórico línea a
+         * línea, así que sin decirle cuál interesa devolvía la principal del
+         * mercado —el 0.5 de los totales— y todos los picks a Over 2.5 salían
+         * como «línea movida». No lo estaban.
+         */
+        const cierre = await papi.cuotasDeCierre(
+          { id: p.eventoId, deporte: p.deporte, comienzo: p.comienzo },
+          p.mercado,
+          separarLinea(p.lado)?.linea ?? null,
+        );
+        if (cierre === null) {
+          const antiguedad = Date.now() - p.comienzo.getTime();
+          if (antiguedad > ESPERA_ANTES_DE_RENUNCIAR) {
+            await renunciar(p, 'evento_ausente', `sin cierre en oddspapi para ${p.eventoId}`);
+            renunciados.push(`${p.id} (${p.eventoId}): sin cierre tras 3 días`);
+          } else {
+            sinDatos.push(`${p.id} (${p.eventoId})`);
+          }
+          continue;
+        }
+        if (await guardarCierre(p, cierre)) capturados++;
+      } catch (fallo) {
+        if (fallo instanceof ErrorCuotaAgotada) {
+          console.error('\nLimite de oddspapi alcanzado. Se retoma en la proxima pasada.');
+          break;
+        }
+        console.error(`  ${p.id}: ${fallo instanceof Error ? fallo.message : String(fallo)}`);
+      }
+    }
+  }
+}
+
+console.log(`
+${capturados} cierre(s) capturados.`);
 if (sinDatos.length > 0) {
   console.log(`${sinDatos.length} sin datos de cierre todavía: ${sinDatos.slice(0, 5).join(', ')}`);
 }
@@ -572,6 +700,10 @@ interface PorResolver {
   eventoId: string;
   mercado: Mercado;
   lado: string;
+  /** Los equipos, para poder etiquetar el marcador sin volver a preguntarlos. */
+  local: string;
+  visitante: string;
+  proveedor: string;
 }
 
 const porResolver: PorResolver[] = porResolverRegistro.map((p) => ({
@@ -581,12 +713,15 @@ const porResolver: PorResolver[] = porResolverRegistro.map((p) => ({
   eventoId: p.eventoId,
   mercado: p.mercado,
   lado: p.lado,
+  local: p.local,
+  visitante: p.visitante,
+  proveedor: proveedorDe(p.eventoId, p.proveedor),
 }));
 
 if (supabase) {
   const { data } = await supabase
     .from('picks')
-    .select('id, deporte, evento_id, lado, mercado, resultados(pick_id)')
+    .select('id, deporte, evento_id, lado, mercado, local, visitante, resultados(pick_id)')
     .lte('comienzo', new Date().toISOString())
     .limit(500);
 
@@ -599,6 +734,9 @@ if (supabase) {
       eventoId: p.evento_id as string,
       mercado: p.mercado as Mercado,
       lado: p.lado as string,
+      local: (p.local as string | undefined) ?? '',
+      visitante: (p.visitante as string | undefined) ?? '',
+      proveedor: proveedorDe(p.evento_id as string),
     });
   }
 }
@@ -637,44 +775,96 @@ if (porResolver.length > 0) {
   const deportes = [...new Set(porResolver.map((p) => p.deporte))];
   let resueltos = 0;
 
-  for (const deporte of deportes) {
-    let marcadores;
-    try {
-      marcadores = new Map(
-        (await api.resultados(deporte, 3)).map((r) => [r.eventoId, r]),
-      );
-    } catch (fallo) {
-      console.error(`  resultados de ${deporte}: ${fallo instanceof Error ? fallo.message : fallo}`);
-      continue;
+  /**
+   * Guarda un resultado ya resuelto. Común a los dos proveedores.
+   */
+  async function guardarResultado(
+    p: PorResolver,
+    marcadorLista: { equipo: string; puntos: number }[],
+    cuando: Date,
+  ): Promise<boolean> {
+    const desenlace = resolverPick(p, marcadorLista, p.deporte);
+    if (desenlace === null) return false;
+    const marcador = marcadorLista.map((x) => `${x.equipo} ${x.puntos}`).join(' — ');
+    if (p.origen === 'registro') {
+      anadirResultado({
+        pickId: p.id,
+        desenlace,
+        marcador,
+        capturadoEn: cuando.toISOString(),
+        proveedor: p.proveedor,
+      });
+    } else if (supabase) {
+      const { error } = await supabase.from('resultados').insert({
+        pick_id: p.id,
+        desenlace,
+        marcador,
+        capturado_en: cuando.toISOString(),
+        proveedor: p.proveedor,
+      });
+      if (error) return false;
     }
+    console.log(`  ${p.lado} → ${desenlace} (${marcador})`);
+    return true;
+  }
 
-    for (const p of porResolver.filter((x) => x.deporte === deporte)) {
-      const m = marcadores.get(p.eventoId);
-      if (!m || !m.terminado) continue;
-
-      const desenlace = resolverPick(p, m.marcador, deporte);
-      if (desenlace === null) continue;
-
-      const marcador = m.marcador.map((x) => `${x.equipo} ${x.puntos}`).join(' — ');
-      if (p.origen === 'registro') {
-        anadirResultado({
-          pickId: p.id,
-          desenlace,
-          marcador,
-          capturadoEn: m.actualizadoEn.toISOString(),
-          proveedor: api.nombre,
-        });
-      } else if (supabase) {
-        const { error } = await supabase.from('resultados').insert({
-          pick_id: p.id,
-          desenlace,
-          marcador,
-          capturado_en: m.actualizadoEn.toISOString(),
-          proveedor: api.nombre,
-        });
-        if (error) continue;
+  /*
+   * The Odds API: una llamada de marcadores por competición sirve a todos sus
+   * picks, así que se agrupa por deporte.
+   */
+  const porDeporte = porResolver.filter((p) => p.proveedor !== 'oddspapi');
+  if (porDeporte.length > 0 && api === null) {
+    console.error('  the-odds-api no configurada: sus resultados se quedan pendientes.');
+  } else if (api !== null) {
+    for (const deporte of [...new Set(porDeporte.map((p) => p.deporte))]) {
+      let marcadores;
+      try {
+        marcadores = new Map((await api.resultados(deporte, 3)).map((r) => [r.eventoId, r]));
+      } catch (fallo) {
+        console.error(
+          `  resultados de ${deporte}: ${fallo instanceof Error ? fallo.message : fallo}`,
+        );
+        continue;
       }
-      resueltos++;
+      for (const p of porDeporte.filter((x) => x.deporte === deporte)) {
+        const m = marcadores.get(p.eventoId);
+        if (!m || !m.terminado) continue;
+        if (await guardarResultado(p, m.marcador, m.actualizadoEn)) resueltos++;
+      }
+    }
+  }
+
+  /*
+   * OddsPapi: el marcador va por partido, así que una llamada por pick. Dos
+   * picks del mismo partido comparten marcador y se cachea para no pedirlo
+   * dos veces — pasa constantemente, porque de un partido se apuestan varios
+   * mercados.
+   */
+  const porPartido = porResolver.filter((p) => p.proveedor === 'oddspapi');
+  if (porPartido.length > 0 && papi === null) {
+    console.error('  oddspapi no configurada: sus resultados se quedan pendientes.');
+  } else if (papi !== null) {
+    const cache = new Map<string, { equipo: string; puntos: number }[] | null>();
+    for (const p of porPartido) {
+      try {
+        if (!cache.has(p.eventoId)) {
+          cache.set(p.eventoId, await papi.marcadorDe(p.eventoId, p.local, p.visitante));
+        }
+        const marcadorLista = cache.get(p.eventoId) ?? null;
+        /*
+         * Sin marcador NO se liquida. Un partido sin datos todavía y un 0-0 se
+         * verían igual si se rellenara con ceros, y el fichero es de
+         * solo-añadir: una liquidación equivocada no se corrige después.
+         */
+        if (marcadorLista === null) continue;
+        if (await guardarResultado(p, marcadorLista, new Date())) resueltos++;
+      } catch (fallo) {
+        if (fallo instanceof ErrorCuotaAgotada) {
+          console.error('\nLimite de oddspapi alcanzado en resultados. Se retoma luego.');
+          break;
+        }
+        console.error(`  ${p.id}: ${fallo instanceof Error ? fallo.message : String(fallo)}`);
+      }
     }
   }
 
@@ -686,7 +876,14 @@ if (porResolver.length > 0) {
  * no hay cabeceras de las que leer la cuota. Se sondea, que es gratis: sin
  * esto, precisamente las pasadas tranquilas se quedarían sin vigilancia.
  */
-const restante = api.cuotaRestante() ?? (await api.sondearCuota().catch(() => null));
+/*
+ * La vigilancia de cuota es SOLO de The Odds API: es la que se agota y la que
+ * tiene reserva. OddsPapi no expone cuota en cabeceras —cien mil al mes y un
+ * contador en su panel— así que aquí no hay nada que mirar.
+ */
+const restante = api === null
+  ? null
+  : (api.cuotaRestante() ?? (await api.sondearCuota().catch(() => null)));
 if (restante !== null) {
   console.log(`\nCuota restante del proveedor: ${restante}`);
 
