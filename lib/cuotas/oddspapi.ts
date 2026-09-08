@@ -54,6 +54,13 @@ const CASA = 'betfair-ex';
 /** Como se le llama a la casa de cara al usuario. */
 const CASA_LEGIBLE = 'Betfair Exchange';
 
+/**
+ * El único estado de partido en el que un marcador es definitivo.
+ *
+ * Los otros que devuelve el proveedor son «Live», «Pre-Game» y «Cancelled».
+ */
+const ESTADO_TERMINADO = 'Finished';
+
 /** Separación mínima entre peticiones. Medido: por debajo salta el 429. */
 const PAUSA_MS = 1500;
 /** Si aun así salta, se espera de verdad antes del único reintento. */
@@ -114,6 +121,12 @@ export class OddsPapi implements ProveedorDeCuotas {
   private readonly buscar: typeof fetch;
   /** Los nombres de equipo son medio mega y no cambian: se piden una vez. */
   private participantes: Map<number, Record<string, string>> = new Map();
+  /**
+   * Listados de partidos ya pedidos. Una jornada entera cabe en una respuesta
+   * y ahora se consulta dos veces por pick —cierre y estado—, así que sin esto
+   * la pasada haría decenas de peticiones idénticas.
+   */
+  private listados: Map<string, PartidoAPI[]> = new Map();
   private ultimaPeticion = 0;
   private readonly pausaMs: number;
 
@@ -504,28 +517,40 @@ export class OddsPapi implements ProveedorDeCuotas {
   }
 
   /**
-   * Marcador final de un partido.
+   * Marcador FINAL de un partido, o null si todavía no lo hay.
    *
-   * `result` es el resultado bueno; `fulltime` es el de los noventa minutos y
-   * `p1` el del descanso. Se prefiere `result` y se cae a `fulltime`: en liga
-   * coinciden, y donde no coinciden —una eliminatoria con prórroga— el que
-   * decide la apuesta es el primero.
+   * Lo primero que hace es preguntar si el partido ha terminado, y no es celo:
+   * `/scores` devuelve el marcador EN VIVO. El periodo se llama `result` y
+   * existe desde el minuto uno, actualizándose cada pocos minutos mientras se
+   * juega. Leerlo sin más da un marcador perfectamente real del minuto 60.
    *
-   * Devuelve null si no hay marcador todavía, que NO es lo mismo que un 0-0.
-   * Confundirlos liquidaría como perdida una apuesta de un partido que aún no
-   * ha terminado, y eso no se arregla luego porque el fichero es de
-   * solo-añadir.
+   * Eso ya pasó. El 2026-09-08, con tres partidos en juego, se liquidaron
+   * cinco apuestas con el marcador de la primera parte:
+   *
+   *   Club Brugge 1 — Aston Villa 3   result.updatedAt = 17:41, en juego
+   *
+   * Y `resultados.jsonl` es de solo-añadir, así que una liquidación
+   * equivocada no se corrige: se queda. El estado del partido vive en
+   * `/fixtures` —«Finished», «Live», «Pre-Game», «Cancelled»— y es el único
+   * sitio donde se puede saber. Solo «Finished» cuenta.
+   *
+   * Un partido cancelado devuelve null y se queda pendiente para siempre.
+   * Es deliberado por ahora: son baratos de reintentar aquí, y anularlos
+   * automáticamente sin haber visto un caso real sería inventarse la regla.
    */
   async marcadorDe(
-    fixtureId: string,
+    evento: ReferenciaEvento,
     local: string,
     visitante: string,
   ): Promise<{ equipo: string; puntos: number }[] | null> {
+    const partido = await this.partidoDe(evento);
+    if (partido === null || partido.statusName !== ESTADO_TERMINADO) return null;
+
     const d = await this.pedir<{
       scores?: {
         periods?: Record<string, { participant1Score?: number; participant2Score?: number }>;
       };
-    }>('/scores', { fixtureId });
+    }>('/scores', { fixtureId: evento.id });
 
     const periodos = d.scores?.periods;
     if (!periodos) return null;
@@ -543,11 +568,19 @@ export class OddsPapi implements ProveedorDeCuotas {
   private async partidoDe(evento: ReferenciaEvento): Promise<PartidoAPI | null> {
     const { sportId } = this.torneo(evento.deporte);
     const dia = (d: Date) => d.toISOString().slice(0, 10);
-    const partidos = await this.pedir<PartidoAPI[]>('/fixtures', {
-      sportId: String(sportId),
-      from: dia(new Date(evento.comienzo.getTime() - 24 * 60 * 60 * 1000)),
-      to: dia(new Date(evento.comienzo.getTime() + 24 * 60 * 60 * 1000)),
-    });
+    const from = dia(new Date(evento.comienzo.getTime() - 24 * 60 * 60 * 1000));
+    const to = dia(new Date(evento.comienzo.getTime() + 24 * 60 * 60 * 1000));
+    const clave = `${sportId}|${from}|${to}`;
+
+    let partidos = this.listados.get(clave);
+    if (partidos === undefined) {
+      partidos = await this.pedir<PartidoAPI[]>('/fixtures', {
+        sportId: String(sportId),
+        from,
+        to,
+      });
+      this.listados.set(clave, partidos);
+    }
     return partidos.find((p) => p.fixtureId === evento.id) ?? null;
   }
 

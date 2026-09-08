@@ -227,3 +227,77 @@ describe('el cierre se pide alrededor de la línea del pick', () => {
     expect(ids).toContain(pedidos[0]);
   });
 });
+
+/*
+ * `/scores` devuelve el marcador EN VIVO.
+ *
+ * El periodo se llama `result` y existe desde el minuto uno, actualizándose
+ * mientras se juega. Leerlo sin mirar el estado del partido da un marcador
+ * real —y provisional— del minuto 60.
+ *
+ * Pasó el 2026-09-08 con tres partidos en juego: se liquidaron cinco apuestas
+ * con el resultado de la primera parte. `resultados.jsonl` es de solo-añadir,
+ * así que una liquidación equivocada se queda para siempre.
+ */
+function papiConEstado(statusName: string) {
+  const buscar = (async (entrada: string | URL) => {
+    const url = new URL(entrada.toString());
+    const responder = (cuerpo: unknown) =>
+      new Response(JSON.stringify(cuerpo), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+
+    if (url.pathname.endsWith('/fixtures')) {
+      return responder([
+        {
+          fixtureId: 'id999',
+          participant1Id: 1,
+          participant2Id: 2,
+          startTime: COMIENZO,
+          statusName,
+        },
+      ]);
+    }
+    if (url.pathname.endsWith('/scores')) {
+      return responder({
+        scores: {
+          periods: {
+            // Marcador en vivo: existe se haya acabado el partido o no.
+            result: { participant1Score: 1, participant2Score: 3 },
+          },
+        },
+      });
+    }
+    return new Response('{}', { status: 404 });
+  }) as typeof fetch;
+  return buscar;
+}
+
+describe('un marcador solo cuenta si el partido ha terminado', () => {
+  const pedir = (statusName: string) =>
+    new OddsPapi({ claveApi: 'x', buscar: papiConEstado(statusName), pausaMs: 0 }).marcadorDe(
+      evento,
+      'Club Brugge',
+      'Aston Villa',
+    );
+
+  it('con el partido en juego NO devuelve marcador, aunque lo haya', async () => {
+    expect(await pedir('Live')).toBeNull();
+  });
+
+  it('tampoco antes de empezar', async () => {
+    expect(await pedir('Pre-Game')).toBeNull();
+  });
+
+  it('ni en un partido cancelado', async () => {
+    expect(await pedir('Cancelled')).toBeNull();
+  });
+
+  it('terminado sí, y con los equipos en su sitio', async () => {
+    expect(await pedir('Finished')).toEqual([
+      { equipo: 'Club Brugge', puntos: 1 },
+      { equipo: 'Aston Villa', puntos: 3 },
+    ]);
+  });
+});

@@ -745,6 +745,8 @@ interface PorResolver {
   id: string;
   deporte: Deporte;
   eventoId: string;
+  /** Hace falta para preguntar por el partido, no solo por su marcador. */
+  comienzo: Date;
   mercado: Mercado;
   lado: string;
   /** Los equipos, para poder etiquetar el marcador sin volver a preguntarlos. */
@@ -758,6 +760,7 @@ const porResolver: PorResolver[] = porResolverRegistro.map((p) => ({
   id: p.id,
   deporte: p.deporte,
   eventoId: p.eventoId,
+  comienzo: new Date(p.comienzo),
   mercado: p.mercado,
   lado: p.lado,
   local: p.local,
@@ -768,7 +771,7 @@ const porResolver: PorResolver[] = porResolverRegistro.map((p) => ({
 if (supabase) {
   const { data } = await supabase
     .from('picks')
-    .select('id, deporte, evento_id, lado, mercado, local, visitante, resultados(pick_id)')
+    .select('id, deporte, evento_id, comienzo, lado, mercado, local, visitante, resultados(pick_id)')
     .lte('comienzo', new Date().toISOString())
     .limit(500);
 
@@ -779,6 +782,7 @@ if (supabase) {
       id: p.id as string,
       deporte: p.deporte as Deporte,
       eventoId: p.evento_id as string,
+      comienzo: new Date(p.comienzo as string),
       mercado: p.mercado as Mercado,
       lado: p.lado as string,
       local: (p.local as string | undefined) ?? '',
@@ -895,7 +899,14 @@ if (porResolver.length > 0) {
     for (const p of porPartido) {
       try {
         if (!cache.has(p.eventoId)) {
-          cache.set(p.eventoId, await papi.marcadorDe(p.eventoId, p.local, p.visitante));
+          cache.set(
+            p.eventoId,
+            await papi.marcadorDe(
+              { id: p.eventoId, deporte: p.deporte, comienzo: p.comienzo },
+              p.local,
+              p.visitante,
+            ),
+          );
         }
         const marcadorLista = cache.get(p.eventoId) ?? null;
         /*
