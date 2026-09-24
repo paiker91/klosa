@@ -14,3 +14,13 @@ next-env.d.ts
 # Solo existen en esta carpeta — conviene tener copia en otro sitio.
 CLAUDE.md
 SPEC-01-calculadora-clv.md
+
+# Datos y notas locales que viven en esta carpeta pero no son código (el
+# repositorio es público). El registro de picks tiene su propio repositorio;
+# aquí solo hay una copia de trabajo y su respaldo.
+/klosa-picks/
+/klosa-picks-respaldo/
+/reports/
+/research_notes/
+/brief-*.md
+/comprobar.mts
